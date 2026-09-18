@@ -1,0 +1,43 @@
+const assert=require('node:assert/strict');
+const path=require('node:path');const fs=require('node:fs');
+const {chromium}=require('playwright');const {approach}=require('./camp-helpers.cjs');
+const url=process.env.EMBERWILD_URL||'http://127.0.0.1:8765',out=path.resolve(__dirname,'../test-output');fs.mkdirSync(out,{recursive:true});
+const errors=[],external=[];
+async function setup(browser,options){const ctx=await browser.newContext(options);await ctx.route('**/*',r=>{if(new URL(r.request().url()).origin===new URL(url).origin)return r.continue();external.push(r.request().url());return r.abort();});const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(url+'/?qa=1');await p.locator('#begin').click();return{ctx,p};}
+async function position(p){return p.evaluate(()=>emberwildQA.campUI.walk.snapshot());}
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.PBM_CHROME_EXECUTABLE||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});try{
+ const {ctx,p}=await setup(browser,{viewport:{width:1365,height:900}});
+ assert.equal(await p.locator('#camp-plots').count(),0);assert.equal(await p.locator('#camp-start').count(),0);
+ const initial=await position(p);await p.keyboard.down('d');await p.waitForTimeout(350);await p.keyboard.up('d');await p.keyboard.down('s');await p.waitForTimeout(350);await p.keyboard.up('s');const moved=await position(p);assert.ok(moved.x>initial.x+30);assert.ok(moved.y>initial.y+30);
+ await p.waitForTimeout(250);const camera=await p.evaluate(()=>emberwildQA.campUI.painter.camera);assert.ok(camera.x>400&&camera.y>500);
+ console.log('PASS real keyboard input moves in X and Y with a top-down following camera');
+ await p.evaluate(()=>emberwildQA.campUI.build('tent',0));assert.equal(await p.evaluate(()=>emberwildQA.store.state.camp.buildings.length),0);
+ console.log('PASS distant facility cannot be built remotely');
+ await p.locator('[data-walk-to="merchant"]').click();assert.equal(await p.locator('#modal').isVisible(),false);const mid=await position(p);assert.ok(Math.hypot(mid.x-1260,mid.y-870)>50,'waypoint starts walking rather than teleporting');
+ await p.waitForFunction(()=>!emberwildQA.campUI.walk.path.length&&emberwildQA.campUI.walk.canInteract('merchant'),null,{timeout:15000});await p.keyboard.press('e');await p.waitForSelector('[data-buy="watchtower"]');
+ const still=await position(p);await p.keyboard.down('w');await p.waitForTimeout(200);await p.keyboard.up('w');assert.deepEqual(await position(p),still);
+ const original=await p.evaluate(()=>({n:emberwildQA.game.inventory.watchtower,w:emberwildQA.game.materials.wood}));await p.locator('[data-buy="watchtower"]').click();await p.waitForFunction(n=>emberwildQA.store.state.run.inventory.watchtower===n+1,original.n);const purchase=await p.evaluate(()=>emberwildQA.store.state.run);assert.ok(purchase.materials.wood<original.w);
+ await p.screenshot({path:path.join(out,'12-camp-merchant.png')});await p.locator('[data-action="market-close"]').click();assert.equal(await p.locator('#camp').isVisible(),true);assert.equal(await p.locator('#game').isVisible(),false);assert.equal(await p.evaluate(()=>emberwildQA.game),null);
+ console.log('PASS walk to merchant, interact, buy exact card, pause input in shop, return to scene');
+ await p.evaluate(()=>emberwildQA.campUI.savePosition());const savedPos=await position(p);await p.reload();await p.locator('#begin').click();assert.deepEqual(await position(p),savedPos);assert.equal(await p.evaluate(()=>emberwildQA.store.state.run.inventory.watchtower),purchase.inventory.watchtower);
+ console.log('PASS camp position and expedition shopping persist together after reload');
+ await p.locator('[data-walk-to="gate"]').click();await p.waitForFunction(()=>!emberwildQA.campUI.walk.path.length&&emberwildQA.campUI.walk.canInteract('gate'),null,{timeout:15000});await p.locator('#camp-interact').click();await p.locator('#camp-start').click();await p.waitForSelector('#route-map:not([hidden])');await p.locator('.route-node.available').click({force:true});await p.waitForSelector('#game:not([hidden])');assert.equal(await p.evaluate(()=>emberwildQA.game.inventory.watchtower),purchase.inventory.watchtower);assert.equal(await p.evaluate(()=>emberwildQA.store.state.profile.runs),1);assert.equal(await p.evaluate(()=>emberwildQA.game.phase),'wave');
+ await p.locator('#pause').click();await p.locator('[data-action="save-camp"]').click();await approach(p,'merchant');assert.match(await p.locator('#modal-title').textContent(),/等你/);assert.equal(await p.locator('[data-buy]').count(),0);await p.locator('[data-action="close-camp-site"]').click();
+ console.log('PASS gate resumes purchased run once; camp cannot bypass active-wave merchant restriction');
+ await p.evaluate(()=>{emberwildQA.campUI.walk.restore({x:980,y:960});emberwildQA.campUI.painter.snap=true;});await p.waitForTimeout(100);await p.screenshot({path:path.join(out,'10-living-camp-desktop.png')});
+ const t0=await p.evaluate(()=>emberwildQA.campUI.walk.time);await p.waitForTimeout(220);assert.ok(await p.evaluate(()=>emberwildQA.campUI.walk.time)>t0);await p.evaluate(()=>window.dispatchEvent(new Event('blur')));const idle=await position(p);await p.waitForTimeout(100);assert.deepEqual(await position(p),idle);
+ console.log('PASS living scene animates without movement, blur clears held inputs');await ctx.close();
+ const {ctx:mobile,p:m}=await setup(browser,{viewport:{width:393,height:852},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+ const cdp=await mobile.newCDPSession(m),box=await m.locator('#camp-joystick').boundingBox(),before=await position(m),center={x:box.x+box.width/2,y:box.y+box.height/2};
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,...center}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:center.x+25,y:center.y+25}]});await m.waitForTimeout(300);await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});const after=await position(m);assert.ok(after.x>before.x+15&&after.y>before.y+15);await m.waitForTimeout(200);assert.deepEqual(await position(m),after);
+ assert.ok(await m.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.ok(await m.locator('#camp-interact').evaluate(el=>el.getBoundingClientRect().bottom<innerHeight));await m.screenshot({path:path.join(out,'11-living-camp-mobile.png')});
+ console.log('PASS phone joystick moves diagonally, cancellation stops motion, controls fit portrait viewport');
+ // A real canvas tap goes to a 2D destination, it does not interact or teleport.
+ const point=await m.evaluate(()=>{const ui=emberwildQA.campUI;return ui.painter.screen(ui.walk.x+75,ui.walk.y-65);});await m.touchscreen.tap(point.x,point.y);assert.equal(await m.locator('#modal').isVisible(),false);await m.waitForTimeout(1000);const tapped=await position(m);assert.ok(tapped.x>after.x+40&&tapped.y<after.y-35);
+ console.log('PASS phone scene tap walks freely across both axes');
+ await approach(m,'plot-0');await m.locator('[data-facility="tent"]').tap();await m.waitForFunction(()=>emberwildQA.store.state.camp.buildings.length===1);await m.screenshot({path:path.join(out,'13-living-camp-building.png')});
+ await approach(m,'merchant');await m.waitForSelector('[data-buy="watchtower"]');const stock=await m.evaluate(()=>emberwildQA.store.state.run.inventory.watchtower);await m.evaluate(()=>{window.savedSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='emberwild_save_v2')throw new Error('quota');return window.savedSet.call(this,k,v);};});await m.locator('[data-buy="watchtower"]').tap();await m.waitForSelector('[data-action="retry-save"]');assert.equal(await m.evaluate(()=>emberwildQA.game.inventory.watchtower),stock);assert.equal(await m.evaluate(()=>emberwildQA.store.state.run.inventory.watchtower),stock);
+ await m.evaluate(()=>{Storage.prototype.setItem=window.savedSet;});await m.locator('[data-action="retry-save"]').tap();await m.waitForFunction(()=>document.querySelector('#modal').hidden);assert.equal(await m.locator('#camp').isVisible(),true);assert.equal(await m.evaluate(()=>emberwildQA.game),null);assert.equal(await m.evaluate(()=>emberwildQA.store.state.run.inventory.watchtower),stock);
+ console.log('PASS camp merchant quota failure rolls back, retry returns safely to camp without duplicate charge');
+ await mobile.close();assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('PASS living camp has no JS errors or external requests');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

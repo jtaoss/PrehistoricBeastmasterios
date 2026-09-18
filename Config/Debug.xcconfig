@@ -1,0 +1,21 @@
+#include "Shared.xcconfig"
+
+DEBUG_INFORMATION_FORMAT = dwarf
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG
+GCC_PREPROCESSOR_DEFINITIONS = DEBUG=1
+ONLY_ACTIVE_ARCH = YES
+ENABLE_TESTABILITY = YES
+MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE
+
+// Match the production H5 entry for device payment testing. Keep the VPN enabled when this host is not directly reachable.
+ONLINE_GAME_URL = https:/$()/saftcdn.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=ios_wk&pf=xmwtwh5sqxssgp1&td_channelid=xmwtwh5sqxssgp1
+CONTENT_CONFIG_ENDPOINT = http:/$()/127.0.0.1:8080/api/v1/content-config
+STOREKIT_ENABLED = YES
+
+// Inject only the operations-provided CLIENT_API_TOKEN into a local Debug build.
+// The spreadsheet's generic TOKEN belongs to the Facebook parameter block and is not valid here.
+PAYMENT_API_TOKEN = $(PBM_CLIENT_API_TOKEN)
+
+// Optional, ignored local overrides keep personal signing out of the operations package.
+#include? "Secrets.xcconfig"

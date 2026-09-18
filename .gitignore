@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+
+# Xcode user state and build products
+DerivedData/
+build/
+build-*/
+*.xcarchive/
+*.ipa
+*.dSYM
+*.dSYM.zip
+*.mobileprovision
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+
+# Swift Package Manager local caches
+.build/
+.swiftpm/
+SourcePackages/
+Package.resolved.tmp
+
+# Local credentials and signing overrides
+Config/Secrets.xcconfig
+*.p12
+*.cer
+*.pem
+*.key
+*.keystore
+*.jks
+.env
+.env.*
+!.env.example
+
+# Generated logs, exports and test captures
+output/
+prototypes/emberwild/test-output/
+*.log
+*.logarchive/
+handoff/*.zip
+
+# Editor state
+.idea/
+.vscode/
+*.swp
+*~

@@ -1,0 +1,20 @@
+#include "Shared.xcconfig"
+#include? "Secrets.xcconfig"
+
+// Official operations-owned App Store identity from the iOS parameter sheet.
+DEVELOPMENT_TEAM = ADR4GMT9V3
+PRODUCT_BUNDLE_IDENTIFIER = com.stone.primitive.saga
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Apple Distribution
+PROVISIONING_PROFILE_SPECIFIER = Primal_Legends_AppStore_YU_KANG_2026
+
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+SWIFT_OPTIMIZATION_LEVEL = -O
+SWIFT_COMPILATION_MODE = wholemodule
+MTL_ENABLE_DEBUG_INFO = NO
+VALIDATE_PRODUCT = YES
+
+// Production H5 entry. os=ios_wk enables the WKWebView message handlers used by the iOS shell.
+ONLINE_GAME_URL = https:/$()/saftcdn.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=ios_wk&pf=xmwtwh5sqxssgp1&td_channelid=xmwtwh5sqxssgp1
+CONTENT_CONFIG_ENDPOINT = https:/$()/safthwysdk.antieh.com/api/v1/content-config
+STOREKIT_ENABLED = YES

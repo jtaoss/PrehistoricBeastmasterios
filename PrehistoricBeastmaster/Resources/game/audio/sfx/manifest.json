@@ -1,0 +1,41 @@
+{
+  "license": "CC0-1.0",
+  "author": "Kenney",
+  "sources": {
+    "platformer": "https://kenney.nl/assets/new-platformer-pack",
+    "interface": "https://kenney.nl/assets/interface-sounds"
+  },
+  "files": {
+    "jump.wav": { "pack": "platformer", "original": "Sounds/sfx_jump.ogg" },
+    "double-jump.wav": { "pack": "platformer", "original": "Sounds/sfx_jump-high.ogg" },
+    "coin.wav": { "pack": "platformer", "original": "Sounds/sfx_coin.ogg" },
+    "gem.wav": { "pack": "platformer", "original": "Sounds/sfx_gem.ogg" },
+    "bump.wav": { "pack": "platformer", "original": "Sounds/sfx_bump.ogg" },
+    "hurt.wav": { "pack": "platformer", "original": "Sounds/sfx_hurt.ogg" },
+    "magic.wav": { "pack": "platformer", "original": "Sounds/sfx_magic.ogg" },
+    "select.wav": { "pack": "platformer", "original": "Sounds/sfx_select.ogg" },
+    "whoosh.wav": { "pack": "platformer", "original": "Sounds/sfx_throw.ogg" },
+    "defeat.wav": { "pack": "platformer", "original": "Sounds/sfx_disappear.ogg" },
+    "click.wav": { "pack": "interface", "original": "Audio/click_001.ogg" },
+    "win.wav": { "pack": "interface", "original": "Audio/confirmation_002.ogg" }
+  },
+  "cues": {
+    "jump": { "file": "jump.wav", "volume": 0.28, "rate": 1, "cooldown": 0.06, "priority": 1 },
+    "doubleJump": { "file": "double-jump.wav", "volume": 0.25, "rate": 1.12, "cooldown": 0.08, "priority": 1 },
+    "land": { "file": "bump.wav", "volume": 0.10, "rate": 0.85, "cooldown": 0.10, "priority": 0 },
+    "stomp": { "file": "bump.wav", "volume": 0.26, "rate": 1.35, "cooldown": 0.12, "priority": 1 },
+    "collect": { "file": "coin.wav", "volume": 0.20, "rate": 1, "cooldown": 0.075, "priority": 0 },
+    "gem": { "file": "gem.wav", "volume": 0.24, "rate": 1, "cooldown": 0.10, "priority": 1 },
+    "heal": { "file": "magic.wav", "volume": 0.25, "rate": 1.12, "cooldown": 0.15, "priority": 2 },
+    "powerup": { "file": "magic.wav", "volume": 0.27, "rate": 0.95, "cooldown": 0.12, "priority": 1 },
+    "shield": { "file": "gem.wav", "volume": 0.30, "rate": 0.80, "cooldown": 0.15, "priority": 2 },
+    "rush": { "file": "whoosh.wav", "volume": 0.28, "rate": 0.85, "cooldown": 0.10, "priority": 1 },
+    "smash": { "file": "bump.wav", "volume": 0.30, "rate": 0.70, "cooldown": 0.09, "priority": 1 },
+    "hurt": { "file": "hurt.wav", "volume": 0.30, "rate": 0.95, "cooldown": 0.18, "priority": 2 },
+    "defeat": { "file": "defeat.wav", "volume": 0.30, "rate": 0.90, "cooldown": 0.50, "priority": 2 },
+    "win": { "file": "win.wav", "volume": 0.32, "rate": 1, "cooldown": 0.50, "priority": 2 },
+    "ui": { "file": "click.wav", "volume": 0.15, "rate": 1, "cooldown": 0.06, "priority": 0 },
+    "equip": { "file": "select.wav", "volume": 0.22, "rate": 1, "cooldown": 0.10, "priority": 1 },
+    "hero": { "file": "select.wav", "volume": 0.22, "rate": 0.85, "cooldown": 0.18, "priority": 1 }
+  }
+}
