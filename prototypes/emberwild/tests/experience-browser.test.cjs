@@ -12,7 +12,7 @@ const url=process.env.EMBERWILD_URL||'http://127.0.0.1:8765';
     window.webkit={messageHandlers:{gameHaptics:{postMessage:message=>window.__haptics.push(message)}}};
   });
   try{
-    await page.goto(`${url}/?qa=stage1`);await page.waitForFunction(()=>window.emberwildQA?.game);
+    await require('./camp-helpers.cjs').openVeteran(page,`${url}/?qa=stage1`);await page.waitForFunction(()=>window.emberwildQA?.game);
     await page.evaluate(()=>emberwildQA.game.paused=false);
     await page.locator('#game-settings').tap();await page.waitForSelector('.settings-panel');
     assert.equal(await page.locator('.setting-row').count(),5,'all native-experience settings are present');

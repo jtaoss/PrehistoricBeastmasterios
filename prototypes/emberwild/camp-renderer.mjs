@@ -14,6 +14,8 @@ export class CampRenderer extends Painter{
  resize(){const r=this.canvas.getBoundingClientRect();this.w=r.width||1000;this.h=r.height||700;this.dpr=experience.renderScale();this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);this.scale=this.w<760?Math.max(.68,Math.min(.88,this.w/500)):Math.max(.72,Math.min(1.25,this.h/760));this.visible={w:this.w/this.scale,h:this.h/this.scale};this.snap=true;}
  point(x,y){const r=this.canvas.getBoundingClientRect();return{x:(x-r.left)/this.scale+this.camera.x,y:(y-r.top)/this.scale+this.camera.y};}
  screen(x,y){const r=this.canvas.getBoundingClientRect();return{x:r.left+(x-this.camera.x)*this.scale,y:r.top+(y-this.camera.y)*this.scale};}
+ residentSnapshot(){return this.residents.snapshot();}
+ nearestResident(walk,reach=CAMP_WORLD.reach){return this.residentSnapshot().map(actor=>({...actor,distance:Math.hypot(actor.x-walk.x,actor.y-walk.y)})).filter(actor=>actor.distance<=reach).sort((a,b)=>a.distance-b.distance)[0]||null;}
  draw(walk,state,dt){
   this.reduced=experience.reducedEffects();
   const c=this.c,t=this.reduced?0:walk.time,want={x:Math.max(0,Math.min(CAMP_WORLD.width-this.visible.w,walk.x-this.visible.w*.5)),y:Math.max(0,Math.min(CAMP_WORLD.height-this.visible.h,walk.y-this.visible.h*.57))};
@@ -31,10 +33,14 @@ export class CampRenderer extends Painter{
   const objects=CAMP_SITES.map(s=>({y:s.y,draw:()=>this.site(s,state,t)}));
   // Residents follow purposeful walking routes, pause at work points and yield
   // to the player. The merchant stays at the stall, not duplicated in a loop.
-  for(const actor of this.residents.snapshot())objects.push({y:actor.y,draw:()=>this.residentActor(actor,t)});
+  for(const actor of this.residents.snapshot())objects.push({y:actor.y,draw:()=>this.residentActor(actor,t,state.camp.tasks?.[actor.type])});
   const forge=state.camp.buildings.find(b=>b.type==='forge'),workSite=forge?CAMP_SITES.find(s=>s.slot===forge.slot):{x:720,y:790};
   const smith={x:workSite.x+100,y:workSite.y+85};objects.push({y:smith.y,draw:()=>this.resident(smith.x,smith.y,t,1)});
-  objects.push({y:1060,draw:()=>this.pet({x:860,y:1060},t)});
+  const companions=state.profile.companions,selected=companions?.selected,progress=selected&&companions.roster?.[selected];
+  if(progress?.unlocked){
+   const angle=walk.angle||0,partner={type:selected,level:progress.level,x:walk.x-Math.cos(angle)*46+Math.sin(angle)*30,y:walk.y-Math.sin(angle)*34+Math.cos(angle)*27,angle,hp:1,maxHp:1};
+   objects.push({y:partner.y,draw:()=>this.companion(partner,t,true)});
+  }else objects.push({y:1060,draw:()=>{oval(c,860,1068,45,16,'#173a2b55');drawSprite(c,'sacred-egg',860,1080,{height:118});text(c,'等待孵化的聖獸卵',860,1098,12);}});
   for(let i=0;i<10;i++){const x=250+i*283%1500,y=250+i*397%1250;if(CAMP_SITES.some(s=>Math.hypot(s.x-x,s.y-y)<180)||Math.hypot(x-960,y-960)<180)continue;objects.push({y,draw:()=>this.tree(x,y,i)});}
   objects.push({y:walk.y,draw:()=>{this.hero({x:walk.x,y:walk.y,angle:walk.angle,moving:walk.moving,weapon:'spear',invulnerable:0,swing:0,dashTime:0},walk.time);}});
   objects.sort((a,b)=>a.y-b.y).forEach(o=>o.draw());
@@ -43,11 +49,11 @@ export class CampRenderer extends Painter{
   if(walk.path.length){const p=walk.path[walk.path.length-1];c.beginPath();c.ellipse(p.x,p.y,15,7,0,0,Math.PI*2);c.strokeStyle='#ffe7ac';c.stroke();}
  }
  tree(x,y,i){const c=this.c;oval(c,x,y+12,65,24,'#1b3c2d49');if(drawSprite(c,i%2?'fern-tree':'broadleaf',x,y+20,{height:230+i%3*20,width:240,flip:!!(i%2)}))return;line(c,[[x,y],[x-8,y-126]],'#64714b',17);for(let k=0;k<4;k++)poly(c,[[x-89+k*28,y-80-k%2*35],[x-61+k*30,y-137-k%2*25],[x-21+k*29,y-115],[x+1+k*26,y-69]],['#385d3c','#4c713e','#618247','#537547'][k]);}
- residentActor(actor,t){const c=this.c,pose=this.actorPose('camp-'+actor.type,actor,t,actor.type==='porter'?65:76);oval(c,actor.x,actor.y+15,18,6,'#213f2d55');if(drawCharacter(c,actor.type,actor.x,actor.y+15,pose))return;this.resident(actor.x,actor.y,t,actor.type==='porter'?0:2);}
+ residentActor(actor,t,task){const c=this.c,pose=this.actorPose('camp-'+actor.type,actor,t,actor.type==='porter'?65:76);oval(c,actor.x,actor.y+15,18,6,'#213f2d55');const painted=drawCharacter(c,actor.type,actor.x,actor.y+15,pose);if(!painted)this.resident(actor.x,actor.y,t,actor.type==='porter'?0:2);if(task){oval(c,actor.x,actor.y-67,15,15,task.ready?'#efc76e':'#355d49');text(c,task.ready?'!':'?',actor.x,actor.y-62,17,task.ready?'#263526':'#dce5bf');}}
  resident(x,y,t,i){const c=this.c;oval(c,x,y+15,18,6,'#213f2d55');if(drawSprite(c,['porter','smith','hunter','merchant'][i%4],x,y+17,{height:79}))return;c.save();c.translate(x,y);line(c,[[-5,6],[-7,16]],'#615538',6);line(c,[[5,6],[7,16]],'#615538',6);poly(c,[[-10,-19],[10,-19],[14,8],[-13,8]],i%2?'#a79967':'#567c73','#365641');oval(c,0,-27,10,12,'#cea477');poly(c,[[-13,-28],[0,-44],[14,-27]],'#69734e');if(i%2)poly(c,[[8,-13],[22,-8],[21,10],[7,7]],'#b79761');c.restore();}
  site(s,state,t){const c=this.c;c.save();c.translate(s.x,s.y);oval(c,0,15,93,35,'#1e432c35');
   if(s.kind==='plot'){
-   const b=state.camp.buildings.find(b=>b.slot===s.slot);if(b)this.facility(b,t);else{c.setLineDash([8,10]);c.strokeStyle='#e1dca782';c.lineWidth=2;c.strokeRect(-69,-35,138,83);c.setLineDash([]);for(const [x,y]of[[-72,-33],[72,-33],[-72,49],[72,49]]){line(c,[[x,y],[x,y-19]],'#967c50',5);poly(c,[[x,y-19],[x+17,y-14],[x,y-6]],'#c6cc91');}text(c,'＋',0,15,29,'#ecdfab');}
+   const b=state.camp.buildings.find(b=>b.slot===s.slot);if(b){this.facility(b,t);const ready=state.camp.production?.[b.type]||0;if(ready>0){oval(c,68,-184,20,20,'#e6c271');text(c,String(ready),68,-178,14,'#213a2b');}}else{c.setLineDash([8,10]);c.strokeStyle='#e1dca782';c.lineWidth=2;c.strokeRect(-69,-35,138,83);c.setLineDash([]);for(const [x,y]of[[-72,-33],[72,-33],[-72,49],[72,49]]){line(c,[[x,y],[x,y-19]],'#967c50',5);poly(c,[[x,y-19],[x+17,y-14],[x,y-6]],'#c6cc91');}text(c,'＋',0,15,29,'#ecdfab');}
    text(c,b?`${FACILITIES[b.type].name} ${'◆'.repeat(b.level)}`:s.label,0,b?-208:-65,13);
   }else if(s.kind==='fire'){
    if(drawSprite(c,'campfire',0,24,{height:128,width:137})){

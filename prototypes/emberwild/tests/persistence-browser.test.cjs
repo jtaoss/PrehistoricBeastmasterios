@@ -5,7 +5,7 @@ const {chromium}=require('playwright');
 const url=process.env.EMBERWILD_URL||'http://127.0.0.1:8765';
 const out=path.resolve(__dirname,'../test-output');fs.mkdirSync(out,{recursive:true});
 const errors=[],external=[];
-async function load(page){page.on('pageerror',e=>errors.push(e.message));await page.goto(url+'/?qa=1');await page.waitForFunction(()=>window.emberwildQA);}
+async function load(page){page.on('pageerror',e=>errors.push(e.message));await require('./camp-helpers.cjs').openVeteran(page,url+'/?qa=1');await page.waitForFunction(()=>window.emberwildQA);}
 (async()=>{
   const browser=await chromium.launch({headless:true,executablePath:process.env.PBM_CHROME_EXECUTABLE||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
   try{

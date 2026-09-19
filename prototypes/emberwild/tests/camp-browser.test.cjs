@@ -3,7 +3,7 @@ const path=require('node:path');const fs=require('node:fs');
 const {chromium}=require('playwright');const {approach}=require('./camp-helpers.cjs');
 const url=process.env.EMBERWILD_URL||'http://127.0.0.1:8765',out=path.resolve(__dirname,'../test-output');fs.mkdirSync(out,{recursive:true});
 const errors=[],external=[];
-async function setup(browser,options){const ctx=await browser.newContext(options);await ctx.route('**/*',r=>{if(new URL(r.request().url()).origin===new URL(url).origin)return r.continue();external.push(r.request().url());return r.abort();});const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(url+'/?qa=1');await p.locator('#begin').click();return{ctx,p};}
+async function setup(browser,options){const ctx=await browser.newContext(options);await ctx.route('**/*',r=>{if(new URL(r.request().url()).origin===new URL(url).origin)return r.continue();external.push(r.request().url());return r.abort();});const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));await require('./camp-helpers.cjs').openVeteran(p,url+'/?qa=1');await p.locator('#begin').click();return{ctx,p};}
 async function position(p){return p.evaluate(()=>emberwildQA.campUI.walk.snapshot());}
 (async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.PBM_CHROME_EXECUTABLE||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});try{
  const {ctx,p}=await setup(browser,{viewport:{width:1365,height:900}});

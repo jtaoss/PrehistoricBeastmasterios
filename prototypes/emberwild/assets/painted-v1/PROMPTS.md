@@ -252,3 +252,31 @@ Portrait 1024x1536 production battle-arena background for a premium hand-painted
 ```text
 Portrait 1024x1536 production final-boss battle-arena background for a premium hand-painted 2.5D prehistoric mobile ARPG. Elevated top-down orthographic view. Titan Sanctuary: a monumental circular bone-and-stone ritual arena in an ancient jungle, huge carved tusks and rib arches, amber channels, mossy monoliths, waterfalls and a worn central combat floor. Keep the central 72% broad, open and walkable; frame the perimeter with architecture and foliage. Environment only; no characters, enemies, UI, text, letters, numbers, logos or watermark. Full-bleed opaque illustration.
 ```
+
+# 圣兽伙伴（2026-09-18）
+
+生成方式：本地 `D:\Desktop\Image generation tool\imagegen_go`，模型 `gpt-image-2`，质量 `high`，尺寸 `1024×1024`，透明 PNG。三张图均为单个完整角色、俯视三分之四视角、透明背景，并按本项目青绿/象牙/琥珀的手绘史前 ARPG 美术方向生成。
+
+## 焰脊迅龙（`companion-emberclaw-v1.png`）
+
+任务编号：`b8f4b2d7ebddfe5a`
+
+```text
+Create one production-ready transparent-background companion sprite for a premium hand-painted prehistoric mobile ARPG. A small agile juvenile raptor named Emberclaw, teal-green scales, bright orange feather crest and tail accents, subtle glowing amber ember markings, alert friendly expression, compact athletic silhouette ready to pounce. Top-down three-quarter orthographic view, full body centered with generous transparent padding, readable around 70–100 px. Painterly teal, ivory, ochre and amber palette, crisp soft-dark edges, warm upper-left lighting, faint contact shadow only. Exactly one creature; no rider, scenery, UI, text, border, logo or watermark.
+```
+
+## 潮汐角龙（`companion-tideroot-v1.png`）
+
+任务编号：`658025a675dd69bf`
+
+```text
+Create one production-ready transparent-background companion sprite for a premium hand-painted prehistoric mobile ARPG. A friendly juvenile triceratops named Tideroot, turquoise and sea-green scales, pale ivory brow horns and frill, luminous blue tide-like markings, small moss and water-drop accents, sturdy protective silhouette with a gentle determined expression. Top-down three-quarter orthographic view, full body centered with generous transparent padding, readable around 70–100 px. Painterly teal, ivory and cool aqua palette with restrained amber details, crisp soft-dark edges, warm upper-left lighting, faint contact shadow only. Exactly one creature; no rider, scenery, UI, text, border, logo or watermark.
+```
+
+## 岩甲幼龙（`companion-stoneback-v1.png`）
+
+任务编号：`f1e0656f83e950ab`
+
+```text
+Create one production-ready transparent-background companion sprite for a premium hand-painted prehistoric mobile ARPG. A stocky juvenile ankylosaur named Stoneback, moss-green hide, layered weathered stone-and-ivory armor plates, amber crystal studs along the back, heavy club tail, calm brave expression and a low defensive silhouette. Top-down three-quarter orthographic view, full body centered with generous transparent padding, readable around 70–100 px. Painterly moss, slate, ivory and amber palette, crisp soft-dark edges, warm upper-left lighting, faint contact shadow only. Exactly one creature; no rider, scenery, UI, text, border, logo or watermark.
+```

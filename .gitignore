@@ -34,7 +34,10 @@ Config/Secrets.xcconfig
 
 # Generated logs, exports and test captures
 output/
+.playwright-cli/
 prototypes/emberwild/test-output/
+# Per-machine, one-time acceptance reset; never publish an armed reset request.
+prototypes/emberwild/acceptance-reset.json
 *.log
 *.logarchive/
 handoff/*.zip

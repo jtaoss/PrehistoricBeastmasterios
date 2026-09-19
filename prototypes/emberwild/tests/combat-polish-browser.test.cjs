@@ -14,11 +14,12 @@ fs.mkdirSync(out,{recursive:true});
       const context=await browser.newContext({viewport,deviceScaleFactor:mobile?2:1,isMobile:mobile,hasTouch:mobile});
       const p=await context.newPage(),errors=[];
       p.on('pageerror',e=>errors.push(e.message));
-      await p.goto(url+'/?qa=combat-polish');
+      await require('./camp-helpers.cjs').openVeteran(p,url+'/?qa=combat-polish');
       await p.evaluate(async()=>{await emberwildQA.start();await (await import('./painted-art.mjs')).preloadArt();await document.fonts.ready;});
+      if(await p.locator('#tutorial-skip').isVisible())await p.locator('#tutorial-skip').click();await p.waitForFunction(()=>emberwildQA.store.state.profile.tutorialDone);
       await p.evaluate(()=>{
         const g=emberwildQA.game;g.nodes=[];
-        for(const [slot,x,y]of [[0,200,290],[1,520,290],[2,250,480],[3,505,485]]){
+        for(const [slot,x,y]of [[0,200,290],[1,520,290],[2,250,480]]){
           if(!g.placeCard(slot,x,y).ok)throw Error('Test building placement failed');
         }
         g.startWave();g.spawnQueue=['brute'];g.spawnTimer=99;g.waveTime=4;g.spawnEnemy('brute',{x:g.hero.x+135,y:g.hero.y});
@@ -31,8 +32,8 @@ fs.mkdirSync(out,{recursive:true});
       await p.evaluate(()=>{emberwildQA.game.hero.dashTime=0;});
       await p.locator('#skill-volley').click();await p.waitForFunction(()=>emberwildQA.game.hero.volleyCD>0);await p.waitForFunction(()=>document.querySelector('#skill-volley').getAttribute('aria-disabled')==='true');
       assert.match(await p.locator('#volley-label').textContent(),/s$/);
-      await p.evaluate(()=>{const g=emberwildQA.game;g.spawnEnemy('brute',{x:g.hero.x+70,y:g.hero.y});});
-      await p.locator('#skill-shock').click();await p.waitForFunction(()=>emberwildQA.game.hero.shockCD>0);await p.waitForFunction(()=>document.querySelector('#skill-shock').getAttribute('aria-disabled')==='true');
+      await p.evaluate(()=>{const g=emberwildQA.game;g.loadout.skills=['shock'];g.paused=false;g.hero.dashTime=0;g.hero.shockCD=0;g.spawnEnemy('brute',{x:g.hero.x+70,y:g.hero.y});emberwildQA.render();});
+      await p.waitForFunction(()=>!document.querySelector('#skill-shock').disabled);await p.locator('#skill-shock').click();await p.waitForFunction(()=>emberwildQA.game.hero.shockCD>0);await p.waitForFunction(()=>document.querySelector('#skill-shock').getAttribute('aria-disabled')==='true');
       await p.evaluate(()=>{const g=emberwildQA.game;g.hero.hp=25;g.hero.dashTime=0;g.hero.invulnerable=0;g.hero.swing=0;g.hero.x=360;g.hero.y=545;g.effects=[];g.spawnEnemy('brute',{x:160,y:180});g.spawnEnemy('raptor',{x:560,y:195});g.paused=true;emberwildQA.render();});
       await p.waitForFunction(()=>!document.querySelector('#arena').classList.contains('wave-starting'));
       assert.equal(await p.locator('#arena').evaluate(e=>e.classList.contains('low-health')),true);
@@ -55,7 +56,7 @@ fs.mkdirSync(out,{recursive:true});
       await p.screenshot({path:path.join(out,`32-wave-loot-${viewport.width}.png`),fullPage:true,animations:'disabled'});
       await p.locator('#loot-merchant').click();
       assert.equal(await p.locator('#wave-loot').isVisible(),false);
-      assert.equal(await p.locator('[data-buy]').count(),4);
+      assert.equal(await p.locator('[data-buy]').count(),3);
       await p.locator('[data-action="market-close"]').click();
       await p.reload();await p.locator('#continue-run').click();
       assert.deepEqual(await p.evaluate(()=>({...emberwildQA.game.materials,amber:emberwildQA.game.amber})),materials);

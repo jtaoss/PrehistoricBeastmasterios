@@ -41,7 +41,7 @@ await test('pre-offensive-card v2 saves restore without losing their legacy hand
  const restored=Expedition.restore(old);assert.deepEqual(restored.hand,old.hand);assert.equal(restored.inventory.watchtower,0);assert.equal(restored.inventory.catapult,0);assert.equal(restored.inventory.torch,2);
 });
 await test('old envelope remains readable; new envelope blocks old clients from silently downgrading',()=>{
- const raw=JSON.parse(encode(freshState()));assert.equal(raw.version,4);raw.version=2;let h=2166136261;for(const c of JSON.stringify({version:raw.version,revision:raw.revision,updatedAt:raw.updatedAt,state:raw.state})){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}raw.checksum=(h>>>0).toString(16);assert.deepEqual(decode(JSON.stringify(raw)).state,freshState());
+ const raw=JSON.parse(encode(freshState()));assert.equal(raw.version,10);raw.version=2;let h=2166136261;for(const c of JSON.stringify({version:raw.version,revision:raw.revision,updatedAt:raw.updatedAt,state:raw.state})){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}raw.checksum=(h>>>0).toString(16);assert.deepEqual(decode(JSON.stringify(raw)).state,freshState());
 });
 await test('failed purchase save can roll back both material balance and owned card',async()=>{
  const storage=new Memory(),store=new SaveStore(storage),g=fresh();await store.begin(g.snapshot());const before=g.snapshot();g.buy('torch');storage.fail=true;await assert.rejects(store.saveRun(g.snapshot()));const rollback=Expedition.restore(before);assert.equal(rollback.inventory.torch,2);assert.deepEqual(rollback.materials,{wood:8,bone:4});assert.deepEqual(decode(storage.getItem(SAVE_KEY)).state.run,before);

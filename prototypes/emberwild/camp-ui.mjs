@@ -45,8 +45,10 @@ export class CampUI {
   clear(){this.keys.clear();this.stick={x:0,y:0};this.pointer=null;this.sprint=false;this.walk.stop();$('camp-stick').style.transform='';}
   moveStick(e){if(e.pointerId!==this.pointer)return;const r=$('camp-joystick').getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,max=r.width*.34,len=Math.max(max,Math.hypot(dx,dy));this.stick={x:dx/len,y:dy/len};$('camp-stick').style.transform=`translate(${this.stick.x*max}px,${this.stick.y*max}px)`;}
   message(text){$('camp-message').textContent=text;}
+  nearbyResident(){return this.painter.nearestResident(this.walk);}
+  canInteractResident(type){return this.nearbyResident()?.type===type;}
   travel(id){if(!this.active||this.paused)return;const s=CAMP_SITES.find(s=>s.id===id);if(!s)return;this.clear();if(this.walk.goTo(s.x,s.y+110,campObstacles(this.store.state)))this.message(`正在走向${s.label}，抵達後按「互動」。`);else this.message('這條路暫時無法通行，請從另一側靠近。');}
-  interact(){if(!this.active||this.paused)return;const s=this.walk.nearest();if(!s){this.message('再靠近一點，就能與設施互動。');return;}experience.haptic('selection');this.clear();this.onInteract(s);}
+  interact(){if(!this.active||this.paused)return;const resident=this.nearbyResident(),site=this.walk.nearest(),siteDistance=site?Math.hypot(site.x-this.walk.x,site.y-this.walk.y):Infinity,s=resident&&resident.distance<siteDistance?{id:`npc-${resident.type}`,kind:'npc',npc:resident.type,label:resident.type==='porter'?'搬運工阿拓':'巡林獵人瑟雅'}:site;if(!s){this.message('再靠近一點，就能與設施或居民互動。');return;}experience.haptic('selection');this.clear();this.onInteract(s);}
   render(){
     $('camp-stones').textContent=this.store.state.camp.stones;
     $('camp-save-status').textContent=this.store.warning||(this.store.savedAt?`✓ 本機已存檔 · ${new Date(this.store.savedAt).toLocaleTimeString('zh-TW',{hour12:false})}`:'移動、建設與交易自動存檔');
@@ -56,10 +58,10 @@ export class CampUI {
     const has=k=>this.keys.has(k)?1:0;
     this.walk.tick(dt,{x:this.stick.x+has('d')+has('arrowright')-has('a')-has('arrowleft'),y:this.stick.y+has('s')+has('arrowdown')-has('w')-has('arrowup'),sprint:this.sprint||!!has('shift'),paused:this.paused},campObstacles(this.store.state));
     this.painter.draw(this.walk,this.store.state,dt);
-    const s=this.walk.nearest(),b=s?.kind==='plot'&&this.store.state.camp.buildings.find(b=>b.slot===s.slot);
-    $('camp-nearby').textContent=s?(b?FACILITIES[b.type].name:s.label):'走近設施互動';
+    const site=this.walk.nearest(),resident=this.nearbyResident(),siteDistance=site?Math.hypot(site.x-this.walk.x,site.y-this.walk.y):Infinity,s=resident&&resident.distance<siteDistance?{kind:'npc',npc:resident.type,label:resident.type==='porter'?'搬運工阿拓':'巡林獵人瑟雅'}:site,b=s?.kind==='plot'&&this.store.state.camp.buildings.find(b=>b.slot===s.slot);
+    $('camp-nearby').textContent=s?(b?FACILITIES[b.type].name:s.label):'走近設施或居民互動';
     $('camp-interact').disabled=!s||this.paused;
-    $('camp-interact').textContent=s?.kind==='merchant'?'交談 / 購物 · E':s?.kind==='gate'?'準備出征 · E':s?.kind==='plot'?(b?'查看 / 升級 · E':this.movingFrom!==null?'搬遷到此處 · E':'建設地塊 · E'):'互動 · E';
+    $('camp-interact').textContent=s?.kind==='npc'?'交談 / 委託 · E':s?.kind==='merchant'?'交談 / 購物 · E':s?.kind==='gate'?'準備出征 · E':s?.kind==='plot'?(b?'查看 / 生產 / 升級 · E':this.movingFrom!==null?'搬遷到此處 · E':'建設地塊 · E'):'互動 · E';
     if(t-this.lastSave>2500&&!this.paused){this.lastSave=t;this.savePosition();}
   }
   positionChanged(){const p=this.store.state.camp.position,n=this.walk.snapshot();return !p||p.x!==n.x||p.y!==n.y||p.angle!==n.angle;}

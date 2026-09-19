@@ -38,7 +38,7 @@ async function assertInViewport(page,selector,label,{vertical=true}={}){
       const page=await context.newPage(),errors=[];
       page.on('pageerror',error=>errors.push(error.message));
 
-      await page.goto(`${url}/?qa=1`);await page.waitForFunction(()=>window.emberwildQA);await applySafeArea(page,device.safe);
+      await require('./camp-helpers.cjs').openVeteran(page,`${url}/?qa=1`);await page.waitForFunction(()=>window.emberwildQA);await applySafeArea(page,device.safe);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
       await assertInViewport(page,'#begin','landing primary action');
       await page.screenshot({path:path.join(out,`50-ios-${device.name}-landing.png`),fullPage:true,animations:'disabled'});
@@ -49,12 +49,12 @@ async function assertInViewport(page,selector,label,{vertical=true}={}){
       await assertInViewport(page,'#camp-joystick','camp joystick');
       await page.screenshot({path:path.join(out,`51-ios-${device.name}-camp.png`),animations:'disabled'});
 
-      await page.goto(`${url}/?qa=route`);await page.waitForSelector('#route-map:not([hidden])');await applySafeArea(page,device.safe);
+      await require('./camp-helpers.cjs').openVeteran(page,`${url}/?qa=route`);await page.waitForSelector('#route-map:not([hidden])');await applySafeArea(page,device.safe);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
       await assertInViewport(page,'.route-header','route header');
       await page.screenshot({path:path.join(out,`52-ios-${device.name}-route.png`),fullPage:true,animations:'disabled'});
 
-      await page.goto(`${url}/?qa=stage1`);await page.waitForFunction(()=>window.emberwildQA?.game);await applySafeArea(page,device.safe);
+      await require('./camp-helpers.cjs').openVeteran(page,`${url}/?qa=stage1`);await page.waitForFunction(()=>window.emberwildQA?.game);await applySafeArea(page,device.safe);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
       await assertInViewport(page,'#joystick','battle joystick',{vertical:!landscape});
       await assertInViewport(page,'#skill-volley','volley skill',{vertical:!landscape});

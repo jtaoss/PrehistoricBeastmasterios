@@ -25,6 +25,18 @@ await test('card cooldown, dash, telegraph and projectile hits survive serializa
   const a=game();a.placeCard(0,240,420);a.startWave();const e=a.spawnEnemy('brute',{x:365,y:495});e.cd=0;a.tick(.02);a.dash({x:1,y:0});a.hero.volleyCD=7;a.hero.shockCD=9;
   const b=Expedition.restore(a.snapshot());assert.deepEqual(b.cardTimers,a.cardTimers);assert.equal(b.hero.dashTime,a.hero.dashTime);assert.equal(b.hero.volleyCD,7);assert.equal(b.hero.shockCD,9);assert.deepEqual(b.enemies,a.enemies);
 });
+await test('active special objective state survives save and restore exactly',()=>{
+  const a=game();a.wave=1;a.stats.waves=1;a.startWave();a.spawnQueue=['raptor'];a.spawnTimer=99;a.hero.x=a.objective.npc.x;a.hero.y=a.objective.npc.y;tick(a,35);
+  const snapshot=a.snapshot(),b=Expedition.restore(snapshot);assert.deepEqual(b.objective,snapshot.objective);assert.equal(b.objective.type,'escort');assert.ok(b.objective.npc.waypoint>=1);assert.deepEqual(b.snapshot(),snapshot);
+});
+await test('random map event schedule and claimed rewards survive save without rerolling',()=>{
+  const a=game(),chest=a.eventPlan.find(event=>event.type==='chest');a.phase='wave';a.wave=chest.stage;a.spawnQueue=['raptor'];a.setupObjective();chest.status='active';chest.x=300;chest.y=300;a.hero.x=300;a.hero.y=300;const before={...a.materials,amber:a.amber};assert.equal(a.interactMapEvent(),true);
+  const snapshot=a.snapshot(),b=Expedition.restore(snapshot),restored=b.eventPlan.find(event=>event.id===chest.id);assert.deepEqual(b.snapshot(),snapshot);assert.equal(restored.status,'completed');assert.notDeepEqual({wood:b.materials.wood,bone:b.materials.bone,amber:b.amber},before);assert.equal(b.interactMapEvent(restored.id),false);assert.deepEqual(b.snapshot(),snapshot);
+});
+await test('boss phase, warning and destructible weakpoint survive save exactly',()=>{
+  const a=game();a.wave=7;a.stats.waves=7;a.startWave();a.spawnQueue=[];const boss=a.spawnEnemy('boss',{x:355,y:245});boss.hp=boss.maxHp*.69;a.updateEnemy(boss,.01);boss.cd=0;a.hero.x=355;a.hero.y=370;a.updateEnemy(boss,.01);assert.ok(boss.windup>0&&boss.weakpoint.open);
+  const snapshot=a.snapshot(),b=Expedition.restore(snapshot);assert.deepEqual(b.snapshot(),snapshot);assert.equal(b.enemies[0].bossPhase,1);assert.equal(b.enemies[0].weakpoint.name,'琥珀核心');assert.equal(b.enemies[0].attackKind,'titan-slam');
+});
 await test('reject malformed entity/type/phase/ID/hand snapshots',()=>{
   for(const edit of [s=>s.hero.hp=null,s=>s.hero.weapon='unknown',s=>s.hero.volleyCD='bad',s=>s.rngState=-1,s=>s.hand[0]='bad',s=>s.inventory.torch=-1,s=>s.materials.bone=NaN,s=>s.phase='invalid',s=>s.nextId=1,s=>s.nodes[1].id=s.nodes[0].id]){const s=game().snapshot();edit(s);assert.throws(()=>Expedition.restore(s));}
 });
@@ -35,7 +47,7 @@ await test('older fortifications migrate to new durability while preserving dama
 });
 await test('legacy summary migrates non-destructively and initial camp resource given only once',async()=>{
   const m=new Memory();m.setItem(LEGACY_KEY,JSON.stringify({runs:7,best:4,victories:2}));const a=new SaveStore(m);
-  assert.deepEqual(a.state.profile,{runs:7,best:4,victories:2});assert.equal(a.state.camp.stones,8);
+  assert.deepEqual({runs:a.state.profile.runs,best:a.state.profile.best,victories:a.state.profile.victories},{runs:7,best:4,victories:2});assert.equal(a.state.profile.companions.selected,null);assert.equal(a.state.camp.stones,8);
   await a.mutate(s=>buildCamp(s,'tent',0));const b=new SaveStore(m);assert.equal(b.state.camp.stones,5);assert.equal(b.state.profile.runs,7);assert.ok(m.getItem(LEGACY_KEY));
 });
 await test('camp construction, upgrades, move and failed placement use correct resources',()=>{
@@ -48,7 +60,7 @@ await test('camp level cap and occupied relocation cannot silently charge',()=>{
 });
 await test('camp bonuses apply once on new expedition, never double on restore',()=>{
   const s=freshState();s.camp.stones=99;for(const [i,type] of ['tent','forge','cache','nursery'].entries())buildCamp(s,type,i);
-  const a=createExpedition(s,1,'bonus-run');assert.equal(a.hero.maxHp,110);assert.equal(a.mods.spear,1.05);assert.equal(a.mods.axe,1.05);assert.equal(a.amber,18);assert.equal(a.base.maxHp,235);
+  const a=createExpedition(s,1,'bonus-run');assert.equal(a.hero.maxHp,110);for(const weapon of ['spear','axe','bow','blades','hammer'])assert.equal(a.mods[weapon],1.05);assert.equal(a.amber,18);assert.equal(a.base.maxHp,235);
   const b=Expedition.restore(a.snapshot());assert.equal(b.hero.maxHp,110);assert.equal(b.mods.spear,1.05);assert.equal(b.amber,18);assert.equal(b.base.maxHp,235);
 });
 await test('camp changes during suspended run do not rewrite its hero or inventory',async()=>{
