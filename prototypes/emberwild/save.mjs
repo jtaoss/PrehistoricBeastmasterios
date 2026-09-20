@@ -4,6 +4,7 @@ import { FACILITIES, CAMP_TASKS, ensureCampProgress, recordCampExpedition, rewar
 export const SAVE_KEY='emberwild_save_v2';
 export const BACKUP_KEY='emberwild_save_v2_backup';
 export const LEGACY_KEY='emberwild_prototype_v1';
+export const PROGRESS_KEYS=Object.freeze([SAVE_KEY,BACKUP_KEY,LEGACY_KEY]);
 const clone=value=>JSON.parse(JSON.stringify(value));
 const num=(v,min,max)=>Number.isInteger(v)&&v>=min&&v<=max;
 const need=ok=>{if(!ok)throw new Error('營地存檔格式損壞或版本不相容');};
@@ -104,6 +105,20 @@ export class SaveStore {
     s.lastResult=result;s.run=null;return result;
   });}
   abandon(){return this.mutate(s=>{if(s.run?.tutorial?.mandatory&&s.run.tutorial.status==='active')throw new Error('請先完成新手訓練，不可放棄教學');s.run=null;});}
+  clearProgress(){
+    const task=async()=>{
+      const transaction=()=>{
+        if(this.storage.getItem(SAVE_KEY)!==this.raw){const e=new Error('另一個頁面已更新存檔，請重新載入後再刪除');e.code='CONFLICT';throw e;}
+        // Remove the primary last so a partial failure cannot expose an older
+        // backup as the active save on the next reload.
+        for(const key of [BACKUP_KEY,LEGACY_KEY,SAVE_KEY])this.storage.removeItem(key);
+        if(PROGRESS_KEYS.some(key=>this.storage.getItem(key)!==null))throw new Error('存檔刪除未完成，請關閉其他遊戲頁後重試。');
+        this.reload();return true;
+      };
+      return this.locks?this.locks.request('emberwild-save-v2',transaction):transaction();
+    };
+    const p=this.queue.then(task,task);this.queue=p.catch(()=>{});return p;
+  }
   export(){return this.blocked?JSON.stringify({recovery:true,primary:this.raw,backup:this.storage.getItem(BACKUP_KEY)},null,2):encode(this.state,this.revision);}
   async import(raw){const e=decode(raw),blocked=this.blocked;this.blocked=false;try{return await this.mutate(s=>{for(const key of ['profile','camp','run','lastResult'])s[key]=clone(e.state[key]);});}catch(error){this.blocked=blocked;throw error;}}
 }

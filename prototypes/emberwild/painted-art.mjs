@@ -20,7 +20,11 @@ export const ATLASES={
  bosses:{file:'bosses-v1.png',size:[1254,1254]},
  companionEmberclaw:{file:'companion-emberclaw-v1.png',size:[1024,1024]},
  companionTideroot:{file:'companion-tideroot-v1.png',size:[1024,1024]},
- companionStoneback:{file:'companion-stoneback-v1.png',size:[1024,1024]}
+ companionStoneback:{file:'companion-stoneback-v1.png',size:[1024,1024]},
+ shopAmberIngot:{file:'shop-amber-ingot-v1.png',size:[1024,1024]},
+ shopPackFortify:{file:'shop-pack-fortify-v1.png',size:[1024,1024]},
+ shopPackHire:{file:'shop-pack-hire-v1.png',size:[1024,1024]},
+ shopPackRelic:{file:'shop-pack-relic-v1.png',size:[1024,1024]}
 };
 const frames={
  ranger:[[155,17,255,469],[664,19,252,472],[1196,20,237,470],[144,512,238,469],[685,518,268,465],[1211,518,250,468]],
@@ -50,6 +54,10 @@ for(const type of ['torch','wall','nest','spring'])SPRITES[`building-${type}`]=S
 SPRITES['companion-emberclaw']={sheet:'companionEmberclaw',rect:[0,0,1024,1024]};
 SPRITES['companion-tideroot']={sheet:'companionTideroot',rect:[0,0,1024,1024]};
 SPRITES['companion-stoneback']={sheet:'companionStoneback',rect:[0,0,1024,1024]};
+SPRITES['shop-amber-ingot']={sheet:'shopAmberIngot',rect:[0,0,1024,1024]};
+SPRITES['shop-pack-fortify']={sheet:'shopPackFortify',rect:[0,0,1024,1024]};
+SPRITES['shop-pack-hire']={sheet:'shopPackHire',rect:[0,0,1024,1024]};
+SPRITES['shop-pack-relic']={sheet:'shopPackRelic',rect:[0,0,1024,1024]};
 export const spriteURL=sheet=>`assets/painted-v1/${ATLASES[sheet].file}`;
 const images=new Map();
 export function preloadArt(){for(const sheet of Object.keys(ATLASES))if(!images.has(sheet)){const image=new Image();image.decoding='async';image.src=spriteURL(sheet);images.set(sheet,image);}return Promise.all([preloadCharacters(),...[...images.values()].map(image=>image.decode().catch(()=>{}))]);}

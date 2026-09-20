@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { Expedition, validateSnapshot } from '../engine.mjs';
-import { SaveStore, freshState, encode, decode, SAVE_KEY, BACKUP_KEY, LEGACY_KEY } from '../save.mjs';
+import { SaveStore, freshState, encode, decode, SAVE_KEY, BACKUP_KEY, LEGACY_KEY, PROGRESS_KEYS } from '../save.mjs';
 import { buildCamp, moveCamp, createExpedition } from '../camp.mjs';
 class Memory {
   constructor(){this.data=new Map();this.fail=false;}
   getItem(k){return this.data.get(k)||null;}
   setItem(k,v){if(this.fail)throw new Error('Quota exceeded');this.data.set(k,v);}
+  removeItem(k){if(this.fail)throw new Error('Storage denied');this.data.delete(k);}
 }
 let passed=0;
 async function test(name,fn){await fn();passed++;console.log(`PASS ${name}`);}
@@ -78,6 +79,12 @@ await test('new eight-stage victory grants the expanded clear reward',async()=>{
 await test('loss keeps camp and grants only completed-wave resources; abandon grants none',async()=>{
   const m=new Memory(),s=new SaveStore(m),g=game();await s.mutate(x=>buildCamp(x,'tent',0));await s.begin(g.snapshot());g.wave=3;g.stats.waves=2;g.phase='lose';g.hero.hp=0;await s.complete(g.snapshot());assert.equal(s.state.camp.stones,9);assert.equal(s.state.camp.buildings.length,1);
   const b=new Expedition(2,'second-run');await s.begin(b.snapshot());await s.abandon();assert.equal(s.state.camp.stones,9);assert.equal(s.state.run,null);
+});
+await test('explicit save deletion clears only progress and preserves account login and preferences',async()=>{
+  const m=new Memory(),s=new SaveStore(m);m.setItem('emberwild_account_session_v1','{"version":1,"label":"蕨林獵人","signedInAt":1}');m.setItem('emberwild_experience_v1','{"volume":0.35}');
+  await s.mutate(x=>buildCamp(x,'tent',0));m.setItem(LEGACY_KEY,'{"runs":9}');await s.clearProgress();
+  assert.ok(PROGRESS_KEYS.every(key=>m.getItem(key)===null));assert.equal(m.getItem('emberwild_account_session_v1'),'{\"version\":1,\"label\":\"蕨林獵人\",\"signedInAt\":1}');assert.equal(m.getItem('emberwild_experience_v1'),'{"volume":0.35}');
+  assert.equal(s.state.profile.runs,0);assert.equal(s.state.profile.tutorialDone,false);assert.equal(s.state.camp.stones,8);assert.equal(s.raw,null);
 });
 await test('new run cannot silently overwrite active run',async()=>{const s=new SaveStore(new Memory());await s.begin(game().snapshot());await assert.rejects(s.begin(new Expedition(2,'other-run').snapshot()));assert.equal(s.state.profile.runs,1);});
 await test('failed quota write leaves in-memory camp and primary untouched',async()=>{

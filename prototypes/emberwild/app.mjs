@@ -1,5 +1,6 @@
 import { Expedition, CARDS, HIRES, DEPLOY_CARDS, UPGRADES, ACTIVE_SKILLS, WEAPONS, MAX_WAVES, STAGE_OBJECTIVES, MAP_EVENT_DEFS, COMPANIONS, COMPANION_MAX_LEVEL, companionXPNeeded, LOADOUT_RULES, isValidLoadout, normalizeLoadout } from './engine.mjs';
 import { marketContent } from './merchant-ui.mjs';
+import { shopCheckoutHTML, shopOffer, SHOP_DEMO_COPY } from './shop.mjs';
 import { Painter, icon } from './art.mjs';
 import { SaveStore, SAVE_KEY, decode, encode, ensureCompanionState, ensureLoadoutState } from './save.mjs';
 import { FACILITIES, CAMP_PRODUCTION, CAMP_TASKS, campWeaponUnlocked, collectCampProduction, claimCampTask, createExpedition, ensureCampProgress, hatchPlan } from './camp.mjs';
@@ -10,8 +11,11 @@ import { BackgroundMusic, musicScene } from './background-music.mjs';
 import {TutorialUI} from './tutorial-ui.mjs';
 import {tutorialActive,tutorialProtected,mandatoryTutorial,onboardingRequired} from './tutorial.mjs';
 import {resetForLocalAcceptance} from './acceptance-reset.mjs';
+import {installLegalLinks} from './legal-links.mjs';
+import {AccountSession} from './account-session.mjs';
 
 const $ = id => document.getElementById(id);
+installLegalLinks(document,window);
 // QA routes are visual sandboxes. They must never compete with the player's
 // real expedition save, even when a preview and the normal game are open.
 const qaMode=['127.0.0.1','localhost'].includes(location.hostname)?new URLSearchParams(location.search).get('qa'):null;
@@ -34,9 +38,10 @@ try { storage=window.localStorage; } catch { storage={getItem(){throw new Error(
 let acceptanceResetError=null;
 try{await resetForLocalAcceptance(storage,location,navigator.locks);}catch(error){acceptanceResetError=error;}
 const store=new SaveStore(storage,navigator.locks||null);
+const accountSession=new AccountSession(storage);
 const tutorialUI=new TutorialUI();
 let campUI, checkpointPending=null, lastAutoSave=0, working=false, pendingImport=null, saveFailed=false;
-let marketTab='build',routeOrigin='camp',companionResumeGame=false,loadoutDraft=null;
+let marketTab='build',routeOrigin='camp',companionResumeGame=false,loadoutDraft=null,shopCheckout=null,shopTimer=0;
 let tutorialSaving=false,tutorialSaveView=null;
 const backgroundMusic=new BackgroundMusic();
 function syncBackgroundMusic(){
@@ -45,6 +50,15 @@ function syncBackgroundMusic(){
 }
 const readonlyQADemo=()=>Boolean(qaMode&&g?.runId?.startsWith('qa-'));
 const practiceRun=()=>!!g?.runId?.startsWith('practice-');
+const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+function refreshAccountUI(){
+  const session=accountSession.reload(),button=$('landing-account');
+  button.textContent=session?session.label:'帳號';
+  button.href=session?'#account':'login-preview.html';
+  button.setAttribute('aria-label',session?`${session.label}，帳號管理`:'帳號登入');
+  button.title=session?`${session.label} · 帳號管理`:'帳號登入';
+  button.classList.toggle('signed-in',Boolean(session));
+}
 function refreshSaveUI(){
   const onboarding=onboardingRequired(store.state);
   $('begin').innerHTML=onboarding?(store.state.run?'繼續新手訓練 <span>→</span>':'開始新手訓練 <span>→</span>'):'前往營地 <span>↗</span>';
@@ -52,6 +66,7 @@ function refreshSaveUI(){
   $('continue-run').hidden=!store.state.run||onboarding;
   $('continue-run').textContent=store.state.run?`繼續遠征 · 第 ${store.state.run.wave||1} 波 ↗`:'繼續遠征 ↗';
   $('landing-save-note').textContent=store.warning||'本機自動存檔 · 清除網站資料前請先匯出備份';
+  refreshAccountUI();
   const qaReadonly=readonlyQADemo()||practiceRun();
   $('save-game').disabled=qaReadonly;
   $('save-game').textContent=practiceRun()?'練':qaReadonly?'測':saveFailed?'!':'存';$('save-game').classList.toggle('save-error',saveFailed&&!qaReadonly);
@@ -261,14 +276,46 @@ async function chooseStage(stage){
   if(g.phase!=='prep'||stage!==g.wave+1)return;
   if(g.startWave()){updateHUD();notify(`${STAGES[stage-1].name} · 第 ${stage} 關開始`,3200);await checkpoint();}
 }
+function clearShopTimer(){if(shopTimer){clearTimeout(shopTimer);shopTimer=0;}}
+function renderShopSheet(){
+  $('shop-sheet')?.remove();
+  $('modal').classList.toggle('shop-open',modalKind==='merchant'&&!!shopCheckout);
+  if(modalKind!=='merchant'||!shopCheckout)return;
+  $('modal').insertAdjacentHTML('beforeend',shopCheckoutHTML(shopCheckout.offer,shopCheckout.phase,shopCheckout.orderId,spriteIcon('shop-amber-ingot','shop-ingot-art')||spriteIcon(shopCheckout.offer.art,'shop-pack-art')));
+  $('shop-sheet')?.querySelector('button')?.focus();
+}
+function openShopCheckout(id){
+  const offer=shopOffer(id);if(!offer||modalKind!=='merchant')return;
+  clearShopTimer();
+  shopCheckout={offer,phase:'confirm',orderId:`DEMO-${Date.now().toString(36).toUpperCase()}`};
+  renderShopSheet();
+}
+function closeShopCheckout(){
+  clearShopTimer();shopCheckout=null;renderShopSheet();
+  if(modalKind==='merchant')$('modal').querySelector('[data-market-tab][aria-pressed="true"]')?.focus();
+}
+function beginShopCheckout(){
+  if(!shopCheckout||shopCheckout.phase!=='confirm')return;
+  shopCheckout={...shopCheckout,phase:'pending'};
+  renderShopSheet();
+  shopTimer=setTimeout(()=>{
+    if(shopCheckout?.phase!=='pending')return;
+    shopCheckout={...shopCheckout,phase:'done'};
+    renderShopSheet();
+    const note=$('market-message');if(note)note.textContent=SHOP_DEMO_COPY;
+  },880);
+}
 function showMarket(tab=marketTab,message=''){
   if(mandatoryTutorial(g))return;
   if(!g||g.phase!=='prep'||working)return;
   if(g.tutorial?.reward){notify('先領取第一關獎勵，再找商人整備');return;}
+  if(tab!=='shop')closeShopCheckout();
   marketTab=tab;g.paused=true;clearInput();
   openModal('merchant','荒境行商',g.wave?`第 ${g.wave} 波已完成，先補貨，再出發。`:'本次遠征備貨：建造防線，雇佣伙伴，選擇武技。',marketContent(g,tab,message),campUI.active?'<button class="primary" data-action="market-close">收好卡牌，繼續逛營地</button>':'<button class="primary" data-action="market-close">返回戰場 · 部署卡牌</button><button class="secondary" data-action="save-camp">儲存並回營地</button>');
+  renderShopSheet();
+  if(tab==='shop')$('modal').querySelector('[data-shop-offer]')?.scrollIntoView({block:'center',inline:'nearest'});
 }
-function closeMarket(){closeModal();if(campUI.active){g=null;campUI.render();}else if(g){g.paused=false;lastTime=performance.now();checkpoint();}}
+function closeMarket(){closeShopCheckout();closeModal();if(campUI.active){g=null;campUI.render();}else if(g){g.paused=false;lastTime=performance.now();checkpoint();}}
 async function visitMerchant(){
   if(working||!campUI.walk.canInteract('merchant'))return;
   if(store.state.run&&store.state.run.phase!=='prep'){
@@ -369,6 +416,7 @@ function updateHUD() {
   $('hp-fill').style.setProperty('--value',`${Math.max(0,g.hero.hp/g.hero.maxHp)*100}%`);$('nest-fill').style.setProperty('--value',`${Math.max(0,g.base.hp/g.base.maxHp)*100}%`);
   $('wood').textContent=g.materials.wood;$('bone').textContent=g.materials.bone;
   $('merchant').disabled=g.phase!=='prep'||!!g.tutorial?.reward;$('merchant').textContent=g.tutorial?.reward?'先領取獎勵':g.phase==='prep'?'找商人 ↗':'商人休息中';
+  $('shop-pay').disabled=g.phase!=='prep'||!!g.tutorial?.reward;$('shop-pay').hidden=!!g.tutorial?.reward;
   $('region').textContent=stage.region;
   $('wave-title').textContent = g.tutorial?.reward?`${stage.name} · 教學獎勵待領取`:g.phase === 'prep' ? `${stage.name} · ${g.wave ? '休整營地' : '營地準備'}` : `${stage.name} · 第 ${g.wave} / ${MAX_WAVES} 關`;
   $('stage-rule').textContent=stage.rule;
@@ -447,11 +495,14 @@ function openModal(kind, title, copy, content, actions) {
   modalKind = kind; clearInput();
   $('modal').setAttribute('aria-busy','false');
   $('modal').classList.toggle('merchant-modal',kind==='merchant');
+  $('modal').classList.toggle('shop-open',false);
   $('modal').classList.toggle('end-modal',kind==='end');
   $('modal').classList.toggle('companion-modal',kind==='companion');
   $('modal').classList.toggle('loadout-modal',kind==='loadout');
+  $('modal').classList.toggle('settings-modal',kind==='settings');
+  $('modal').classList.toggle('danger-modal',['clear-save','logout'].includes(kind));
   $('modal-title').textContent = title; $('modal-copy').textContent = copy;
-  $('modal-eyebrow').textContent = kind === 'merchant' ? 'SUPPLIES · CONTRACTS · CRAFT' : kind === 'end' ? 'EXPEDITION COMPLETE' : kind === 'companion' ? 'SACRED BEAST PARTNERS' : kind === 'loadout' ? 'EXPEDITION LOADOUT' : 'TAKE A BREATH';
+  $('modal-eyebrow').textContent = kind === 'merchant' ? (marketTab==='shop'?'PAYMENT · 晶錠結帳':'SUPPLIES · CONTRACTS · CRAFT') : kind === 'end' ? 'EXPEDITION COMPLETE' : kind === 'companion' ? 'SACRED BEAST PARTNERS' : kind === 'loadout' ? 'EXPEDITION LOADOUT' : kind === 'account' ? 'LOCAL ACCOUNT' : ['clear-save','logout'].includes(kind) ? 'CONFIRM ACTION' : 'TAKE A BREATH';
   $('modal-content').innerHTML = content; $('modal-actions').innerHTML = actions;
   $('modal').hidden = false;
   syncBackgroundMusic();
@@ -460,16 +511,23 @@ function openModal(kind, title, copy, content, actions) {
 }
 async function collectProduction(type){const def=CAMP_PRODUCTION[type];closeModal();if(!def)return;await campUI.change(state=>{const result=collectCampProduction(state,type);if(!result.ok)throw new Error(result.reason);},`${FACILITIES[type].name}已收成 · ${def.name}存入營地倉儲，下次新遠征自動裝載。`);}
 async function collectTask(npc){const def=CAMP_TASKS[npc];closeModal();if(!def)return;await campUI.change(state=>{const result=claimCampTask(state,npc);if(!result.ok)throw new Error(result.reason);},`${def.name}的委託已交付 · 報酬存入永久營地。`);}
-function closeModal() { $('modal').hidden = true; modalKind = ''; if (priorFocus?.isConnected) priorFocus.focus(); priorFocus = null; }
+function closeModal() { $('shop-sheet')?.remove();clearShopTimer();if(modalKind!=='merchant')shopCheckout=null;$('modal').classList.remove('shop-open');$('modal').hidden = true; modalKind = ''; if (priorFocus?.isConnected) priorFocus.focus(); priorFocus = null; }
 function settingsContent(){
-  const s=experience.settings,option=(setting,value,label)=>`<button data-setting="${setting}" data-setting-value="${value}" aria-pressed="${s[setting]===value}">${label}</button>`;
-  return `<div class="settings-panel">
+  const s=experience.settings,session=accountSession.reload(),option=(setting,value,label)=>`<button data-setting="${setting}" data-setting-value="${value}" aria-pressed="${s[setting]===value}">${label}</button>`;
+  const data=`<section class="settings-data" aria-label="帳號與存檔"><div class="settings-data-row"><span><b>${session?`已登入 · ${escapeHTML(session.label)}`:'尚未登入帳號'}</b><small>${session?'退出只清除本機登入狀態，不會刪除遊戲存檔。':'可使用本機前端登入；不會上傳或保存密碼。'}</small></span><button data-action="${session?'logout-confirm':'account-login'}">${session?'退出帳號':'帳號登入'}</button></div><div class="settings-data-row danger"><span><b>本機遊戲存檔</b><small>刪除教程、營地、伙伴和遠征進度；帳號登入與聲音、畫質設定保留。</small></span><button data-action="clear-save-confirm">刪除存檔</button></div></section>`;
+  return `${data}<div class="settings-panel">
     <div class="setting-row"><span><b>觸覺回饋</b><small>建造、技能、受擊與通關使用 iPhone 原生震動</small></span><button class="setting-switch" data-setting="haptics" aria-label="切換觸覺回饋" aria-pressed="${s.haptics}"></button></div>
     <label class="setting-row"><span><b>聲音音量</b><small>調整背景音樂與音效；設為 0 即靜音</small></span><span class="setting-volume"><input data-setting="volume" type="range" min="0" max="100" step="5" value="${Math.round(s.volume*100)}"><output>${Math.round(s.volume*100)}%</output></span></label>
     <div class="setting-row"><span><b>低電量模式</b><small>降至 30 FPS，減少粒子並降低渲染解析度</small></span><button class="setting-switch" data-setting="powerSaver" aria-label="切換低電量模式" aria-pressed="${s.powerSaver}"></button></div>
     <div class="setting-row"><span><b>字體大小</b><small>同步放大主要介面與說明文字</small></span><span class="setting-options">${option('fontSize','small','小')}${option('fontSize','normal','標準')}${option('fontSize','large','大')}</span></div>
     <div class="setting-row"><span><b>畫質</b><small>自動會依裝置與系統低電量狀態調整</small></span><span class="setting-options">${option('quality','auto','自動')}${option('quality','high','高')}${option('quality','balanced','平衡')}${option('quality','low','省電')}</span></div>
-  </div><p class="settings-system-note">${s.nativeLowPower?'iPhone 系統低電量模式已開啟，遊戲目前自動採用省電渲染。':'偏好會保存在本機；iPhone 開啟系統低電量模式時會自動降載。'}</p>`;
+  </div><nav class="settings-legal" aria-label="法律文件與帳號管理"><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/terms-of-service.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/terms-of-service.html" target="_blank" rel="noopener noreferrer">用戶協議</a><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/privacy-policy.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/privacy-policy.html" target="_blank" rel="noopener noreferrer">隱私政策</a><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/account-deletion.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/account-deletion.html" target="_blank" rel="noopener noreferrer">刪除帳號</a></nav><p class="settings-system-note">${s.nativeLowPower?'iPhone 系統低電量模式已開啟，遊戲目前自動採用省電渲染。':'偏好會保存在本機；iPhone 開啟系統低電量模式時會自動降載。'}</p>`;
+}
+
+function showAccount(){
+  const session=accountSession.reload();
+  if(!session){location.href='login-preview.html';return;}
+  openModal('account','帳號管理',`${session.label}，你目前使用本機前端登入。`,`<div class="account-summary"><span aria-hidden="true">◇</span><div><small>目前登入</small><b>${escapeHTML(session.label)}</b><p>退出帳號不會刪除營地、伙伴或遠征存檔。</p></div></div>`,`<button class="primary" data-action="account-close">繼續遊玩</button><button class="secondary" data-action="logout-confirm" data-return="account">退出帳號</button>`);
 }
 function syncSettingsControls(){
   const s=experience.settings;
@@ -480,11 +538,12 @@ function syncSettingsControls(){
   }
   const note=$('modal-content').querySelector('.settings-system-note');if(note)note.textContent=s.nativeLowPower?'iPhone 系統低電量模式已開啟，遊戲目前自動採用省電渲染。':'偏好會保存在本機；iPhone 開啟系統低電量模式時會自動降載。';
 }
+function renderSettings(){openModal('settings','遊戲設定','依你的裝置與遊玩習慣調整；帳號與存檔操作彼此獨立。',settingsContent(),'<button class="primary" data-action="settings-close">完成</button>');}
 function showSettings(){
   settingsReturnToPause=modalKind==='pause';
   settingsResumeGame=Boolean(g&&!$('game').hidden&&!g.paused);
   if(settingsResumeGame)g.paused=true;
-  openModal('settings','遊戲設定','依你的裝置與遊玩習慣調整；所有選項立即生效。',settingsContent(),'<button class="primary" data-action="settings-close">完成</button>');
+  renderSettings();
   checkpoint();
 }
 function closeSettings(){
@@ -588,11 +647,13 @@ $('dash').addEventListener('click', () => { if (!modalKind) g?.dash(input()); })
 $('event-interact').addEventListener('click',()=>{if(!modalKind&&g){g.interactMapEvent();handleEvents();updateHUD();}});
 $('weapon').addEventListener('click', () => { if (!modalKind) g?.switchWeapon(); });
 $('merchant').addEventListener('click',()=>showMarket());
+$('shop-pay').addEventListener('click',()=>showMarket('shop'));
 for(const [id,kind] of [['deck-build','build'],['deck-hire','hire']])$(id).addEventListener('click',()=>{if(!modalKind&&g){clearInput();g.setDeck(kind);renderHand();checkpoint();}});
 $('next-wave').addEventListener('click', () => showRoute('game'));
 $('route-back').addEventListener('click',leaveRoute);
 $('route-map').addEventListener('click',e=>{const node=e.target.closest('.route-node:not([disabled])');if(node)chooseStage(Number(node.dataset.stage));});
 $('begin').addEventListener('click', showCamp);
+$('landing-account').addEventListener('click',event=>{if(accountSession.reload()){event.preventDefault();showAccount();}});
 $('continue-run').addEventListener('click', resumeRun);
 $('camp-loadout').addEventListener('click',showLoadout);
 $('camp-companion').addEventListener('click',()=>showCompanions());
@@ -615,7 +676,8 @@ $('modal').addEventListener('click', async e => {
     experience.haptic('selection');syncSettingsControls();return;
   }
   const tab=e.target.closest('[data-market-tab]')?.dataset.marketTab;if(tab){showMarket(tab);return;}
-  const buy=e.target.closest('[data-buy]')?.dataset.buy;if(buy){purchase(buy);return;}
+  const offer=e.target.closest('[data-shop-offer]')?.dataset.shopOffer;if(offer){openShopCheckout(offer);return;}
+  const buy=e.target.closest('[data-buy]')?.dataset.buy;if(buy){if(shopCheckout)return;purchase(buy);return;}
   const loadoutCard=e.target.closest('[data-loadout-card]')?.dataset.loadoutCard;
   if(modalKind==='loadout'&&loadoutCard&&Object.hasOwn(DEPLOY_CARDS,loadoutCard)){
     if(HIRES[loadoutCard])loadoutDraft.cards=[...loadoutDraft.cards.filter(id=>!HIRES[id]),loadoutCard];
@@ -632,6 +694,40 @@ $('modal').addEventListener('click', async e => {
   if(action==='reload-reset'){location.reload();return;}
   if(mandatoryTutorial(g)&&['camp','home','save-camp','restart','replace-run','exit-confirm','abandon'].includes(action))return;
   if(working)return;
+  if(action==='account-login'){location.href='login-preview.html';return;}
+  if(action==='account-close'){closeModal();return;}
+  if(action==='logout-confirm'){
+    const back=e.target.closest('[data-return]')?.dataset.return||'account';
+    openModal('logout','退出目前帳號？','只會清除本機登入狀態；遊戲存檔、營地、伙伴與設定都會保留。','',`<button class="primary" data-action="cancel-account-action" data-return="${back}">保留登入</button><button class="secondary danger-action" data-action="logout-account">確認退出帳號</button>`);return;
+  }
+  if(action==='clear-save-confirm'){
+    openModal('clear-save','刪除全部本機存檔？','教程、營地建築、伙伴、材料與遠征進度都會永久清除，並從新手訓練重新開始。','<div class="delete-boundary"><b>仍會保留</b><span>目前帳號登入</span><span>聲音、畫質與操作設定</span><span>用戶協議及隱私設定入口</span></div>','<button class="primary" data-action="cancel-account-action" data-return="settings">取消，保留存檔</button><button class="secondary danger-action" data-action="clear-save">確認刪除存檔</button>');return;
+  }
+  if(action==='cancel-account-action'){
+    if(e.target.closest('[data-return]')?.dataset.return==='settings')renderSettings();else showAccount();return;
+  }
+  if(action==='logout-account'){
+    working=true;
+    try{
+      if(checkpointPending)await checkpointPending;
+      if(saveFailed)throw new Error('目前進度尚未成功保存，請先處理存檔錯誤再退出帳號。');
+      accountSession.signOut();location.href='login-preview.html?status=signed-out';
+    }catch(error){openModal('account-error','暫時無法退出帳號',error.message,'','<button class="primary" data-action="account-close">返回</button>');}
+    finally{working=false;}
+    return;
+  }
+  if(action==='clear-save'){
+    working=true;
+    try{
+      if(checkpointPending)await checkpointPending;
+      campUI?.clear();await store.clearProgress();
+      g=null;saveFailed=false;settingsResumeGame=false;settingsReturnToPause=false;tutorialSaveView=null;
+      closeModal();$('game').hidden=true;$('camp').hidden=true;$('route-map').hidden=true;$('landing').hidden=false;
+      tutorialUI.render(null);syncBackgroundMusic();refreshSaveUI();window.scrollTo(0,0);$('begin').focus();
+    }catch(error){saveFailure(error);}
+    finally{working=false;}
+    return;
+  }
   if(action==='settings')showSettings();
   if(action==='settings-close')closeSettings();
   if(action==='companion-close')closeCompanions();
@@ -639,6 +735,8 @@ $('modal').addEventListener('click', async e => {
   if(action==='loadout-save')await saveLoadout();
   if(action==='companion-select')await chooseCompanion(e.target.closest('[data-companion]')?.dataset.companion);
   if(action==='market-close')closeMarket();
+  if(action==='shop-cancel'||action==='shop-done')closeShopCheckout();
+  if(action==='shop-confirm')beginShopCheckout();
   if(action==='close-camp-site')closeModal();
   if(action==='camp-depart'){if(!campUI.walk.canInteract('gate'))return;closeModal();await showRoute('camp');}
   if(action==='camp-new')openModal('replace','放棄已保存的遠征？','這會刪除本次戰鬥進度與本次購買的卡牌，不發放營火石；永久營地與已結算資源保留。','','<button class="primary" data-action="cancel-camp">保留存檔</button><button class="secondary" data-action="replace-run">確認，重新出發</button>');
@@ -665,7 +763,7 @@ $('modal').addEventListener('click', async e => {
 window.addEventListener('keydown', e => {
   if (modalKind) {
     if(working)return;
-    if(e.key==='Escape'&&modalKind==='merchant'){closeMarket();return;}
+    if(e.key==='Escape'&&modalKind==='merchant'){if(shopCheckout){closeShopCheckout();return;}closeMarket();return;}
     if (e.key === 'Escape' && ['pause', 'exit', 'restored'].includes(modalKind)) { closeModal(); if(g)g.paused = false; }
     if (e.key === 'Escape' && ['camp-site','facility','replace','import'].includes(modalKind)) closeModal();
     if(e.key==='Escape'&&modalKind==='companion')closeCompanions();
@@ -718,7 +816,7 @@ refreshSaveUI();
 // Explicit localhost-only QA hook; never connects to, or controls, a native app.
 if(acceptanceResetError){saveFailed=true;openModal('reset-error','本地清檔暫未完成',acceptanceResetError.message,'<p class="howto">未驗證備份前不會清除資料。請關閉其他遊戲頁並確認瀏覽器允許儲存後重試。</p>','<button class="primary" data-action="reload-reset">重新檢查並清檔</button>');}
 if (qaMode) {
-  window.emberwildQA = { get game() { return g; }, get painter() { return painter; }, get dragging() { return !!drag; },store,campUI,experience,backgroundMusic,start,input,checkpoint,showCamp,showRoute,resumeRun,showResult,showSettings,showCompanions,chooseCompanion,render: () => { if(g){handleEvents();updateHUD();renderHand();painter?.render(g);}else campUI.render(); } };
+  window.emberwildQA = { get game() { return g; }, get painter() { return painter; }, get dragging() { return !!drag; }, get shopCheckout() { return shopCheckout; },store,accountSession,campUI,experience,backgroundMusic,start,input,checkpoint,showCamp,showRoute,resumeRun,showResult,showSettings,showCompanions,chooseCompanion,render: () => { if(g){handleEvents();updateHUD();renderHand();painter?.render(g);}else campUI.render(); } };
   if(qaMode==='route')queueMicrotask(()=>showRoute('home'));
   if(qaMode==='reward')queueMicrotask(()=>showResult({won:true,waves:MAX_WAVES,stones:24,kills:67,combos:15,loot:{wood:76,bone:45,amber:62,harvested:8}}));
   if(qaMode==='enemies')queueMicrotask(()=>{

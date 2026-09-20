@@ -82,6 +82,7 @@ canvas{-webkit-touch-callout:none}
   .statusbar b{font-size:clamp(12px,3.7vw,15px)}
   .statusbar small{font-size:8px;margin-left:1px}
   .suppliesbar{flex:0 0 auto;min-height:30px;gap:10px;padding:3px 8px}
+  .supply-actions{gap:5px}
   .suppliesbar button{min-height:27px;padding:4px 8px}
   .mission-rail{flex:0 0 auto;min-height:29px;padding:4px 8px}
   .arena{flex:1 1 auto;height:auto!important;min-height:230px!important;max-height:none!important}

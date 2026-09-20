@@ -280,3 +280,14 @@ Create one production-ready transparent-background companion sprite for a premiu
 ```text
 Create one production-ready transparent-background companion sprite for a premium hand-painted prehistoric mobile ARPG. A stocky juvenile ankylosaur named Stoneback, moss-green hide, layered weathered stone-and-ivory armor plates, amber crystal studs along the back, heavy club tail, calm brave expression and a low defensive silhouette. Top-down three-quarter orthographic view, full body centered with generous transparent padding, readable around 70–100 px. Painterly moss, slate, ivory and amber palette, crisp soft-dark edges, warm upper-left lighting, faint contact shadow only. Exactly one creature; no rider, scenery, UI, text, border, logo or watermark.
 ```
+
+# 卡包支付演示（2026-09-19）
+
+生成方式：本地 `D:\Desktop\Image generation tool\imagegen_go`，`POST /v1/images/generations`，模型 `gpt-image-2`，质量 `high`，尺寸 `1024×1024`，透明 PNG。只用于行商「卡包支付」界面，不接入 StoreKit 或发货。
+
+共用约束：手绘史前 ARPG 道具、青绿布/象牙骨/琥珀光、透明背景、无文字无 UI。
+
+- `shop-amber-ingot-v1.png`：晶锭货币
+- `shop-pack-fortify-v1.png`：防线补给包
+- `shop-pack-hire-v1.png`：雇佣契约包
+- `shop-pack-relic-v1.png`：荒境密藏
