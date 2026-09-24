@@ -78,8 +78,10 @@
 	<string>$(PAY_CHANNEL)</string>
 	<key>ShellPaymentApiToken</key>
 	<string>$(PAYMENT_API_TOKEN)</string>
-	<key>ShellOnlineGameURL</key>
-	<string>$(ONLINE_GAME_URL)</string>
+	<key>ShellMiniGameOrderEndpoint</key>
+	<string>$(MINI_GAME_ORDER_ENDPOINT)</string>
+	<key>ShellMiniGameAuthBaseURL</key>
+	<string>$(MINI_GAME_AUTH_BASE_URL)</string>
 	<key>ShellContentConfigEndpoint</key>
 	<string>$(CONTENT_CONFIG_ENDPOINT)</string>
 	<key>ShellStoreKitEnabled</key>

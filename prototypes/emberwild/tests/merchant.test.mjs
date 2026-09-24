@@ -11,8 +11,8 @@ await test('purchase freely selects a fixed catalogue card and deducts its exact
 await test('insufficient funds and capped inventories make no partial changes',()=>{
  const g=fresh();g.materials.bone=0;let before=g.snapshot();assert.equal(g.buy('hunter').ok,false);assert.deepEqual(g.snapshot(),before);g.materials.bone=99;g.inventory.torch=99;before=g.snapshot();assert.equal(g.buy('torch').ok,false);assert.deepEqual(g.snapshot(),before);
 });
-await test('battle closes the merchant but permits deployment of owned cards',()=>{
- const g=fresh();g.nodes=[];g.startWave();assert.equal(g.buy('wall').ok,false);assert.equal(g.placeCard(2,240,420).ok,true);assert.equal(g.inventory.wall,0);
+await test('active battle pauses before shopping, then purchased cards remain in the saved wave',()=>{
+ const g=fresh();g.nodes=[];const before=g.inventory.wall;g.startWave();assert.equal(g.buy('wall').ok,false);g.paused=true;assert.equal(g.buy('wall').ok,true);assert.equal(g.inventory.wall,before+1);g.paused=false;assert.equal(g.placeCard(2,240,420).ok,true);assert.equal(g.inventory.wall,before);
 });
 await test('used cards never refill and empty cards cannot be deployed after cooldown',()=>{
  const g=fresh();g.inventory.watchtower=1;g.nodes=[];g.placeCard(0,240,420);tick(g,60);assert.equal(g.inventory.watchtower,0);assert.equal(g.hand[0],'watchtower');assert.equal(g.placeCard(0,470,420).ok,false);assert.equal(g.amber,16);

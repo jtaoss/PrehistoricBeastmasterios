@@ -29,7 +29,7 @@ final class BackendGateway {
         if !ShellConfig.paymentApiToken.isEmpty {
             request.setValue("Bearer \(ShellConfig.paymentApiToken)", forHTTPHeaderField: "Authorization")
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await SecureAPIURLSession.shared.data(for: request)
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
             throw GatewayError.message(code: "ORDER_STATUS_UNAVAILABLE", message: "Order status is temporarily unavailable")
         }
@@ -56,7 +56,7 @@ final class BackendGateway {
         var request = URLRequest(url: url, timeoutInterval: 3)
         request.httpMethod = "GET"
         request.cachePolicy = .reloadIgnoringLocalCacheData
-        _ = try? await URLSession.shared.data(for: request)
+        _ = try? await SecureAPIURLSession.shared.data(for: request)
     }
 
     private func readOnlyURL(path: String) throws -> URL {
@@ -91,6 +91,46 @@ final class BackendGateway {
 
     var isPurchaseConfirmationConfigured: Bool {
         Self.isApprovedHTTPS(ShellConfig.sdkApiEndpoint)
+    }
+
+    /// Creates the game-side order for one of the bundled mini-game packs.
+    /// The server returns the same canonical PayRequest consumed by the proven
+    /// StoreKit flow; the client never invents cpOrder, notifyURL or account data.
+    func createMiniGameOrder(offerId: String, clientRequestId: String,
+                             identity: MiniGameAuthService.PaymentIdentity) async throws -> PayRequest {
+        guard let offer = MiniGameProductCatalog.offer(offerId),
+              UUID(uuidString: clientRequestId) != nil else {
+            throw GatewayError.message(code: "INVALID_MINI_GAME_OFFER", message: "Mini-game product is not approved")
+        }
+        guard Self.isApprovedHTTPS(ShellConfig.miniGameOrderEndpoint) else {
+            throw GatewayError.message(code: "MINI_GAME_PAYMENT_NOT_CONFIGURED", message: "Mini-game payment service is not configured")
+        }
+        var payload = JSONObject()
+        payload.put("offer_id", offer.id)
+        payload.put("client_request_id", clientRequestId)
+        payload.put("player_id", identity.playerId)
+        payload.put("bundle_id", ShellConfig.bundleId)
+        payload.put("version", ShellConfig.versionName)
+        payload.put("build", ShellConfig.versionCode)
+        let response = try await post(
+            endpoint: ShellConfig.miniGameOrderEndpoint,
+            contentType: "application/json; charset=utf-8",
+            body: Data(payload.jsonString().utf8),
+            authorization: identity.accessToken
+        )
+        guard response.string("code") == "OK",
+              let data = response.jsonObject("data"),
+              let payment = data.jsonObject("payment_request") else {
+            throw GatewayError.message(code: "MINI_GAME_ORDER_REJECTED", message: ShellText.firstNonBlank(response.string("message"), "Mini-game order was rejected"))
+        }
+        let request = try PayRequest(json: payment.jsonString())
+        guard request.clientRequestId == clientRequestId,
+              request.goodsId == offer.goodsId,
+              request.resolvedProductId() == offer.productId,
+              ProductCatalog.productId(forPrice: request.price) == offer.productId else {
+            throw GatewayError.message(code: "MINI_GAME_ORDER_MISMATCH", message: "Mini-game order identity does not match the selected product")
+        }
+        return request
     }
 
     func createPlayOrder(_ request: PayRequest) async throws -> PlayOrder {
@@ -225,7 +265,8 @@ final class BackendGateway {
         )
     }
 
-    private func post(endpoint: String, contentType: String, body: Data) async throws -> JSONObject {
+    private func post(endpoint: String, contentType: String, body: Data,
+                      authorization: String? = nil) async throws -> JSONObject {
         guard let url = URL(string: endpoint) else {
             throw GatewayError.message(code: "INVALID_REQUEST", message: "SDK payment endpoint is invalid")
         }
@@ -235,11 +276,11 @@ final class BackendGateway {
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("zh-Hant", forHTTPHeaderField: "language")
-        let token = ShellConfig.paymentApiToken
+        let token = authorization ?? ShellConfig.paymentApiToken
         if !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await SecureAPIURLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         if status < 200 || status >= 300 {
             throw GatewayError.message(code: "HTTP_\(status)", message: "SDK backend returned HTTP \(status)")

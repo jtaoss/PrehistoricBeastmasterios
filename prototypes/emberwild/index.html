@@ -2,12 +2,15 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#102421">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="format-detection" content="telephone=no">
-  <title>琥珀荒境 · 卡牌建造與動作冒險</title>
+  <title>原始文明：聖獸覺醒</title>
+  <meta name="apple-mobile-web-app-title" content="原始文明：聖獸覺醒">
+  <link rel="icon" type="image/png" href="assets/brand-v1/sacred-beast-icon.png">
+  <link rel="apple-touch-icon" href="assets/brand-v1/sacred-beast-icon.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="camp.css">
   <link rel="stylesheet" href="merchant.css">
@@ -16,32 +19,62 @@
   <link rel="stylesheet" href="ios-responsive.css">
   <link rel="stylesheet" href="experience.css">
   <link rel="stylesheet" href="tutorial.css">
+  <link rel="stylesheet" href="lobby.css">
+  <link rel="stylesheet" href="mobile-combat.css">
+  <link rel="stylesheet" href="combat-art.css">
+  <link rel="stylesheet" href="first-session.css">
+  <link rel="stylesheet" href="brand.css">
+  <link rel="stylesheet" href="touch-ui.css">
 </head>
 <body>
+  <svg class="combat-svg-sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="svg-hud-panel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#193a30"/><stop offset="1" stop-color="#0a221c"/></linearGradient>
+      <linearGradient id="svg-hud-rim"><stop stop-color="#e2cb83" stop-opacity=".72"/><stop offset=".52" stop-color="#68816a" stop-opacity=".5"/><stop offset="1" stop-color="#d0b66d" stop-opacity=".48"/></linearGradient>
+      <radialGradient id="svg-button-core" cx="34%" cy="25%" r="78%"><stop stop-color="#365b4b"/><stop offset=".62" stop-color="#17362e"/><stop offset="1" stop-color="#091f1a"/></radialGradient>
+      <linearGradient id="svg-button-rim" x1=".12" y1=".1" x2=".86" y2=".9"><stop stop-color="#f1dfad"/><stop offset=".46" stop-color="#ab9668"/><stop offset="1" stop-color="#5c573d"/></linearGradient>
+      <symbol id="hud-chip-frame" viewBox="0 0 240 74"><path d="M17 3h206l14 14v40l-14 14H17L3 57V17z" fill="url(#svg-hud-panel)" stroke="url(#svg-hud-rim)" stroke-width="3" vector-effect="non-scaling-stroke"/><path d="M16 10h208l6 7M16 64h208l6-7" fill="none" stroke="#f4e0a5" stroke-opacity=".16" stroke-width="2" vector-effect="non-scaling-stroke"/><path d="m3 27 10-10h12M237 47l-10 10h-12" fill="none" stroke="#e3c872" stroke-opacity=".7" stroke-width="3" vector-effect="non-scaling-stroke"/></symbol>
+      <symbol id="wave-ribbon-frame" viewBox="0 0 520 86"><path d="m2 15 29 7 14-17h430l14 17 29-7-13 27 13 29-29-8-14 18H45L31 63 2 71l13-29z" fill="url(#svg-hud-panel)" stroke="#071b15" stroke-width="4" vector-effect="non-scaling-stroke"/><path d="M48 8h424l12 17M48 78h424l12-18" fill="none" stroke="url(#svg-hud-rim)" stroke-width="2.5" opacity=".8" vector-effect="non-scaling-stroke"/></symbol>
+      <symbol id="joystick-frame" viewBox="0 0 120 120"><circle cx="60" cy="60" r="55" fill="#0d2821" fill-opacity=".62" stroke="#061b16" stroke-width="6"/><circle cx="60" cy="60" r="51" fill="none" stroke="url(#svg-button-rim)" stroke-width="3" stroke-dasharray="34 7 9 6"/><path d="M60 13v9M60 98v9M13 60h9M98 60h9" stroke="#dfd19f" stroke-width="3" stroke-linecap="round" opacity=".66"/></symbol>
+      <symbol id="combat-button-frame" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="url(#svg-button-core)" stroke="#061a14" stroke-width="5"/><circle cx="50" cy="50" r="42" fill="none" stroke="url(#svg-button-rim)" stroke-width="3" stroke-dasharray="41 7 15 6"/><path d="M17 29 10 22l13 2 4-10 5 13M72 17l6-9 2 12 11 2-10 6M83 70l9 7-12 1-4 11-5-12M28 84l-7 8-1-12-11-3 11-5" fill="none" stroke="#d7c68d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".78"/></symbol>
+      <symbol id="skill-dash-icon" viewBox="0 0 64 64"><path d="M12 44c12-4 21-12 28-26" fill="none" stroke="#f3e8bd" stroke-width="6" stroke-linecap="round"/><path d="m35 12 16 1-8 14" fill="none" stroke="#e7bc63" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 52h20M7 39h13" stroke="#91cdb2" stroke-width="3" stroke-linecap="round"/></symbol>
+      <symbol id="skill-shock-icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="8" fill="#f0d17c"/><path d="m32 5 4 16 9-13-2 17 15-8-12 13 17 1-17 5 14 10-17-4 7 16-13-12-1 17-5-17-10 14 4-17-16 7 12-12-17-1 17-5-14-10 17 4z" fill="#9bd4b6" fill-opacity=".22" stroke="#e7d695" stroke-width="3" stroke-linejoin="round"/></symbol>
+      <symbol id="skill-volley-icon" viewBox="0 0 64 64"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M10 49 45 14M18 55l35-35M8 36l29-29" stroke="#f5e6b5" stroke-width="4"/><path d="m39 12 10-2-2 10M47 18l10-2-2 10M31 5l10-2-2 10" stroke="#d7a84d" stroke-width="4"/><path d="m11 49 1-8 7 7M19 55l1-8 7 7M9 36l1-8 7 7" stroke="#8dc9af" stroke-width="3"/></g></symbol>
+    </defs>
+  </svg>
   <main id="landing" class="landing">
     <a id="landing-account" class="icon-btn landing-account" href="login-preview.html" aria-label="帳號登入" title="帳號登入">帳號</a>
     <button id="landing-settings" class="icon-btn settings-launch landing-settings" aria-label="遊戲設定" title="遊戲設定">⚙︎</button>
     <div class="cover-shade"></div>
-    <header class="brand"><span class="brand-mark">◇</span> EMBERWILD <span class="tag">兽潮 11</span></header>
+    <header class="brand" aria-label="原始文明：聖獸覺醒"><img class="brand-app-icon" src="assets/brand-v1/sacred-beast-icon.png" alt=""><span class="brand-copy"><b>原始文明</b><small>聖獸覺醒</small></span><span class="tag">獸潮季 · 11</span></header>
     <section class="intro">
-      <p class="eyebrow">BUILD YOUR GROUND. FIGHT YOUR WAY.</p>
-      <h1>琥珀<span>荒境</span></h1>
-      <p class="intro-copy">一張卡，築起營地。<br>五種骨器，鍛出你的戰法。</p>
+      <div class="landing-chapter"><span>遠征篇章</span><b>巨蕨巢道</b><i>02</i></div>
+      <p class="eyebrow">BUILD · HUNT · SURVIVE</p>
+      <h1 class="game-wordmark" aria-label="原始文明：聖獸覺醒">原始文明<span>聖獸覺醒</span></h1>
+      <p class="intro-copy">築起荒野防線，帶領聖獸迎擊遠古獸潮。</p>
       <div class="intro-tags"><span>卡牌建造</span><span>即時戰鬥</span><span>材料交易</span></div>
-      <button id="begin" class="primary big">前往營地 <span>↗</span></button>
-      <p id="onboarding-gate" class="onboarding-gate" hidden>首次遊玩須完成 5 步新手訓練。<br>營地、商人與自由遠征將在領獎後解鎖。</p>
-      <button id="tutorial-replay" class="tutorial-replay">新手試煉 · 手把手學會戰鬥 <span>可重玩 · 不影響存檔 ↗</span></button>
-      <button id="continue-run" class="continue-button" hidden>繼續遠征 ↗</button>
-      <p class="intro-note" id="landing-save-note">本機自動存檔 · 無內購 · 不連接正式帳號</p>
+      <div class="landing-actions">
+        <a id="begin" class="primary big" href="login-preview.html?return=camp">前往營地 <span>↗</span></a>
+        <button id="landing-main-game" class="main-world-entry" type="button" data-open-main-game hidden><i aria-hidden="true">✦</i><span><b>進入主世界</b><small>線上冒險 · 可返回聖獸營地</small></span><em aria-hidden="true">›</em></button>
+        <p id="onboarding-gate" class="onboarding-gate" hidden>首次遊玩須完成 5 步新手訓練。<br>營地、商人與自由遠征將在領獎後解鎖。</p>
+        <button id="tutorial-replay" class="tutorial-replay"><i aria-hidden="true">✦</i><b>新手試煉</b><span>手把手學會戰鬥 · 可重玩</span><em>›</em></button>
+        <button id="continue-run" class="continue-button" hidden>繼續遠征 ↗</button>
+        <p class="intro-note" id="landing-save-note">本機自動存檔 · 登入帳號後可使用 App Store 付款</p>
+      </div>
     </section>
     <nav class="landing-legal" aria-label="法律文件與帳號管理"><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/terms-of-service.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/terms-of-service.html" target="_blank" rel="noopener noreferrer">用戶協議</a><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/privacy-policy.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/privacy-policy.html" target="_blank" rel="noopener noreferrer">隱私政策</a><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/account-deletion.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/account-deletion.html" target="_blank" rel="noopener noreferrer">刪除帳號</a></nav>
   </main>
 
   <main id="camp" class="camp-shell" hidden>
-    <canvas id="camp-world" tabindex="0" aria-label="俯視營地：WASD 或方向鍵自由移動，E 與附近設施互動；也可點地面行走或使用搖桿。"></canvas>
+    <canvas id="camp-world" tabindex="0" aria-label="俯視營地：拖動搖桿或點地面行走，靠近設施後點互動按鈕。"></canvas>
     <header class="camp-hud"><div><p class="eyebrow">YOUR LIVING HOMESTEAD</p><h1>荒境營地 <span>✦ <b id="camp-stones">8</b></span></h1><p id="camp-save-status" role="status"></p></div><div class="camp-tools"><button id="camp-loadout" class="text-button">出征配置</button><button id="camp-companion" class="text-button">聖獸伙伴</button><button id="camp-export" class="text-button">匯出存檔</button><button id="camp-import" class="text-button">匯入</button><button id="camp-settings" class="icon-btn settings-launch" aria-label="遊戲設定">⚙︎</button><button id="camp-home" class="icon-btn" aria-label="回到首頁">⌂</button></div></header>
-    <nav class="camp-waypoints" aria-label="營地路標，選擇後角色步行前往"><small>路標 · 點選步行前往</small><div><button data-walk-to="fire">♨ 營火</button><button data-walk-to="merchant">◇ 行商</button><button data-walk-to="plot-0">⌂ 地塊</button><button data-walk-to="gate">↗ 山口</button></div></nav>
-    <div class="camp-bottom"><p id="camp-message" role="status">沿小徑逛逛，走近行商購買卡牌，或在空地建設營地。</p><div class="camp-control-row"><div id="camp-joystick" class="joystick" role="group" aria-label="營地移動搖桿"><i id="camp-stick"></i><span>移動</span></div><div class="camp-interaction"><small id="camp-nearby">走近設施互動</small><button id="camp-interact" class="primary" disabled>互動 · E</button><span class="camp-key-help">WASD / 方向鍵移動 · Shift 快步 · E 互動</span></div><button id="camp-sprint" class="secondary" aria-label="按住快步行走">快步</button></div></div>
+    <nav class="camp-store-dock" aria-label="禮包與充值商店">
+      <button id="camp-gifts" class="camp-store-button gift" type="button"><i aria-hidden="true">禮</i><span><small>LIMITED</small><b>限時禮包</b></span><em id="camp-gift-badge" aria-label="可購買禮包數量">2</em></button>
+      <button id="camp-recharge" class="camp-store-button recharge" type="button"><i aria-hidden="true">◆</i><span><small>APP STORE</small><b>充值商店</b></span><strong aria-hidden="true">›</strong></button>
+    </nav>
+    <button id="camp-waypoints-toggle" class="camp-waypoints-toggle" type="button" aria-expanded="false" aria-controls="camp-waypoints">路標</button>
+    <nav id="camp-waypoints" class="camp-waypoints" aria-label="營地路標，選擇後角色步行前往"><small>路標 · 點選步行前往</small><div><button data-walk-to="fire">♨ 營火</button><button data-walk-to="merchant">◇ 行商</button><button data-walk-to="plot-0">⌂ 地塊</button><button data-walk-to="gate">↗ 山口</button></div></nav>
+    <div class="camp-bottom"><p id="camp-message" role="status">沿小徑逛逛，走近行商購買卡牌，或在空地建設營地。</p><div class="camp-control-row"><div id="camp-joystick" class="joystick" role="group" aria-label="營地移動搖桿"><i id="camp-stick"></i><span>移動</span></div><div class="camp-interaction"><small id="camp-nearby">走近設施互動</small><button id="camp-interact" class="primary" disabled>互動</button><button id="camp-cancel-move" class="secondary" hidden>取消搬遷</button><span class="camp-key-help">WASD / 方向鍵移動 · Shift 快步 · E 互動</span></div><button id="camp-sprint" class="secondary" aria-label="按住快步行走">快步</button></div></div>
     <input id="save-file" type="file" accept=".json,application/json" hidden>
   </main>
 
@@ -52,16 +85,37 @@
       <div class="route-actions"><div class="route-progress"><small>探索進度</small><b id="route-progress">0 / 8</b></div><button id="route-settings" class="icon-btn settings-launch" aria-label="遊戲設定">⚙︎</button></div>
     </header>
     <section class="route-frame" aria-labelledby="route-title">
-      <div class="route-copy"><div><span>獸骨古道</span><h2 id="route-title">從營火走向泰坦聖所</h2></div><p id="route-status" role="status">選擇第一個關卡，開始這次遠征。</p></div>
-      <div class="route-map-art" role="img" aria-label="從荒境營地通往泰坦聖所的八關遠征地圖">
-        <button class="route-node" data-stage="1" style="--x:52%;--y:90%"><span class="route-marker">1</span><span class="route-node-label"><b>蕨谷入口</b><small>守護聖獸卵</small></span></button>
-        <button class="route-node" data-stage="2" style="--x:24%;--y:77%"><span class="route-marker">2</span><span class="route-node-label"><b>巨蕨巢道</b><small>護送採集師</small></span></button>
-        <button class="route-node" data-stage="3" style="--x:70%;--y:64%"><span class="route-marker">3</span><span class="route-node-label"><b>潮汐濕地</b><small>摧毀三座獸巢</small></span></button>
-        <button class="route-node" data-stage="4" style="--x:28%;--y:51%"><span class="route-marker">4</span><span class="route-node-label"><b>古獸石陣</b><small>50 秒限時採礦</small></span></button>
-        <button class="route-node" data-stage="5" style="--x:72%;--y:39%"><span class="route-marker">5</span><span class="route-node-label"><b>琥珀山脊</b><small>營救受困弓手</small></span></button>
-        <button class="route-node" data-stage="6" style="--x:27%;--y:27%"><span class="route-marker">6</span><span class="route-node-label"><b>熔灰林</b><small>首領守護戰</small></span></button>
-        <button class="route-node" data-stage="7" style="--x:70%;--y:17%"><span class="route-marker">7</span><span class="route-node-label"><b>月骨峽谷</b><small>守住三處據點</small></span></button>
-        <button class="route-node" data-stage="8" style="--x:48%;--y:6%"><span class="route-marker">8</span><span class="route-node-label"><b>泰坦聖所</b><small>泰坦最終守護</small></span></button>
+      <div class="route-copy"><div><span>第一章 · 獸骨古道</span><h2 id="route-title">從營火走向泰坦聖所</h2></div><p id="route-status" role="status">選擇第一個關卡，開始這次遠征。</p></div>
+      <p class="route-scroll-hint"><span>↑</span> 向上滑動探索後續篇章</p>
+      <div id="route-chapter-scroll" class="route-chapter-scroll" aria-label="可向上滑動的遠征章節地圖">
+        <section class="route-future-list" aria-label="未來篇章">
+          <button class="route-coming-card" type="button" data-coming-soon="第四章 · 蒼穹獸墓"><span>CHAPTER IV</span><b>蒼穹獸墓</b><small>迷霧尚未散去 · 敬請期待</small><i>◇</i></button>
+          <button class="route-coming-card" type="button" data-coming-soon="第三章 · 赤潮地心"><span>CHAPTER III</span><b>赤潮地心</b><small>遠征隊正在開闢道路 · 敬請期待</small><i>◇</i></button>
+        </section>
+        <section class="route-chapter route-chapter-two" aria-labelledby="route-chapter-two-title">
+          <header class="route-chapter-heading"><div><span>CHAPTER II</span><h3 id="route-chapter-two-title">月骨天穹</h3></div><b>開發中</b></header>
+          <div class="route-map-art chapter-two-art" role="group" aria-label="月骨天穹預覽地圖，點擊地點查看開放狀態">
+            <button class="chapter-preview-node" type="button" data-coming-soon="霧崖哨站" style="--x:52%;--y:88%"><span>◇</span><b>霧崖哨站</b></button>
+            <button class="chapter-preview-node" type="button" data-coming-soon="化石天橋" style="--x:28%;--y:60%"><span>◇</span><b>化石天橋</b></button>
+            <button class="chapter-preview-node" type="button" data-coming-soon="藍晶裂谷" style="--x:70%;--y:35%"><span>◇</span><b>藍晶裂谷</b></button>
+            <button class="chapter-preview-node" type="button" data-coming-soon="月門聖壇" style="--x:50%;--y:9%"><span>◇</span><b>月門聖壇</b></button>
+          </div>
+        </section>
+        <div class="route-chapter-link" aria-hidden="true"><i></i><span>完成第一章後繼續向上遠征</span><i></i></div>
+        <section id="route-current-chapter" class="route-chapter route-chapter-one" aria-labelledby="route-chapter-one-title">
+          <header class="route-chapter-heading"><div><span>CHAPTER I</span><h3 id="route-chapter-one-title">獸骨古道</h3></div><b class="open">當前篇章</b></header>
+          <div class="route-map-art" role="group" aria-label="從荒境營地通往泰坦聖所的八關遠征地圖">
+            <button class="route-node" data-stage="1" style="--x:52%;--y:90%"><span class="route-marker">1</span><span class="route-node-label"><b>蕨谷入口</b><small>守護聖獸卵</small></span></button>
+            <button class="route-node" data-stage="2" style="--x:24%;--y:77%"><span class="route-marker">2</span><span class="route-node-label"><b>巨蕨巢道</b><small>護送採集師</small></span></button>
+            <button class="route-node" data-stage="3" style="--x:70%;--y:64%"><span class="route-marker">3</span><span class="route-node-label"><b>潮汐濕地</b><small>摧毀三座獸巢</small></span></button>
+            <button class="route-node" data-stage="4" style="--x:28%;--y:51%"><span class="route-marker">4</span><span class="route-node-label"><b>古獸石陣</b><small>50 秒限時採礦</small></span></button>
+            <button class="route-node" data-stage="5" style="--x:72%;--y:39%"><span class="route-marker">5</span><span class="route-node-label"><b>琥珀山脊</b><small>營救受困弓手</small></span></button>
+            <button class="route-node" data-stage="6" style="--x:27%;--y:27%"><span class="route-marker">6</span><span class="route-node-label"><b>熔灰林</b><small>首領守護戰</small></span></button>
+            <button class="route-node" data-stage="7" style="--x:70%;--y:17%"><span class="route-marker">7</span><span class="route-node-label"><b>月骨峽谷</b><small>守住三處據點</small></span></button>
+            <button class="route-node" data-stage="8" style="--x:48%;--y:6%"><span class="route-marker">8</span><span class="route-node-label"><b>泰坦聖所</b><small>泰坦最終守護</small></span></button>
+          </div>
+        </section>
+        <div id="route-coming-toast" class="route-coming-toast" role="status" aria-live="polite" hidden>新篇章正在製作中 · 敬請期待</div>
       </div>
       <footer class="route-legend"><span><i class="done"></i>已完成</span><span><i class="ready"></i>可挑戰</span><span><i class="locked"></i>未解鎖</span></footer>
     </section>
@@ -69,9 +123,9 @@
 
   <main id="game" class="game-shell" hidden>
     <aside class="journal">
-      <div class="brand"><span class="brand-mark">◇</span> EMBERWILD</div>
+      <div class="brand"><img class="brand-app-icon" src="assets/brand-v1/sacred-beast-icon.png" alt=""> 原始文明</div>
       <p class="eyebrow">THE FIRST EXPEDITION</p>
-      <h1>琥珀荒境</h1><p class="journal-sub">八關遠征 · 特殊目標與隨機事件</p>
+      <h1 class="journal-game-title" aria-label="原始文明：聖獸覺醒">原始文明<span>聖獸覺醒</span></h1><p class="journal-sub">八關遠征 · 特殊目標與隨機事件</p>
       <div class="journal-rule"></div>
       <p class="eyebrow">YOUR FIELD NOTES</p>
       <ol class="field-notes"><li><b>以牌造物</b><span>把卡牌拖進戰場，每次消耗一張。重疊同類建築可升級，最高三級。</span></li><li><b>讓建築參戰</b><span>弩台高速穿骨，投獸器拋石控群；衝刺穿過骨牆可引爆骨片。</span></li><li><b>材料換好牌</b><span>獸潮勝利獲得木材與獸骨；休整找商人，自由購買建造卡、雇佣卡與武技。</span></li></ol>
@@ -83,7 +137,7 @@
         <div><span class="eyebrow" id="region">FERN VALLEY</span><b id="wave-title">蕨谷 · 營地準備</b><small id="stage-rule" class="stage-rule">熟悉移動、自動攻擊與卡牌建造</small></div>
         <div class="top-actions"><button id="return-camp" class="icon-btn camp-return" aria-label="儲存並返回營地" title="儲存並返回營地">營</button><button id="save-game" class="icon-btn" aria-label="手動儲存遠征">存</button><button id="sound" class="icon-btn" aria-label="開啟音效" aria-pressed="false">♪</button><button id="game-settings" class="icon-btn settings-launch" aria-label="遊戲設定">⚙︎</button><button id="pause" class="icon-btn" aria-label="暫停遊戲">Ⅱ</button></div>
       </header>
-      <div class="statusbar"><span class="health-stat"><i id="hp-fill"></i><em>獵人</em>♥ <b id="hp">100</b><small>/100</small></span><span class="nest-stat"><i id="nest-fill"></i><em>守護目標</em>◉ <span id="nest-label">聖獸卵</span> <b id="nest-hp">220</b></span><button id="companion-button" class="companion-stat" aria-label="查看聖獸伙伴"><span id="companion-icon" class="companion-mini">卵</span><span><em>聖獸伙伴</em><b id="companion-name">待孵化</b><small id="companion-level">點此選擇</small></span></button><span class="amber-stat"><em>遠征資源</em>◆ <b id="amber">16</b><small>琥珀</small></span></div>
+      <div class="statusbar"><span class="health-stat"><svg class="hud-chip-art" viewBox="0 0 240 74" preserveAspectRatio="none" aria-hidden="true"><use href="#hud-chip-frame"/></svg><i id="hp-fill"></i><em>獵人</em>♥ <b id="hp">100</b><small>/100</small></span><span class="nest-stat"><svg class="hud-chip-art" viewBox="0 0 240 74" preserveAspectRatio="none" aria-hidden="true"><use href="#hud-chip-frame"/></svg><i id="nest-fill"></i><em>守護目標</em>◉ <span id="nest-label">聖獸卵</span> <b id="nest-hp">220</b></span><button id="companion-button" class="companion-stat" aria-label="查看聖獸伙伴"><svg class="hud-chip-art" viewBox="0 0 240 74" preserveAspectRatio="none" aria-hidden="true"><use href="#hud-chip-frame"/></svg><span id="companion-icon" class="companion-mini">卵</span><span><em>聖獸伙伴</em><b id="companion-name">待孵化</b><small id="companion-level">點此選擇</small></span></button><span class="amber-stat"><svg class="hud-chip-art" viewBox="0 0 240 74" preserveAspectRatio="none" aria-hidden="true"><use href="#hud-chip-frame"/></svg><em>遠征資源</em>◆ <b id="amber">16</b><small>琥珀</small></span></div>
       <div class="suppliesbar"><span>▰ 木材 <b id="wood">8</b></span><span>✧ 獸骨 <b id="bone">4</b></span><div class="supply-actions"><button id="shop-pay" class="shop-pay-launch">¥ 支付</button><button id="merchant">找商人 ↗</button></div></div>
       <div class="mission-rail"><div><span>遠征路線</span><b id="stage-progress-label">第 1 關 / 共 8 關</b></div><div id="stage-pips" class="stage-pips" aria-label="八關遠征進度"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       <div class="arena" id="arena">
@@ -93,12 +147,13 @@
           <nav id="tutorial-progress" class="tutorial-progress" aria-label="五步教學進度"></nav>
           <small id="tutorial-protection"></small><button id="tutorial-next" class="primary" hidden>開始練習 →</button><button id="tutorial-claim" class="primary" hidden>領取獎勵 · 完成教學 ✓</button>
         </section>
-        <canvas id="world" aria-label="戰場。普通攻擊自動鎖定；靠近地圖事件後按 E 或互動按鈕；手機拖曳左下搖桿移動，右下使用技能與衝刺。"></canvas>
-        <div id="wave-banner" class="wave-banner"><span id="phase-label">準備你的第一道防線</span><small id="phase-hint">拖曳下方卡牌到空地，再召喚獸潮</small></div>
+        <canvas id="world" aria-label="戰場。普通攻擊自動鎖定；靠近地圖事件後點互動按鈕；拖曳左下搖桿移動，點右下技能與衝刺。"></canvas>
+        <img class="arena-edge-art" src="assets/painted-v1/battle-arena-edge-overlay-v1.png" alt="" aria-hidden="true" draggable="false">
+        <div id="wave-banner" class="wave-banner"><svg class="wave-frame-art" viewBox="0 0 520 86" preserveAspectRatio="none" aria-hidden="true"><use href="#wave-ribbon-frame"/></svg><span id="phase-label">準備你的第一道防線</span><small id="phase-hint">拖曳下方卡牌到空地，再召喚獸潮</small></div>
         <div id="build-indicator" class="build-indicator" hidden>凝時建造 · 戰場速度 15%</div>
         <div id="threat-pill" class="threat-pill"><i></i><span id="threat-label">整備防線</span><b id="enemy-count">0</b></div>
         <div id="objective-panel" class="objective-panel" hidden role="status" aria-live="polite"><span id="objective-icon" class="objective-icon">◉</span><div><small>SPECIAL OBJECTIVE</small><b id="objective-title">守住聖獸卵</b><em id="objective-status">準備中</em><i class="objective-track"><span id="objective-progress"></span></i></div></div>
-        <button id="event-interact" class="map-event-interact" hidden><span id="event-interact-icon">◇</span><b id="event-interact-name">地圖事件</b><small id="event-interact-action">互動 · E</small></button>
+        <button id="event-interact" class="map-event-interact" hidden><span id="event-interact-icon">◇</span><b id="event-interact-name">地圖事件</b><small id="event-interact-action">互動</small></button>
         <section id="wave-loot" class="wave-loot" aria-label="本關戰利品" hidden>
           <header><span class="loot-seal" aria-hidden="true">✓</span><div><small>STAGE CLEAR</small><h3 id="wave-loot-title">防線守住了</h3></div><button id="dismiss-loot" aria-label="收起戰利品">×</button></header>
           <div id="wave-loot-items" class="wave-loot-items" role="status" aria-live="polite"></div>
@@ -106,21 +161,24 @@
         </section>
         <div id="toast" class="toast" role="status" aria-live="polite"></div>
         <div class="field-controls">
-          <div id="joystick" class="joystick" role="group" aria-label="拖曳移動搖桿"><i id="stick"></i><span>移動</span></div>
-          <div class="combat-cluster"><span class="auto-attack-status"><i></i>自動攻擊</span><div class="combat-actions"><button id="dash" class="combat-btn dash" aria-label="衝刺，穿過骨牆引爆"><svg class="dash-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" pathLength="100"/></svg><span>➶</span><small id="dash-label">衝刺</small></button><button id="skill-shock" class="combat-btn skill shock" aria-label="荒骨震擊，震退並減速身邊敵人"><svg class="dash-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" pathLength="100"/></svg><span>✹</span><small id="shock-label">震擊 · K</small></button><button id="skill-volley" class="combat-btn skill volley" aria-label="貫骨齊射，向自動鎖定方向發射五支穿透骨矛"><svg class="dash-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" pathLength="100"/></svg><span>➶</span><small id="volley-label">齊射 · J</small></button></div></div>
+          <div id="joystick" class="joystick" role="group" aria-label="拖曳移動搖桿"><svg class="joystick-frame-art" viewBox="0 0 120 120" aria-hidden="true"><use href="#joystick-frame"/></svg><i id="stick"></i><span>移動</span></div>
+          <div class="combat-cluster"><span class="auto-attack-status"><i></i>自動攻擊</span><div class="combat-actions"><button id="dash" class="combat-btn dash" aria-label="衝刺，穿過骨牆引爆"><svg class="combat-frame-art" viewBox="0 0 100 100" aria-hidden="true"><use href="#combat-button-frame"/></svg><svg class="dash-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" pathLength="100"/></svg><span><svg class="combat-icon" viewBox="0 0 64 64" aria-hidden="true"><use href="#skill-dash-icon"/></svg></span><small id="dash-label">衝刺</small></button><button id="skill-shock" class="combat-btn skill shock" aria-label="荒骨震擊，震退並減速身邊敵人"><svg class="combat-frame-art" viewBox="0 0 100 100" aria-hidden="true"><use href="#combat-button-frame"/></svg><svg class="dash-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" pathLength="100"/></svg><span><svg class="combat-icon" viewBox="0 0 64 64" aria-hidden="true"><use href="#skill-shock-icon"/></svg></span><small id="shock-label">震擊</small></button><button id="skill-volley" class="combat-btn skill volley" aria-label="貫骨齊射，向自動鎖定方向發射五支穿透骨矛"><svg class="combat-frame-art" viewBox="0 0 100 100" aria-hidden="true"><use href="#combat-button-frame"/></svg><svg class="dash-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" pathLength="100"/></svg><span><svg class="combat-icon" viewBox="0 0 64 64" aria-hidden="true"><use href="#skill-volley-icon"/></svg></span><small id="volley-label">齊射</small></button></div></div>
         </div>
       </div>
       <div class="deck-heading"><div><div class="deck-tabs"><button id="deck-build" aria-pressed="true">建造卡</button><button id="deck-hire" aria-pressed="false">雇佣卡</button></div><b id="deck-hint">拖卡使用 · 顯示持有張數</b></div><button id="weapon" class="weapon-button">骨矛 · 已攜帶</button></div>
       <div id="hand" class="hand" aria-label="建築手牌"></div>
+      <nav class="battle-tools" aria-label="戰場工具"><button id="toggle-deck" aria-expanded="false" aria-controls="hand">建造 ▴</button><button id="battle-view" aria-pressed="false" aria-label="切換戰場全景">全景</button></nav>
       <div class="bottomline"><span id="run-info">第 1 次遠征 · 八關試煉</span><button id="next-wave" class="primary compact">召喚獸潮 ↗</button></div>
     </section>
   </main>
   <div id="drag-ghost" class="drag-ghost" hidden></div>
   <div id="modal" class="modal" hidden>
     <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button id="promotion-dismiss" class="promotion-dismiss" type="button" data-action="promotion-close" aria-label="關閉禮包，返回營地" hidden>關閉 ×</button>
       <p class="eyebrow" id="modal-eyebrow">EXPEDITION</p><h2 id="modal-title"></h2><p id="modal-copy"></p><div id="modal-content"></div><div id="modal-actions"></div>
     </section>
   </div>
+  <script src="boot-guard.js"></script>
   <script type="module" src="app.mjs"></script>
 </body>
 </html>

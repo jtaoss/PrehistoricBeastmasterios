@@ -1,0 +1,14 @@
+/* Single taps belong to the game, not WebKit's double-tap smart zoom.
+   Low specificity preserves touch-action:none on canvases, sticks and cards.
+   Apply to nested scroll surfaces too, since gesture arbitration stops there.
+   Do not cancel touchend/click: login, consent and multi-touch must still work. */
+:where(html, body, body *) { touch-action: manipulation; }
+
+/* iPhone landscape / iPad can use the desktop layout, but focusing a small
+   input must not zoom the page. Keep input selection and password autofill. */
+@media (any-pointer: coarse) {
+  .input-shell input, input[type="text"], input[type="password"],
+  input[type="email"], input[type="number"], textarea, select {
+    font-size: max(16px, 1em);
+  }
+}

@@ -26,6 +26,8 @@
         bindingPhone: function () { post("bindingPhone"); },
         pay: function (json) { post("pay", json); },
         chargeInfo: function (json) { post("chargeInfo", json); },
+        miniPurchase: function (json) { post("miniPurchase", json); },
+        miniAuth: function (json) { post("miniAuth", json); },
         upRole: function (json) { post("upRole", json); },
         upLoadAccountInfo: function (json) { post("upLoadAccountInfo", json); },
         sdkEvent: function (name, json) {

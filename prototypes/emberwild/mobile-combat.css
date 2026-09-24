@@ -1,0 +1,95 @@
+/* The battle, not the dashboard, owns the phone screen. Tutorial layout stays
+   separate: its highlighted targets and required hand must remain visible. */
+.battle-tools{display:none}
+[data-touch-controls=true] .camp-key-help,[data-touch-controls=true] .key-guide{display:none}
+.pause-resources{margin:14px 0;padding:12px;border:1px solid #9aac7655;border-radius:8px;color:#dec996;font-size:12px;line-height:1.8}
+#game,#game *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+@media(max-width:1024px) and (orientation:portrait){
+  #game:not(.tutorial-training){padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);height:100dvh;overflow:hidden}
+  #game:not(.tutorial-training) .journal{display:none}
+  #game:not(.tutorial-training) .expedition{position:relative;width:100%;max-width:none;height:100%;min-height:0;display:block}
+  #game:not(.tutorial-training) .arena{--battle-close-camera:1;position:absolute;inset:0;width:100%;height:100%!important;min-height:0!important;max-height:none!important;border:0;border-radius:0}
+  #game:not(.tutorial-training) .topbar{position:absolute;z-index:5;left:12px;right:8px;top:4px;height:44px;min-height:44px;margin:0;pointer-events:none}
+  #game:not(.tutorial-training) .topbar b{font-size:14px;text-shadow:0 2px 6px #00130f}
+  #game:not(.tutorial-training) .topbar .eyebrow,
+  #game:not(.tutorial-training) .stage-rule,
+  #game:not(.tutorial-training) .top-actions>button:not(#pause):not(#return-camp),
+  #game:not(.tutorial-training) .mission-rail{display:none}
+  #game:not(.tutorial-training) #pause,
+  #game:not(.tutorial-training) #return-camp{pointer-events:auto;width:44px;height:44px;min-width:44px;min-height:44px;background:#102a23df}
+  #game:not(.tutorial-training) #pause{font-size:20px}
+  #game:not(.tutorial-training) #return-camp{font-size:12px;color:#efd38f}
+  #game:not(.tutorial-training) .statusbar{position:absolute;z-index:4;top:51px;left:12px;display:flex;gap:9px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;pointer-events:none}
+  #game:not(.tutorial-training) .statusbar>span{min-height:29px;padding:4px 9px 7px;gap:3px;border:1px solid #d4dba944;border-radius:6px;background:#10291eda;font-size:11px;align-items:center}
+  #game:not(.tutorial-training) .statusbar b{font-size:13px}
+  #game:not(.tutorial-training) .statusbar em,
+  #game:not(.tutorial-training) .statusbar small,
+  #game:not(.tutorial-training) .companion-stat,
+  #game:not(.tutorial-training) .amber-stat{display:none}
+  #game:not(.tutorial-training) .statusbar>span>i{height:3px}
+  #game:not(.tutorial-training) .wave-banner{top:94px;left:12px;width:calc(100% - 24px);max-width:none;pointer-events:none}
+  #game:not(.tutorial-training) .arena.in-combat:not(.wave-starting) .wave-banner{display:none}
+  #game:not(.tutorial-training) .threat-pill{top:54px;right:12px;height:25px}
+  #game:not(.tutorial-training) .threat-pill span{display:none}
+  #game:not(.tutorial-training) .objective-panel{top:84px;left:12px;width:max-content;max-width:calc(100% - 24px);padding:4px 8px;grid-template-columns:auto;box-shadow:none;border:0;background:#0b251abf}
+  #game:not(.tutorial-training) .objective-panel .objective-icon,
+  #game:not(.tutorial-training) .objective-panel.defend,
+  #game:not(.tutorial-training) .objective-panel small{display:none}
+  #game:not(.tutorial-training) .objective-panel b{font-size:11px;margin:0}
+  #game:not(.tutorial-training) .objective-panel em{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;margin-top:2px}
+  #game:not(.tutorial-training) .objective-panel .objective-track{display:none}
+  #game:not(.tutorial-training) .build-indicator{top:126px;font-size:9px}
+  #game:not(.tutorial-training) .field-controls{left:16px;right:12px;bottom:75px}
+  #game:not(.tutorial-training) .joystick{width:76px;height:76px}
+  #game:not(.tutorial-training) .combat-actions{gap:7px}
+  #game:not(.tutorial-training) .combat-btn.dash{width:48px;height:48px}
+  #game:not(.tutorial-training) .combat-btn.skill.shock{width:56px;height:56px}
+  #game:not(.tutorial-training) .combat-btn.skill.volley{width:64px;height:64px}
+  #game:not(.tutorial-training) .combat-btn.skill small{font-size:10px}
+  #game:not(.tutorial-training) .auto-attack-status{display:none}
+  #game:not(.tutorial-training) .map-event-interact{bottom:174px;min-height:46px}
+  #game:not(.tutorial-training) .map-event-interact b{font-size:12px}
+  #game:not(.tutorial-training) .map-event-interact small{font-size:10px}
+  #game:not(.tutorial-training) .toast{bottom:179px;font-size:11px}
+  #game:not(.tutorial-training) .battle-tools{display:flex;gap:8px;position:absolute;z-index:7;left:12px;bottom:6px}
+  .battle-tools button{min-width:60px;min-height:44px;padding:8px 12px;border:1px solid #d7bd7366;border-radius:9px;background:#102b22ed;color:#eed397;font-size:12px}
+  .battle-tools #toggle-deck[aria-expanded=true]{background:#dabb72;color:#182c22}
+  #game:not(.tutorial-training) .bottomline{position:absolute;z-index:6;right:12px;bottom:6px;min-height:44px;margin:0;padding:0;border:0}
+  #game:not(.tutorial-training) .bottomline>span{display:none}
+  #game:not(.tutorial-training) #next-wave{min-height:44px;padding:8px 12px;font-size:11px}
+  #game:not(.tutorial-training):not(.deck-open) .suppliesbar,
+  #game:not(.tutorial-training):not(.deck-open) .deck-heading,
+  #game:not(.tutorial-training):not(.deck-open) .hand{display:none}
+  #game:not(.tutorial-training) .suppliesbar{display:none}
+  #game[data-phase=wave]:not(.tutorial-training) .supply-actions{display:none}
+  #game:not(.tutorial-training) .deck-heading{position:absolute;z-index:6;bottom:118px;left:0;right:0;min-height:43px;margin:0;padding:4px 10px;background:#102b23f7;border-top:1px solid #d6be6b66;gap:4px}
+  #game:not(.tutorial-training) .deck-tabs{padding:0;border:0}
+  #game:not(.tutorial-training) .deck-tabs button{min-height:34px;padding:4px 8px;font-size:10px}
+  #game:not(.tutorial-training) .deck-heading b,
+  #game:not(.tutorial-training) .weapon-button{display:none}
+  #game:not(.tutorial-training) .hand{position:absolute;z-index:6;bottom:48px;left:0;right:0;min-height:70px;height:70px;padding:3px 8px 6px;background:#102b23f7;gap:5px}
+  #game:not(.tutorial-training) .build-card{min-height:0;padding:5px 2px 13px;border-radius:7px;transform:none}
+  #game:not(.tutorial-training) .build-card:hover{transform:none}
+  #game:not(.tutorial-training) .build-card.selected{transform:translateY(-2px)}
+  #game:not(.tutorial-training) .build-card .card-icon{width:31px;height:31px;margin-bottom:0}
+  #game:not(.tutorial-training) .build-card .card-name{font-size:8px;letter-spacing:0;margin:1px 0}
+  #game:not(.tutorial-training) .build-card .card-desc,
+  #game:not(.tutorial-training) .build-card .card-hotkey,
+  #game:not(.tutorial-training) .build-card .card-role{display:none}
+  #game:not(.tutorial-training) .card-cost{bottom:1px;left:50%;transform:translateX(-50%);font-size:8px;padding:1px 4px;background:transparent}
+  #game:not(.tutorial-training) .card-glow{display:none}
+  #game.deck-open:not(.tutorial-training) .field-controls{bottom:171px}
+  #game.deck-open:not(.tutorial-training) .map-event-interact{bottom:258px}
+  #game.deck-open:not(.tutorial-training) .toast{bottom:255px}
+  #game:not(.tutorial-training) .wave-loot{top:90px}
+  #game:not(.tutorial-training) #battle-view{display:none}
+  #game:not(.tutorial-training) .expedition:before{content:"";position:absolute;z-index:2;inset:0;pointer-events:none;background:linear-gradient(#081d17a8,transparent 15%,transparent 84%,#081d17ba)}
+  .camp-key-help{display:none}
+}
+@media(max-width:359px) and (orientation:portrait){
+  #game:not(.tutorial-training) .field-controls{left:10px;right:10px}
+  #game:not(.tutorial-training) .joystick{width:64px;height:64px}
+  #game:not(.tutorial-training) .combat-actions{gap:5px}
+  #game:not(.tutorial-training) .combat-btn.skill.volley{width:58px;height:58px}
+  .battle-tools button{padding:8px;min-width:54px}
+}

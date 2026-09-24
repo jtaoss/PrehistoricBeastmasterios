@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="core" cx="34%" cy="25%" r="78%">
+      <stop offset="0" stop-color="#365b4b" stop-opacity=".96"/>
+      <stop offset=".62" stop-color="#17362e" stop-opacity=".96"/>
+      <stop offset="1" stop-color="#091f1a" stop-opacity=".98"/>
+    </radialGradient>
+    <linearGradient id="bone" x1=".12" y1=".1" x2=".86" y2=".9">
+      <stop stop-color="#f1dfad"/><stop offset=".46" stop-color="#ab9668"/><stop offset="1" stop-color="#5c573d"/>
+    </linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#03120e" flood-opacity=".72"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <circle cx="50" cy="50" r="45" fill="url(#core)" stroke="#061a14" stroke-width="5"/>
+    <circle cx="50" cy="50" r="42" fill="none" stroke="url(#bone)" stroke-width="3" stroke-dasharray="41 7 15 6"/>
+    <path d="M17 29 10 22l13 2 4-10 5 13M72 17l6-9 2 12 11 2-10 6M83 70l9 7-12 1-4 11-5-12M28 84l-7 8-1-12-11-3 11-5" fill="none" stroke="#d7c68d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".78"/>
+    <circle cx="50" cy="50" r="34" fill="none" stroke="#9cd3b1" stroke-opacity=".16"/>
+  </g>
+</svg>

@@ -8,8 +8,12 @@ enum InjectedScripts {
     /// creates them.
     static let loadingRecovery = """
     (function(){if(window.__pbmLoadingRecoveryInstalled){return;}
-    var pageHost=String(window.location.hostname||'').toLowerCase();
-    if(pageHost!=='saftcdn.antieh.com'&&pageHost!=='xundaocdn.xmw520.com'){return;}
+    // Only the backend-selected game entry carries this WK-specific marker.
+    if(window.location.protocol!=='https:'||
+       String(window.location.hostname||'').toLowerCase()!=='safthwyk.antieh.com'||
+       !window.location.pathname.startsWith('/stoneage_tw/')||
+       new URLSearchParams(window.location.search).getAll('os').join(',')!=='ios_wk'){
+       return;}
     window.__pbmLoadingRecoveryInstalled=true;
     var failures=0,lastActivity=Date.now(),reloadScheduled=false;
     var retryLimit=3,reloadKey='pbm_loader_reload_at';
@@ -196,21 +200,26 @@ enum InjectedScripts {
     window.__shellDebugUiObserver.observe(document.documentElement,{childList:true,subtree:true});}})();
     """
 
-    static let returnToGameCenter = returnOverlay(label: "返回小遊戲")
+    static let returnToGameCenter = returnOverlay(label: "返回冒險大廳")
 
     private static func returnOverlay(label: String) -> String {
         """
         (function(){if(window.__shellReturnToCenterInstalled){return;}
         if(!window.android||typeof window.android.returnToGameCenter!=='function'){return;}
         var button=document.createElement('button');
-        button.type='button';button.textContent=\(jsString(label));
+        button.id='pbm-shell-return-game-center';button.type='button';button.textContent=\(jsString(label));
         button.setAttribute('aria-label',\(jsString(label)));
-        button.style.cssText='position:fixed;top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));z-index:2147483646;min-height:36px;padding:6px 12px;border:0;border-radius:999px;color:#07342d;background:rgba(125,241,201,.92);font:700 13px/1.2 sans-serif;box-shadow:0 6px 16px rgba(0,0,0,.28);';
-        button.addEventListener('click',function(){try{window.android.returnToGameCenter();}catch(error){}});
+        button.style.cssText='position:fixed;top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));z-index:2147483646;min-height:42px;padding:8px 15px;border:1px solid rgba(255,232,169,.72);border-radius:8px;color:#f7e6b7;background:linear-gradient(145deg,rgba(31,72,58,.97),rgba(10,42,35,.97));font:700 13px/1.2 -apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.5px;box-shadow:0 7px 20px rgba(0,0,0,.38);';
+        button.addEventListener('click',function(){if(button.disabled){return;}button.disabled=true;button.textContent='切換中…';button.style.opacity='.72';try{window.android.returnToGameCenter();}catch(error){button.disabled=false;button.textContent=\(jsString(label));button.style.opacity='1';return;}setTimeout(function(){button.disabled=false;button.textContent=\(jsString(label));button.style.opacity='1';},8000);});
         (document.body||document.documentElement).appendChild(button);
         window.__shellReturnToCenterInstalled=true;})();
         """
     }
+
+    static let removeReturnToGameCenter = """
+        (function(){var button=document.getElementById('pbm-shell-return-game-center');
+        if(button){button.remove();}window.__shellReturnToCenterInstalled=false;})();
+        """
 
     static func webSdkLogin(appId: String, channel: String) -> String {
         """

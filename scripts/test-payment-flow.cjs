@@ -32,6 +32,7 @@ try {
   execFileSync('xcrun', ['swiftc', '-swift-version', '5', '-parse-as-library',
     path.join(__dirname, 'payment-tests/GatewayHarness.swift'),
     path.join(root, 'PrehistoricBeastmaster/Config/JSONObject.swift'),
+    path.join(root, 'PrehistoricBeastmaster/Payment/PayRequest.swift'),
     path.join(root, 'PrehistoricBeastmaster/Payment/BackendGateway.swift'),
     '-o', gatewayBinary], { stdio: 'inherit' });
   execFileSync(gatewayBinary, [], { stdio: 'inherit', timeout: 15000 });

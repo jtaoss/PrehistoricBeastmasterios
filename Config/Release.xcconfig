@@ -14,7 +14,5 @@ SWIFT_COMPILATION_MODE = wholemodule
 MTL_ENABLE_DEBUG_INFO = NO
 VALIDATE_PRODUCT = YES
 
-// Production H5 entry. os=ios_wk enables the WKWebView message handlers used by the iOS shell.
-ONLINE_GAME_URL = https:/$()/saftcdn.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=ios_wk&pf=xmwtwh5sqxssgp1&td_channelid=xmwtwh5sqxssgp1
 CONTENT_CONFIG_ENDPOINT = https:/$()/safthwysdk.antieh.com/api/v1/content-config
 STOREKIT_ENABLED = YES

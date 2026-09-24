@@ -2,10 +2,11 @@
 // Actual walking, pathfinding and touch input are covered in camp-browser.test.cjs.
 // Non-tutorial suites explicitly model a player who has already graduated.
 // Production has no QA exemption from mandatory onboarding.
-async function veteran(page){await page.waitForFunction(()=>window.emberwildQA);await page.evaluate(async()=>{const s=emberwildQA.store;if(!s.state.run&&!s.state.profile.tutorialDone)await s.mutate(state=>{state.profile.tutorialDone=true;});});}
+async function veteran(page){await page.waitForFunction(()=>window.emberwildQA);await page.evaluate(async()=>{const s=emberwildQA.store;if(!s.state.run&&!s.state.profile.tutorialDone){const {offerWeekKey}=await import('./save.mjs');await s.mutate(state=>{state.profile.tutorialDone=true;state.profile.offerPrompts={starterShown:true,weeklyShownWeek:offerWeekKey()};});}});}
 async function openVeteran(page,url){
-  const {freshState,encode,SAVE_KEY,BACKUP_KEY,LEGACY_KEY}=await import('../save.mjs'),state=freshState();state.profile.tutorialDone=true;
-  await page.addInitScript(({key,backup,legacy,raw})=>{if(!localStorage.getItem(key)&&!localStorage.getItem(backup)&&!localStorage.getItem(legacy))localStorage.setItem(key,raw);},{key:SAVE_KEY,backup:BACKUP_KEY,legacy:LEGACY_KEY,raw:encode(state)});
+  const {freshState,encode,offerWeekKey,SAVE_KEY,BACKUP_KEY,LEGACY_KEY}=await import('../save.mjs'),state=freshState();state.profile.tutorialDone=true;state.profile.offerPrompts={starterShown:true,weeklyShownWeek:offerWeekKey()};
+  const {ACCOUNT_SESSION_KEY}=await import('../account-session.mjs'),now=Date.now(),account=JSON.stringify({version:2,playerId:'qa-player',label:'測試獵人',authenticatedAt:now,accessExpiresAt:now+86400000});
+  await page.addInitScript(({key,backup,legacy,raw,accountKey,account})=>{if(!localStorage.getItem(key)&&!localStorage.getItem(backup)&&!localStorage.getItem(legacy))localStorage.setItem(key,raw);localStorage.setItem(accountKey,account);},{key:SAVE_KEY,backup:BACKUP_KEY,legacy:LEGACY_KEY,raw:encode(state),accountKey:ACCOUNT_SESSION_KEY,account});
   await page.goto(url);
 }
 async function approach(page,id){

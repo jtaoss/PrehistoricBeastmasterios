@@ -4,7 +4,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const html = read('PrehistoricBeastmaster/Resources/game/privacy-policy.html');
+const html = read('PrehistoricBeastmaster/Resources/legal/privacy-policy.html');
 const reader = read('PrehistoricBeastmaster/PrivacyPolicyViewController.swift');
 const game = read('PrehistoricBeastmaster/GameViewController.swift');
 const web = read('PrehistoricBeastmaster/Web/TrustedWebView.swift');
@@ -25,6 +25,7 @@ check('policy reader is isolated from game cookies, SDKs, scripts and payment br
   assert.match(reader, /websiteDataStore = \.nonPersistent\(\)/);
   assert.match(reader, /allowsContentJavaScript = false/);
   assert.match(reader, /allowingReadAccessTo: documentURL/);
+  assert.match(reader, /forResource: "privacy-policy", withExtension: "html", subdirectory: "legal"/);
   assert.doesNotMatch(reader, /addUserScript|messageHandlers|load\(URLRequest|AnalyticsSDK|StoreKitManager|privacy_accepted|requestTrackingAuthorization|UserDefaults/);
   assert.match(reader, /url\.standardizedFileURL\.path == documentURL\.standardizedFileURL\.path/);
   assert.match(reader, /decisionHandler\(\.cancel\)/);
@@ -38,13 +39,17 @@ check('privacy presentation does not reset payments or accept consent', () => {
   assert.match(web, /if IOSWebNavigationPolicy\.isPrivacyPolicyURL\(url\) \{\s*onPrivacyPolicyRequested\?\(\)\s*return/);
 });
 check('game entry keeps legal buttons and no startup agreement is restored', () => {
-  assert.match(read('PrehistoricBeastmaster/Resources/game/index.html'), /data-legal-url="https:\/\/d1udhm4c9vjzph.cloudfront.net\/ios-legal\/privacy-policy.html"/);
+  const entry = read('PrehistoricBeastmaster/Resources/game/index.html');
+  assert.match(entry, /data-legal-url="https:\/\/d1udhm4c9vjzph.cloudfront.net\/ios-legal\/privacy-policy.html"/);
+  assert.doesNotMatch(entry, />官方網站<\/a>/);
   assert.doesNotMatch(read('PrehistoricBeastmaster/SplashViewController.swift'), /UIAlertController|PrivacyPolicyViewController|privacy_accepted/);
 });
 check('reader is part of Xcode target; policy folder is bundled', () => {
   const project = read('PrehistoricBeastmaster.xcodeproj/project.pbxproj');
   assert.match(project, /PrivacyPolicyViewController.swift in Sources/);
   assert.match(project, /game in Resources/);
+  assert.match(project, /legal in Resources/);
+  assert.match(project, /lastKnownFileType = folder; path = legal;/);
   execFileSync('/usr/bin/plutil', ['-lint', path.join(root, 'PrehistoricBeastmaster.xcodeproj/project.pbxproj')]);
 });
 check('native manifest includes marketing purpose for the existing tracked event data', () => {

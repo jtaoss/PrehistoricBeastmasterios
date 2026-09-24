@@ -14,7 +14,8 @@ enum ShellConfig {
     static let payType = "apple"
     static var payChannel: Int { Int(info("ShellPayChannel", "24")) ?? 24 }
     static var paymentApiToken: String { info("ShellPaymentApiToken") }
-    static var onlineGameURL: URL? { URL(string: info("ShellOnlineGameURL")) }
+    static var miniGameOrderEndpoint: String { info("ShellMiniGameOrderEndpoint") }
+    static var miniGameAuthBaseURL: String { info("ShellMiniGameAuthBaseURL") }
     static var contentConfigEndpoint: String { info("ShellContentConfigEndpoint") }
     static var storeKitEnabled: Bool { flag("ShellStoreKitEnabled", true) }
     static var allowSideloadOrderHandshake: Bool { flag("ShellAllowSideloadOrderHandshake", false) }
@@ -56,6 +57,23 @@ enum ShellConfig {
 /// those are also used by login and by the existing App Store order handshake.
 /// Unknown browser destinations fail closed instead of becoming a web-pay exit.
 enum IOSWebNavigationPolicy {
+    /// Only a backend-supplied entry on the approved game origin may receive
+    /// the online game's native bridge. The full page URL is not bundled.
+    static func validatedOnlineGameURL(_ raw: String) -> URL? {
+        guard let url = URL(string: raw), isSafeHTTPS(url),
+              url.host?.lowercased() == "safthwyk.antieh.com",
+              url.fragment == nil,
+              url.path.hasPrefix("/stoneage_tw/"), url.path.hasSuffix(".html"),
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else { return nil }
+        func values(_ name: String) -> [String] {
+            items.filter { $0.name == name }.compactMap(\.value)
+        }
+        guard values("os") == ["ios_wk"],
+              values("pf") == [ShellConfig.channel],
+              values("td_channelid") == [ShellConfig.channel] else { return nil }
+        return url
+    }
+
     static func isPrivacyPolicyURL(_ url: URL) -> Bool {
         allowsExternal(url) && url.host?.lowercased() == "d1udhm4c9vjzph.cloudfront.net"
             && url.path == "/ios-legal/privacy-policy.html"
@@ -67,13 +85,22 @@ enum IOSWebNavigationPolicy {
             return url.standardizedFileURL.path.hasPrefix(root + "/")
         }
         guard isSafeHTTPS(url) else { return false }
-        if let game = onlineGameURL, isSafeHTTPS(game),
-           url.host?.lowercased() == game.host?.lowercased(),
-           normalizedPort(url) == normalizedPort(game),
-           url.path == game.path {
+        if let game = onlineGameURL, isOnlineGameURL(url, configured: game) {
             return true
         }
         return isLoginURL(url)
+    }
+
+    static func isOnlineGameURL(_ url: URL, configured game: URL) -> Bool {
+        guard isSafeHTTPS(url), isSafeHTTPS(game),
+              url.host?.lowercased() == game.host?.lowercased(),
+              normalizedPort(url) == normalizedPort(game),
+              url.path == game.path else { return false }
+        let requiredOS = URLComponents(url: game, resolvingAgainstBaseURL: false)?.queryItems?
+            .filter { $0.name == "os" }.compactMap(\.value) ?? []
+        let actualOS = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+            .filter { $0.name == "os" }.compactMap(\.value) ?? []
+        return requiredOS.count == 1 && actualOS == requiredOS
     }
 
     static func allowsExternal(_ url: URL) -> Bool {

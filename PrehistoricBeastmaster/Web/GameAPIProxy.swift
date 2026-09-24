@@ -3,6 +3,7 @@ import WebKit
 
 @MainActor final class GameAPIProxy: NSObject, WKScriptMessageHandlerWithReply {
     private let orderGate = GameOrderRequestGate()
+    var onlineGameURL: URL?
     var onCheckoutBusy: (() -> Void)?
 
     func beginCheckout(_ cpOrder: String) -> Bool { orderGate.beginCheckout(cpOrder) }
@@ -141,7 +142,7 @@ import WebKit
             }
             request.setValue(value, forHTTPHeaderField: name)
         }
-        if let origin = ShellConfig.onlineGameURL {
+        if let origin = onlineGameURL {
             request.setValue(originHost(origin), forHTTPHeaderField: "Origin")
         }
         if isSafeHeaderValue(userAgent) {

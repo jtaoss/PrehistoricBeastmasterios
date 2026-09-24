@@ -1,0 +1,10 @@
+{
+  "name": "emberwild-ios-resources",
+  "private": true,
+  "scripts": {
+    "build:ios": "node ../../scripts/build-emberwild-ios.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
+}

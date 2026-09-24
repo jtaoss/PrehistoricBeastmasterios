@@ -22,6 +22,7 @@ struct PayRequest {
     let extra: String
     let extensionValue: String
     let callbackInfo: String
+    let clientRequestId: String
 
     init(json: String, fallbackUsername: String = "") throws {
         var source = try JSONObject(json: json)
@@ -60,6 +61,7 @@ struct PayRequest {
         extra = source.string("extra")
         extensionValue = source.string("extension")
         callbackInfo = source.string("callbackInfo")
+        clientRequestId = source.string("clientRequestId")
         if cpOrder.isEmpty {
             throw URLError(.cannotParseResponse)
         }
@@ -74,6 +76,26 @@ struct PayRequest {
 
     func legacyExtension() -> String {
         ShellText.firstNonBlank(extensionValue, extra, callbackInfo)
+    }
+}
+
+enum MiniGameProductCatalog {
+    struct Offer {
+        let id: String
+        let productId: String
+        let goodsId: Int
+    }
+
+    private static let offers: [String: Offer] = [
+        "pack-fortify": Offer(id: "pack-fortify", productId: "pbm_tier_099", goodsId: 910001),
+        "pack-relic": Offer(id: "pack-relic", productId: "pbm_tier_499", goodsId: 910002),
+        "pack-hire": Offer(id: "pack-hire", productId: "pbm_tier_199", goodsId: 910003),
+        "pack-scout": Offer(id: "pack-scout", productId: "pbm_tier_299", goodsId: 910004),
+        "pack-titan": Offer(id: "pack-titan", productId: "pbm_tier_999", goodsId: 910005)
+    ]
+
+    static func offer(_ id: String) -> Offer? {
+        offers[id.trimmingCharacters(in: .whitespacesAndNewlines)]
     }
 }
 

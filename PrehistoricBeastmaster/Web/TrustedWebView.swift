@@ -8,6 +8,8 @@ protocol H5BridgeHost: AnyObject {
     func onLogoutRequested()
     func onBindingPhoneRequested()
     func onPayRequested(_ json: String)
+    func onMiniPurchaseRequested(_ json: String)
+    func onMiniAuthRequested(_ json: String)
     func onGameOrderFailed(_ json: String)
     func onRoleReported(_ json: String)
     func onAnalyticsEvent(_ name: String, json: String?)
@@ -18,8 +20,10 @@ protocol H5BridgeHost: AnyObject {
 
 final class IosWkBridge: NSObject, WKScriptMessageHandler {
     weak var host: H5BridgeHost?
+    var onlineGameURL: URL?
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "pay" && !isTrustedOnlineGameMainFrame(message.frameInfo) { return }
         DispatchQueue.main.async { [weak self] in
             self?.dispatch(name: message.name, body: message.body)
         }
@@ -52,6 +56,12 @@ final class IosWkBridge: NSObject, WKScriptMessageHandler {
             return json
         }
         return String(describing: body)
+    }
+
+    private func isTrustedOnlineGameMainFrame(_ frame: WKFrameInfo) -> Bool {
+        guard frame.isMainFrame,
+              let url = frame.request.url, let game = onlineGameURL else { return false }
+        return IOSWebNavigationPolicy.isOnlineGameURL(url, configured: game)
     }
 }
 
@@ -105,17 +115,26 @@ final class GameHapticsBridge: NSObject, WKScriptMessageHandler {
 
 final class H5Bridge: NSObject, WKScriptMessageHandler {
     weak var host: H5BridgeHost?
+    var onlineGameURL: URL?
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any] else { return }
         let method = String(describing: body["method"] ?? "")
         let payload = String(describing: body["payload"] ?? "")
+        let isTrustedLocalMainFrame = message.frameInfo.isMainFrame && Self.isBundledGame(message.frameInfo.request.url)
+        let isTrustedOnlineMainFrame = message.frameInfo.isMainFrame
+            && message.frameInfo.request.url.flatMap { url in
+                onlineGameURL.map { IOSWebNavigationPolicy.isOnlineGameURL(url, configured: $0) }
+            } == true
         DispatchQueue.main.async { [weak self] in
-            self?.dispatch(method: method, payload: payload)
+            self?.dispatch(method: method, payload: payload,
+                           isTrustedLocalMainFrame: isTrustedLocalMainFrame,
+                           isTrustedOnlineMainFrame: isTrustedOnlineMainFrame)
         }
     }
 
-    private func dispatch(method: String, payload: String) {
+    private func dispatch(method: String, payload: String,
+                          isTrustedLocalMainFrame: Bool, isTrustedOnlineMainFrame: Bool) {
         switch method {
         case "regsuccess", "loadComplete":
             host?.onH5Ready()
@@ -128,7 +147,18 @@ final class H5Bridge: NSObject, WKScriptMessageHandler {
         case "bindingPhone":
             host?.onBindingPhoneRequested()
         case "pay", "chargeInfo":
+            guard isTrustedOnlineMainFrame else { return }
             host?.onPayRequested(payload)
+        case "miniPurchase":
+            // Unlike the legacy remote-game payment bridge, this narrow entry
+            // point may only be called by the bundled game's main frame.
+            guard isTrustedLocalMainFrame else { return }
+            host?.onMiniPurchaseRequested(payload)
+        case "miniAuth":
+            // Passwords and tokens may only cross the native bridge from the
+            // bundled game's main frame. Remote content and iframes are denied.
+            guard isTrustedLocalMainFrame else { return }
+            host?.onMiniAuthRequested(payload)
         case "gameOrderFailed":
             host?.onGameOrderFailed(payload)
         case "upRole", "upLoadAccountInfo":
@@ -153,10 +183,18 @@ final class H5Bridge: NSObject, WKScriptMessageHandler {
             break
         }
     }
+
+    private static func isBundledGame(_ url: URL?) -> Bool {
+        guard let url, url.isFileURL,
+              let root = ShellConfig.localGameDirectory?.standardizedFileURL.path else { return false }
+        return url.standardizedFileURL.path.hasPrefix(root + "/")
+    }
 }
 
 final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
+    private(set) var onlineGameURL: URL?
     var onPageFinished: ((String) -> Void)?
+    var onNavigationFailed: ((String) -> Void)?
     var onNavigationBlocked: (() -> Void)?
     var onPrivacyPolicyRequested: (() -> Void)?
     var onCheckoutBusy: (() -> Void)? {
@@ -244,6 +282,15 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
         loadFileURL(fileURL, allowingReadAccessTo: directory)
     }
 
+    @discardableResult func configureOnlineGameURL(_ url: URL?) -> Bool {
+        if let url, IOSWebNavigationPolicy.validatedOnlineGameURL(url.absoluteString) == nil { return false }
+        onlineGameURL = url
+        iosWkBridge.onlineGameURL = url
+        bridge.onlineGameURL = url
+        proxy.onlineGameURL = url
+        return true
+    }
+
     func loadTrustedURL(_ url: URL) {
         guard shouldAllow(url) else {
             openApprovedExternalURL(url)
@@ -326,6 +373,11 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
         left:Math.round(rect.left),clientWidth:node.clientWidth,clientHeight:node.clientHeight};}
         var bodyStyle=document.body?getComputedStyle(document.body):null;
         return JSON.stringify({href:location.href,readyState:document.readyState,
+        gameBootReady:document.documentElement.dataset.bootReady==='true',
+        loginFieldsDisabled:document.getElementById('form-fields')?document.getElementById('form-fields').disabled:null,
+        authCallbackInstalled:typeof window.javaCallBack==='function',
+        viewportScale:window.visualViewport?window.visualViewport.scale:null,
+        viewportWidth:window.visualViewport?window.visualViewport.width:null,
         innerWidth:innerWidth,innerHeight:innerHeight,devicePixelRatio:devicePixelRatio,
         bodyChildren:document.body?document.body.children.length:-1,
         bodyTextLength:document.body?(document.body.innerText||'').length:-1,
@@ -342,6 +394,8 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
                 self?.recordDiagnostic("snapshot-\(label)-failed \(error.localizedDescription)")
             } else {
                 self?.recordDiagnostic("snapshot-\(label) \(String(describing: value ?? "<nil>"))")
+                // Structure/booleans only: never inspect input values or credentials.
+                NSLog("[PBM-WEB-CHECK] %@ %@", label, String(describing: value ?? "<nil>"))
             }
         }
     }
@@ -358,11 +412,13 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         recordDiagnostic("failed \(webView.url?.absoluteString ?? "<nil>") \(error.localizedDescription)")
         NSLog("[PBM-WEB] navigation failed: %@", error.localizedDescription)
+        onNavigationFailed?(error.localizedDescription)
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         recordDiagnostic("provisional-failed \(webView.url?.absoluteString ?? "<nil>") \(error.localizedDescription)")
         NSLog("[PBM-WEB] provisional navigation failed: %@", error.localizedDescription)
+        onNavigationFailed?(error.localizedDescription)
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
@@ -383,7 +439,7 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     }
 
     func isTrustedTopLevel(_ url: URL) -> Bool {
-        IOSWebNavigationPolicy.allowsInWebView(url, onlineGameURL: ShellConfig.onlineGameURL,
+        return IOSWebNavigationPolicy.allowsInWebView(url, onlineGameURL: onlineGameURL,
                                               localGameDirectory: ShellConfig.localGameDirectory)
     }
 

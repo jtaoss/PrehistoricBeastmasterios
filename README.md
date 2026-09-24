@@ -2,6 +2,12 @@
 
 iOS WKWebView shell for **原始文明：聖獸覺醒**. The Android project in this repo is a **protocol and behavior reference** only — iOS does not ship Google Play Billing or native Google/Facebook login. Firebase is used only for Analytics when its iOS configuration file is present.
 
+## Game entry control
+
+The iOS app loads the bundled Emberwild mini-game and the configured online game according to the effective `mode` returned by `GET /api/v1/content-config`. `MINI_ONLY` shows the bundled game, `BOTH` exposes both entries, and `ONLINE_ONLY` opens the online game. The backend also supplies `onlineGameURL` whenever it enables the online game; a response that enables it without a valid URL is ignored. The client reads the last valid response at startup, defaults to `MINI_ONLY` without a cache, and refreshes at startup and when returning to the foreground. Checkout and account operations defer a route switch until they finish. The bundled game files remain in the IPA.
+
+The endpoint is set by `CONTENT_CONFIG_ENDPOINT` in `Config/Debug.xcconfig` and `Config/Release.xcconfig`. The backend rule is keyed by iOS app ID `1000151`, bundle ID `com.stone.primitive.saga`, and channel `xmwtwh5sqxssgp1`. The client permits only a validated HTTPS URL on the approved game origin with the expected `ios_wk` bridge and channel parameters. See `../docs/CONTENT_MODE_CONTROL.md` for the management flow. A new IPA is required before an installed older build can use this behavior. A remotely returned URL is visible to anyone who reads the public API or observes game traffic; moving it out of the bundle is not access control.
+
 ## Login model (iOS)
 
 Login is **Web SDK only**:

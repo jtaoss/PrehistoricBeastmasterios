@@ -8,9 +8,9 @@ ONLY_ACTIVE_ARCH = YES
 ENABLE_TESTABILITY = YES
 MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE
 
-// Match the production H5 entry for device payment testing. Keep the VPN enabled when this host is not directly reachable.
-ONLINE_GAME_URL = https:/$()/saftcdn.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=ios_wk&pf=xmwtwh5sqxssgp1&td_channelid=xmwtwh5sqxssgp1
-CONTENT_CONFIG_ENDPOINT = http:/$()/127.0.0.1:8080/api/v1/content-config
+// Match production routing for device acceptance tests. A local endpoint can
+// still be supplied from Secrets.xcconfig when backend development needs it.
+CONTENT_CONFIG_ENDPOINT = https:/$()/safthwysdk.antieh.com/api/v1/content-config
 STOREKIT_ENABLED = YES
 
 // Inject only the operations-provided CLIENT_API_TOKEN into a local Debug build.
@@ -19,3 +19,9 @@ PAYMENT_API_TOKEN = $(PBM_CLIENT_API_TOKEN)
 
 // Optional, ignored local overrides keep personal signing out of the operations package.
 #include? "Secrets.xcconfig"
+
+// Local device build uses the already-installed team development profile.
+DEVELOPMENT_TEAM = ADR4GMT9V3
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Apple Development
+PROVISIONING_PROFILE_SPECIFIER = Primal_Legends_Development_YU_KANG_2026

@@ -33,17 +33,11 @@
 
 ## 小游戏文件
 
-小游戏位于本交付包的 `game/` 目录，入口是 `game/index.html`。必须保持相对目录结构，不要只复制 HTML。
+旧 `ios-channel/game/` 是《恐龙快跑》历史交付副本，已于 2026-09-21 备份到桌面并移出当前项目；旧 `PrehistoricBeastmaster-iOS-channel.zip` 同步退役，禁止继续部署。
 
-包含：
+当前新小游戏源码在 iOS 仓库 `prototypes/emberwild/`，由 `scripts/build-emberwild-ios.mjs` 打包到 `PrehistoricBeastmaster/Resources/game/`，App 入口仍为 `game/index.html`。不要把旧跑酷文件或未经打包的源码覆盖到 App 资源。
 
-- `game/index.html`
-- `game/styles.css`
-- `game/game.js`
-- `game/runner-hero-v2.png`
-- `game/tutorial-comic.png`
-
-iOS App 当前将小游戏作为本地资源加载。若后端另行提供静态托管，必须保证 HTTPS、正确 MIME 类型和同目录相对路径可用；不要因此删除 App 内置副本。
+本目录只保留渠道配置说明，不再附带游戏资源副本。若另行需要静态托管，应单独确认交付范围；本次清理不改变线上后端或内容模式。
 
 ## 后端实现要求
 

@@ -3,11 +3,12 @@ import UIKit
 import WebKit
 
 // Only the bundled mini-game may control these two fixed, local audio files.
+// Keep the bridge's menu/game aliases, but use the current Emberwild assets.
 final class LocalMusicPlayer: NSObject, WKScriptMessageHandlerWithReply {
     weak var webView: WKWebView?
     private var players: [String: AVAudioPlayer] = [:]
     private var interrupted = false
-    private let files = ["menu": "canopy-afternoon.mp3", "game": "canopy-hop.m4a"]
+    private let files = ["menu": "assets/audio/warmth-of-a-primeval-dawn.mp3", "game": "assets/audio/hold-the-ridge.mp3"]
 
     override init() {
         super.init()
@@ -45,7 +46,7 @@ final class LocalMusicPlayer: NSObject, WKScriptMessageHandlerWithReply {
         guard let filename = files[key], let directory = ShellConfig.localGameDirectory else {
             throw NSError(domain: "LocalMusic", code: 1)
         }
-        let player = try AVAudioPlayer(contentsOf: directory.appendingPathComponent("audio").appendingPathComponent(filename))
+        let player = try AVAudioPlayer(contentsOf: directory.appendingPathComponent(filename))
         player.numberOfLoops = -1
         player.volume = 0.4
         guard player.prepareToPlay() else { throw NSError(domain: "LocalMusic", code: 2) }

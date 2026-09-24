@@ -1,7 +1,8 @@
 import Foundation
 
 // Compile the REAL BackendGateway and JSONObject alongside these configuration
-// and request doubles. Tests call only pure response parsers; never the network.
+// doubles. PayRequest/catalog are compiled from production. Network access is
+// deliberately impossible even if a future test calls an async gateway method.
 enum ShellConfig {
     static let sdkApiEndpoint = "https://example.invalid/"
     static let webSdkChannel = "test"
@@ -10,12 +11,20 @@ enum ShellConfig {
     static let bundleId = "com.stone.primitive.saga"
     static let backendAppId = "1000151"
     static let paymentApiToken = ""
+    static let miniGameOrderEndpoint = "https://example.invalid/v1/minigame/orders"
+    static let versionName = "test"
+    static let versionCode = "1"
 }
-struct PayRequest {
-    let uid = "test-uid", username = "test-username", price = "0.99", cpOrder = "test-order"
-    let channel = "", serverId = "", serverName = "", goodsId = "", goodsName = "", payTypeId = ""
-    let roleId = "", roleName = "", roleLevel = "", notifyUrl = ""
-    func legacyExtension() -> String { "" }
+enum MiniGameAuthService {
+    struct PaymentIdentity { let playerId: String; let accessToken: String }
+}
+enum SecureAPIURLSession {
+    static let shared = DisabledNetwork()
+    struct DisabledNetwork {
+        func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+            throw URLError(.notConnectedToInternet)
+        }
+    }
 }
 
 @main enum GatewayHarness {

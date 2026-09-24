@@ -5,10 +5,16 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     private var webView: TrustedWebView!
     private let billing = StoreKitManager()
     private let contentConfigManager = ContentConfigManager()
+    private let miniGameBackend = BackendGateway()
+    private let miniGameAuth = MiniGameAuthService()
     private let paymentGate = PaymentRequestGate()
     private let analyticsEvents = AnalyticsEventCoordinator()
     private var contentConfig = ContentConfig()
     private var contentRouteReleased = false
+    private var contentSwitchInProgress = false
+    private var contentSwitchReset: DispatchWorkItem?
+    private var previousOnlineGameURL: URL?
+    private var contentRouteReconciliationPending = false
     private var localMediaSuspended = false
     private var lastWebUsername = ""
     private let pathMonitor = NWPathMonitor()
@@ -22,6 +28,8 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     private var finishingCheckoutOrder: String?
     private var visibleProgressMessage: String?
     private let stopPaymentCheckButton = UIButton(type: .system)
+    private var miniGameOrderTask: Task<Void, Never>?
+    private var miniGameAuthTask: Task<Void, Never>?
     #if DEBUG
     private var openedLaunchDiagnostics = false
     #endif
@@ -32,6 +40,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     var canPresentTrackingAuthorization: Bool {
         viewIfLoaded?.window != nil && presentedViewController == nil
             && !billing.isProcessingPayment && billing.checkoutBlockingMessage == nil
+            && contentRouteReleased
     }
 
     override func viewDidLoad() {
@@ -50,6 +59,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.onPrivacyPolicyRequested = { [weak self] in self?.showPrivacyPolicy() }
         webView.onPageFinished = { [weak self] url in self?.onWebPageFinished(url) }
+        webView.onNavigationFailed = { [weak self] message in self?.onWebNavigationFailed(message) }
         view.addSubview(webView)
         NotificationCenter.default.addObserver(self, selector: #selector(suspendLocalMenuMusic), name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resumeLocalMenuMusic), name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -64,6 +74,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         installPaymentWaitControl()
         billing.start()
         NotificationCenter.default.addObserver(self, selector: #selector(recoverPaymentsOnForeground), name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(refreshContentConfigOnForeground), name: UIApplication.didBecomeActiveNotification, object: nil)
         startNetworkMonitoring()
         initializeContentRoute()
     }
@@ -78,16 +89,16 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         #endif
         (UIApplication.shared.delegate as? AppDelegate)?.requestTrackingAuthorizationIfNeeded(UIApplication.shared)
         Task { await billing.resumePurchases(); refreshPaymentWaitControl() }
-        contentConfigManager.refresh(force: false) { [weak self] config in
-            self?.onContentConfigResolved(config)
-        }
     }
 
     deinit {
         toastDismissal?.cancel()
+        contentSwitchReset?.cancel()
         NotificationCenter.default.removeObserver(self)
         pathMonitor.cancel()
         contentConfigManager.destroy()
+        miniGameOrderTask?.cancel()
+        miniGameAuthTask?.cancel()
     }
 
     @objc private func suspendLocalMenuMusic() {
@@ -187,6 +198,118 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         billing.launch(request)
     }
 
+    func onMiniPurchaseRequested(_ json: String) {
+        let payload = JSONObject.parse(json)
+        let offerId = payload.string("offerId")
+        let clientRequestId = payload.string("clientRequestId")
+        guard MiniGameProductCatalog.offer(offerId) != nil,
+              UUID(uuidString: clientRequestId) != nil else {
+            reportMiniGameFailure(clientRequestId: clientRequestId, code: "INVALID_MINI_GAME_OFFER",
+                                  message: "商品資料不完整，未發起付款")
+            return
+        }
+        guard miniGameOrderTask == nil, !billing.isProcessingPayment,
+              billing.checkoutBlockingMessage == nil else {
+            reportMiniGameFailure(clientRequestId: clientRequestId, code: "PAYMENT_IN_PROGRESS",
+                                  message: "已有一筆付款正在處理，請勿重複點擊")
+            return
+        }
+        showToast("正在建立 App Store 訂單…", duration: 0)
+        miniGameOrderTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                self.miniGameOrderTask = nil
+                self.reconcileContentRouteWhenAvailable()
+            }
+            do {
+                let identity = try await self.miniGameAuth.paymentIdentity()
+                let request = try await self.miniGameBackend.createMiniGameOrder(
+                    offerId: offerId, clientRequestId: clientRequestId, identity: identity
+                )
+                try Task.checkCancellation()
+                guard let url = self.webView.url, self.isLocalGameCenter(url) else {
+                    throw BackendGateway.GatewayError.message(
+                        code: "MINI_GAME_LEFT", message: "已離開小遊戲，未發起付款"
+                    )
+                }
+                self.onPayRequested(request.rawJSON)
+            } catch is CancellationError {
+                self.reportMiniGameFailure(clientRequestId: clientRequestId, code: "MINI_GAME_ORDER_CANCELLED",
+                                           message: "訂單建立已取消，未發起付款")
+            } catch let error as BackendGateway.GatewayError {
+                self.reportMiniGameFailure(clientRequestId: clientRequestId, code: error.code,
+                                           message: error.errorDescription ?? "訂單建立失敗，未發起付款")
+            } catch let error as MiniGameAuthService.AuthError {
+                self.reportMiniGameFailure(clientRequestId: clientRequestId, code: error.code,
+                                           message: error.errorDescription ?? "請先登入帳號再購買")
+            } catch {
+                self.reportMiniGameFailure(clientRequestId: clientRequestId, code: "MINI_GAME_ORDER_FAILED",
+                                           message: "訂單建立失敗，未發起付款")
+            }
+        }
+    }
+
+    func onMiniAuthRequested(_ json: String) {
+        let payload = JSONObject.parse(json)
+        let requestId = payload.string("requestId")
+        let action = payload.string("action")
+        guard UUID(uuidString: requestId) != nil,
+              ["status", "login", "register", "recover", "logout", "delete"].contains(action) else { return }
+        guard miniGameAuthTask == nil else {
+            reportMiniAuthFailure(requestId: requestId, action: action, code: "AUTH_IN_PROGRESS",
+                                  message: "另一項帳號操作正在處理，請稍候")
+            return
+        }
+        miniGameAuthTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                self.miniGameAuthTask = nil
+                self.reconcileContentRouteWhenAvailable()
+            }
+            do {
+                let result: JSONObject
+                switch action {
+                case "status":
+                    result = try await self.miniGameAuth.status()
+                case "login":
+                    result = try await self.miniGameAuth.login(
+                        account: payload.string("account"), password: payload.string("password")
+                    )
+                case "register":
+                    result = try await self.miniGameAuth.register(
+                        account: payload.string("account"), password: payload.string("password"),
+                        nickname: payload.string("nickname"),
+                        acceptedTermsVersion: payload.string("acceptedTermsVersion")
+                    )
+                case "recover":
+                    result = try await self.miniGameAuth.recover(account: payload.string("account"))
+                case "logout":
+                    result = try await self.miniGameAuth.logout()
+                case "delete":
+                    result = try await self.miniGameAuth.deleteAccount()
+                default:
+                    return
+                }
+                guard let url = self.webView.url, self.isBundledMiniGamePage(url) else { return }
+                var fields = JSONObject()
+                fields.put("requestId", requestId)
+                fields.put("action", action)
+                fields.put("code", "OK")
+                fields.put("data", result.dictionary)
+                self.callH5("onMiniAuthResult", fields: fields)
+            } catch is CancellationError {
+                self.reportMiniAuthFailure(requestId: requestId, action: action, code: "AUTH_CANCELLED",
+                                           message: "帳號操作已取消")
+            } catch let error as MiniGameAuthService.AuthError {
+                self.reportMiniAuthFailure(requestId: requestId, action: action, code: error.code,
+                                           message: error.errorDescription ?? "帳號服務未能完成請求")
+            } catch {
+                self.reportMiniAuthFailure(requestId: requestId, action: action, code: "AUTH_FAILED",
+                                           message: "帳號服務未能完成請求")
+            }
+        }
+    }
+
     func onGameOrderFailed(_ json: String) {
         // This is the H5 game's order-creation step, before any native checkout.
         // Never mark an existing Apple transaction failed or release its gate.
@@ -225,20 +348,33 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     func openMainGame() {
-        if currentContentMode() == .miniOnly {
+        guard currentContentMode().allowsOnlineGame else {
             showToast("目前渠道僅開放小遊戲")
             return
         }
-        if let url = ShellConfig.onlineGameURL {
-            webView.loadTrustedURL(url)
+        guard let url = contentConfig.onlineGameURL else {
+            showToast("主世界入口暫時無法使用")
+            return
         }
+        guard !isOnlineGamePage(webView.url) else { return }
+        guard let blocker = contentSwitchBlocker else {
+            beginContentSwitch(to: .online, onlineURL: url)
+            return
+        }
+        showToast(blocker, duration: 5)
     }
 
     func returnToGameCenter() {
-        if currentContentMode() == .onlineOnly {
+        guard currentContentMode().allowsMiniGame else {
+            showToast("目前渠道僅開放主世界")
             return
         }
-        webView.loadLocalGame()
+        guard !(webView.url.map(isBundledMiniGamePage) ?? false) else { return }
+        guard let blocker = contentSwitchBlocker else {
+            beginContentSwitch(to: .mini)
+            return
+        }
+        showToast(blocker, duration: 5)
     }
 
     func onPaymentProgress(_ request: PayRequest?, message: String) {
@@ -257,6 +393,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     func onCheckoutReleased(_ request: PayRequest) {
         webView.endGameOrderCheckout(request.cpOrder)
         refreshPaymentWaitControl()
+        reconcileContentRouteWhenAvailable()
         guard finishingCheckoutOrder == request.cpOrder else { return }
         finishingCheckoutOrder = nil
         guard paymentGate.canPresent(request.cpOrder) else { return }
@@ -301,6 +438,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         paymentGate.finish(request?.cpOrder ?? "")
         callH5("onPayPending", fields: paymentFields(request, code: "PENDING", message: "Payment is pending"))
         if showResult { showToast(paymentSubject(request) + "付款待確認，請勿重複購買") }
+        reconcileContentRouteWhenAvailable()
     }
 
     func onCancel(_ request: PayRequest?) {
@@ -308,6 +446,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         refreshPaymentWaitControl()
         PaymentDebugLog.record("ui-payment-not-completed source=storekit-cancel actualUserAction=unknown")
         paymentGate.finish(request?.cpOrder ?? "")
+        reconcileContentRouteWhenAvailable()
         if billing.hasUnresolvedOrder(for: request) {
             callH5("onPayPending", fields: paymentFields(request, code: "PURCHASE_RECOVERY_REQUIRED", message: "Retry canceled; original order still needs recovery"))
             if showResult { showToast(paymentSubject(request) + "本次付款已結束，先前訂單仍待核對；不會自動重新付款", duration: 5) }
@@ -329,6 +468,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         refreshPaymentWaitControl()
         PaymentDebugLog.record("ui-payment-error code=\(code) message=\(message)")
         paymentGate.finish(request?.cpOrder ?? "")
+        reconcileContentRouteWhenAvailable()
         if code == "PAYMENT_IN_PROGRESS" || code == "PURCHASE_RECOVERY_IN_PROGRESS" {
             // This attempt never started a new purchase. Do not tell H5 that
             // Apple's still-active original payment failed.
@@ -445,6 +585,25 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         showToast(message)
     }
 
+    private func reportMiniGameFailure(clientRequestId: String, code: String, message: String) {
+        var fields = JSONObject()
+        fields.put("code", code)
+        fields.put("message", message)
+        fields.put("clientRequestId", clientRequestId)
+        callH5("onPayFail", fields: fields)
+        showToast(message, duration: 5)
+    }
+
+    private func reportMiniAuthFailure(requestId: String, action: String, code: String, message: String) {
+        guard let url = webView.url, isBundledMiniGamePage(url) else { return }
+        var fields = JSONObject()
+        fields.put("requestId", requestId)
+        fields.put("action", action)
+        fields.put("code", code)
+        fields.put("message", message)
+        callH5("onMiniAuthFail", fields: fields)
+    }
+
     private func paymentDisplayMessage(code: String, fallback: String, hasRetainedOrder: Bool) -> String {
         switch code {
         case "PAYMENT_IN_PROGRESS", "PURCHASE_RECOVERY_IN_PROGRESS":
@@ -532,60 +691,179 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         releaseContentRoute()
     }
 
-    private func onContentConfigResolved(_ next: ContentConfig) {
-        if !contentRouteReleased {
-            contentConfig = next
-            return
+    @objc private func refreshContentConfigOnForeground() {
+        contentConfigManager.refresh(force: false) { [weak self] config in
+            self?.onContentConfigResolved(config)
         }
-        applyContentConfig(next)
+    }
+
+    private func onContentConfigResolved(_ next: ContentConfig) {
+        contentConfig = next
+        guard contentRouteReleased else { return }
+        updateSdkStatus()
+        if let url = webView.url, isOnlineGamePage(url) {
+            syncReturnToGameCenter()
+        }
+        reconcileContentRoute()
     }
 
     private func releaseContentRoute() {
         guard !contentRouteReleased else { return }
         contentRouteReleased = true
-        applyContentConfig(contentConfig)
-    }
-
-    private func applyContentConfig(_ next: ContentConfig) {
-        let previous = contentConfig.mode
-        contentConfig = next
         updateSdkStatus()
-        if previous == next.mode, webView.url != nil {
-            applyLocalContentMode()
-            return
-        }
-        if next.mode == .onlineOnly, let url = ShellConfig.onlineGameURL {
-            webView.loadTrustedURL(url)
-        } else {
-            webView.loadLocalGame()
-        }
+        reconcileContentRoute()
     }
 
     private func onWebPageFinished(_ url: String) {
+        finishContentSwitch()
         guard let parsed = URL(string: url) else { return }
-        if isLocalGameCenter(parsed) {
+        if isBundledMiniGamePage(parsed) {
+            webView.configureOnlineGameURL(nil)
             applyLocalContentMode()
             pushLowPowerState()
+            reconcileContentRoute()
+            (UIApplication.shared.delegate as? AppDelegate)?.requestTrackingAuthorizationIfNeeded(UIApplication.shared)
             return
         }
-        let host = parsed.host ?? ""
-        if host.caseInsensitiveCompare("xundaocdn.xmw520.com") == .orderedSame
-            || host.caseInsensitiveCompare("saftcdn.antieh.com") == .orderedSame {
+        if isOnlineGamePage(parsed) {
             webView.evaluate(InjectedScripts.hideWebDebugUI)
             installPaymentBridge()
-            if currentContentMode().allowsMiniGame {
-                webView.evaluate(InjectedScripts.returnToGameCenter)
-            }
+            syncReturnToGameCenter()
+            reconcileContentRoute()
         }
     }
 
+    private func syncReturnToGameCenter() {
+        webView.evaluate(currentContentMode().allowsMiniGame
+            ? InjectedScripts.returnToGameCenter : InjectedScripts.removeReturnToGameCenter)
+    }
+
+    private func onWebNavigationFailed(_ message: String) {
+        guard contentSwitchInProgress else { return }
+        restoreOnlineGameURLAfterFailedSwitch()
+        finishContentSwitch()
+        showToast("切換失敗，請檢查網路後重試", duration: 5)
+        PaymentDebugLog.record("content-switch-failed message=\(message)")
+    }
+
     private func applyLocalContentMode() {
-        guard let url = webView.url, isLocalGameCenter(url) else { return }
-        webView.evaluate(InjectedScripts.contentMode(contentConfig.mode.javascriptValue))
+        guard let url = webView.url, isBundledMiniGamePage(url) else { return }
+        webView.evaluate(InjectedScripts.contentMode(currentContentMode().javascriptValue))
+    }
+
+    private enum ContentDestination {
+        case mini
+        case online
+    }
+
+    private var contentSwitchBlocker: String? {
+        if contentSwitchInProgress { return "正在切換遊戲，請稍候…" }
+        if miniGameOrderTask != nil || billing.isProcessingPayment || billing.checkoutBlockingMessage != nil {
+            return billing.checkoutBlockingMessage ?? "付款或訂單正在處理，完成後才能切換遊戲"
+        }
+        if miniGameAuthTask != nil { return "帳號操作正在處理，完成後才能切換遊戲" }
+        if presentedViewController != nil { return "請先關閉目前的系統視窗，再切換遊戲" }
+        return nil
+    }
+
+    private func beginContentSwitch(to destination: ContentDestination, onlineURL: URL? = nil) {
+        guard !contentSwitchInProgress else { return }
+        contentSwitchInProgress = true
+        previousOnlineGameURL = webView.onlineGameURL
+        contentSwitchReset?.cancel()
+        if destination == .mini {
+            // Remote-game account data must never be reused as a fallback for a
+            // bundled-game order after the user changes surfaces.
+            lastWebUsername = ""
+            paymentSessionRevision += 1
+            webView.loadLocalGame()
+        } else if let url = onlineURL ?? contentConfig.onlineGameURL,
+                  webView.configureOnlineGameURL(url) {
+            webView.loadTrustedURL(url)
+        } else {
+            contentSwitchInProgress = false
+            previousOnlineGameURL = nil
+            showToast("主世界入口暫時無法使用")
+            return
+        }
+        let reset = DispatchWorkItem { [weak self] in
+            guard let self, self.contentSwitchInProgress else { return }
+            self.restoreOnlineGameURLAfterFailedSwitch()
+            self.finishContentSwitch()
+            self.showToast("切換逾時，請檢查網路後重試", duration: 5)
+        }
+        contentSwitchReset = reset
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15, execute: reset)
+    }
+
+    private func finishContentSwitch() {
+        contentSwitchReset?.cancel()
+        contentSwitchReset = nil
+        contentSwitchInProgress = false
+        previousOnlineGameURL = nil
+    }
+
+    private func restoreOnlineGameURLAfterFailedSwitch() {
+        if let current = webView.url, isBundledMiniGamePage(current) {
+            webView.configureOnlineGameURL(nil)
+        } else if let oldURL = previousOnlineGameURL,
+                  let current = webView.url,
+                  IOSWebNavigationPolicy.isOnlineGameURL(current, configured: oldURL) {
+            webView.configureOnlineGameURL(oldURL)
+        }
+    }
+
+    private func reconcileContentRoute() {
+        guard contentRouteReleased else { return }
+        let mode = currentContentMode()
+        guard let currentURL = webView.url else {
+            contentRouteReconciliationPending = false
+            if mode == .onlineOnly, let url = contentConfig.onlineGameURL {
+                beginContentSwitch(to: .online, onlineURL: url)
+            } else {
+                beginContentSwitch(to: .mini)
+            }
+            return
+        }
+        let onOnlineGame = isOnlineGamePage(currentURL)
+        let needsOnline = isBundledMiniGamePage(currentURL) && !mode.allowsMiniGame
+        let needsMini = onOnlineGame && !mode.allowsOnlineGame
+        let needsUpdatedOnline = onOnlineGame && mode.allowsOnlineGame
+            && contentConfig.onlineGameURL != webView.onlineGameURL
+        guard needsOnline || needsMini || needsUpdatedOnline else {
+            contentRouteReconciliationPending = false
+            applyLocalContentMode()
+            return
+        }
+        guard contentSwitchBlocker == nil else {
+            contentRouteReconciliationPending = true
+            return
+        }
+        contentRouteReconciliationPending = false
+        if (needsOnline || needsUpdatedOnline), let url = contentConfig.onlineGameURL {
+            beginContentSwitch(to: .online, onlineURL: url)
+        } else if needsMini {
+            beginContentSwitch(to: .mini)
+        }
+    }
+
+    private func reconcileContentRouteWhenAvailable() {
+        guard contentRouteReconciliationPending, contentSwitchBlocker == nil else { return }
+        reconcileContentRoute()
     }
 
     private func isLocalGameCenter(_ url: URL) -> Bool {
         url.isFileURL && url.lastPathComponent == "index.html"
+    }
+
+    private func isOnlineGamePage(_ url: URL?) -> Bool {
+        guard let url, let configured = webView.onlineGameURL else { return false }
+        return IOSWebNavigationPolicy.isOnlineGameURL(url, configured: configured)
+    }
+
+    private func isBundledMiniGamePage(_ url: URL) -> Bool {
+        guard url.isFileURL, let root = ShellConfig.localGameDirectory?.standardizedFileURL.path else { return false }
+        return url.standardizedFileURL.path.hasPrefix(root + "/")
     }
 
     private func currentContentMode() -> ContentMode {
@@ -607,6 +885,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         status.put("facebookAnalyticsConfigured", analyticsEvents.isFacebookConfigured)
         status.put("firebaseAnalyticsConfigured", analyticsEvents.isFirebaseConfigured)
         status.put("loginServerConfigured", false)
+        status.put("miniGameAuthConfigured", miniGameAuth.isConfigured)
         status.put("contentMode", currentContentMode().rawValue)
         status.put("contentConfigRevision", contentConfig.revision)
         status.put("contentConfigUpdatedAt", contentConfig.updatedAt)
@@ -642,6 +921,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         if let request {
             fields.put("cpOrder", request.cpOrder)
             fields.put("productId", request.resolvedProductId())
+            fields.put("clientRequestId", request.clientRequestId)
         }
         return fields
     }
@@ -751,6 +1031,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     @objc private func recoverPaymentsOnForeground() {
+        reconcileContentRoute()
         billing.prepareForCheckout()
         Task { [weak self] in
             guard let self else { return }

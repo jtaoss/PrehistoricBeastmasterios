@@ -51,6 +51,7 @@ async function drag(p,slot,x,y){const b=await p.locator(`[data-slot="${slot}"]`)
     await m.screenshot({path:path.join(out,'04-cover-mobile.png')});await m.locator('#begin').tap();await depart(m);await m.waitForTimeout(100);await m.evaluate(()=>{emberwildQA.game.nodes=[];});
     assert.equal(await m.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     assert.ok(await m.locator('#next-wave').evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),'next-wave button must fit in portrait viewport');
+    await m.locator('#toggle-deck').tap();
     const cdp=await mobile.ctx.newCDPSession(m),box=await m.locator('[data-slot="0"]').boundingBox(),destination=await location(m,240,420);
     let points=[{x:box.x+box.width/2,y:box.y+box.height/2,id:1}];await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:points});
     for(let i=1;i<=12;i++){const f=i/12;points=[{x:box.x+box.width/2+(destination.x-box.x-box.width/2)*f,y:box.y+box.height/2+(destination.y+55-box.y-box.height/2)*f,id:1}];await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:points});}

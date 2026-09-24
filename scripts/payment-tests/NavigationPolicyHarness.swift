@@ -1,7 +1,8 @@
 import Foundation
 
 enum ShellConfig {
-    static let onlineGameURL = URL(string: "https://saftcdn.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=ios_wk")
+    static let channel = "xmwtwh5sqxssgp1"
+    static let onlineGameURL = URL(string: "https://safthwyk.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=ios_wk")
     static let localGameDirectory = URL(fileURLWithPath: "/fixture/App.app/game", isDirectory: true)
 }
 enum WKNavigationActionPolicy { case allow, cancel }
@@ -24,6 +25,7 @@ final class FakeMusic { func pauseAll() {} }
 /* POLICY */
 final class TrustedWebView: WKWebView {
     let localMusic = FakeMusic()
+    var onlineGameURL: URL? = ShellConfig.onlineGameURL
     var onNavigationBlocked: (() -> Void)?
     var onPrivacyPolicyRequested: (() -> Void)?
     func recordDiagnostic(_ message: String) {}
@@ -59,6 +61,10 @@ let disallowed = [
     "https://www.playstonegame.com/%2570ayform/", "https://www.playstonegame.com/h5sdk/../payform/",
     "https://www.paypal.com/checkoutnow", "https://checkout.stripe.com/c/pay/fixture",
     "https://payments.example.invalid/", "https://saftcdn.antieh.com/stoneage_tw/pay.html",
+    "https://safthwyk.antieh.com/stoneage_tw/pay.html",
+    "https://safthwyk.antieh.com/",
+    "https://safthwyk.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=web",
+    "https://safthwyk.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=ios_wk&os=web",
     "https://saftcdn.antieh.com/redirect?url=https%3A%2F%2Fwww.paypal.com",
     "https://d1udhm4c9vjzph.cloudfront.net/payform/",
     "https://d1udhm4c9vjzph.cloudfront.net/ios-legal/privacy-policy.html?redirect=https://pay.example.invalid",
@@ -88,8 +94,15 @@ for text in disallowed {
     expect(privacyOpened == initialPrivacy, "untrusted link cannot impersonate privacy entry \(text)")
 }
 let game = ShellConfig.onlineGameURL!
+web.onlineGameURL = nil
+expect(!web.shouldAllow(game), "A remote page is not trusted before a validated backend entry is active")
+web.onlineGameURL = game
 expect(action(game,main:true) == .allow && response(game,main:true) == .allow, "main game preserved")
 expect(web.shouldAllow(URL(string:game.absoluteString+"&pf=fixture#role")!), "game query/fragment preserved")
+let replacement = URL(string: "https://safthwyk.antieh.com/stoneage_tw/new-entry.html?os=ios_wk")!
+web.onlineGameURL = replacement
+expect(!web.shouldAllow(game) && web.shouldAllow(replacement), "Changing the active entry revokes trust in the old page")
+web.onlineGameURL = game
 let local = ShellConfig.localGameDirectory.appendingPathComponent("index.html")
 expect(web.shouldAllow(local), "local runner preserved")
 expect(!web.shouldAllow(URL(fileURLWithPath:"/fixture/other/game/index.html")), "other local game folder not trusted")
@@ -114,4 +127,6 @@ for text in ["https://accounts.google.com/o/oauth2/v2/auth?client_id=fixture", "
 expect(action(URL(string:"about:blank")!,main:false) == .allow, "empty child frame preserved")
 expect(response(URL(string:"about:blank")!,main:false) == .allow, "empty child response preserved")
 expect(blocked > 0, "blocked navigation reports a non-payment UI message")
+expect(web.shouldAllow(ShellConfig.onlineGameURL!), "public main-game URL stays trusted")
+expect(web.shouldAllow(local), "bundled mini-game stays trusted")
 print("PASS \(checks) production Swift navigation checks; no browser, network, orders or purchases")

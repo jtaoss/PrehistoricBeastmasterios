@@ -1,0 +1,48 @@
+/* Battle art pass: scalable SVG HUD pieces plus a transparent painted arena edge. */
+.arena-edge-art{position:absolute;z-index:1;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;user-select:none;-webkit-user-drag:none;opacity:.5;filter:saturate(.88) contrast(1.03) drop-shadow(0 2px 4px #03150e66)}
+.arena>*:not(canvas):not(.arena-edge-art){z-index:2}
+.arena .field-controls,.arena .wave-loot,.arena .objective-panel,.arena .threat-pill{z-index:4}
+
+.combat-svg-sprite{position:absolute!important;width:0!important;height:0!important;overflow:hidden!important;pointer-events:none!important}
+.statusbar>span,.statusbar>.companion-stat{background:transparent!important}
+.statusbar{border:0!important;background:transparent!important;gap:3px;box-shadow:none!important;overflow:visible!important}
+.statusbar>span,.statusbar>.companion-stat{border-right:0!important}
+.hud-chip-art{position:absolute;z-index:-1;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 5px 8px #03150e55);pointer-events:none}
+
+.wave-banner{isolation:isolate;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;padding:10px 24px 12px!important}
+.wave-frame-art{position:absolute;z-index:-1;inset:-2px -8px;width:calc(100% + 16px);height:calc(100% + 4px);overflow:visible;filter:drop-shadow(0 5px 8px #03150e77)}
+
+.joystick{isolation:isolate;border:0!important;background:transparent!important;box-shadow:none!important}
+.joystick-frame-art{position:absolute;z-index:-1;inset:-5px;width:calc(100% + 10px);height:calc(100% + 10px);overflow:visible;filter:drop-shadow(0 5px 8px #03150e77)}
+.joystick i{border:1px solid #f5e8b67a!important;background:radial-gradient(circle at 35% 28%,#f5ebc4b8,#8aa08178 62%,#3a5a4b88)!important;box-shadow:0 5px 14px #06181288,inset 0 1px #fff8d6aa!important}
+
+.combat-btn,.combat-btn.skill.shock,.combat-btn.skill.volley{
+  border:0!important;
+  color:#f4e7bd;
+  isolation:isolate;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible;
+}
+.combat-frame-art{position:absolute;z-index:-1;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);overflow:visible;filter:drop-shadow(0 5px 7px #03150e88)}
+.combat-btn.skill.volley{color:#f4e7bd!important;filter:sepia(.14) saturate(1.12)}
+.combat-btn .combat-icon{display:block;width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 2px 2px #03140e)}
+.combat-btn.dash .combat-icon{width:24px;height:24px}.combat-btn.skill.volley .combat-icon{width:31px;height:31px}
+.combat-btn>span{display:grid;place-items:center;line-height:1}
+.combat-btn small{position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);min-width:max-content;padding:1px 5px;border-radius:7px;background:#0a221dcc;color:#f2e8c7;text-shadow:0 1px 2px #000;font-weight:700;letter-spacing:.5px}
+.combat-btn.cooling{filter:saturate(.5) brightness(.72)!important}.combat-btn:active{transform:scale(.94);filter:brightness(1.15)}
+.dash-ring{inset:3px;width:calc(100% - 6px);height:calc(100% - 6px)}
+.dash-ring circle{stroke:#f0d88b;stroke-width:2.5}
+
+@media(max-width:760px){
+  .arena-edge-art{opacity:.42}
+  .statusbar{gap:2px!important}
+  .statusbar>span,.statusbar>.companion-stat{padding-inline:7px!important}
+  .wave-banner{padding:8px 17px 10px!important}
+  .combat-btn .combat-icon{width:23px;height:23px}.combat-btn.dash .combat-icon{width:20px;height:20px}.combat-btn.skill.volley .combat-icon{width:26px;height:26px}
+  .combat-btn small{bottom:-11px;font-size:8px!important}
+}
+
+@media(orientation:landscape) and (max-height:520px){.arena-edge-art{opacity:.2}}
+
+@media(prefers-reduced-motion:reduce){.arena-edge-art{filter:saturate(.88) contrast(1.03)}}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { Expedition, validateSnapshot } from '../engine.mjs';
-import { SaveStore, freshState, encode, decode, SAVE_KEY, BACKUP_KEY, LEGACY_KEY, PROGRESS_KEYS } from '../save.mjs';
+import { SaveStore, freshState, encode, decode, offerWeekKey, SAVE_KEY, BACKUP_KEY, LEGACY_KEY, PROGRESS_KEYS } from '../save.mjs';
 import { buildCamp, moveCamp, createExpedition } from '../camp.mjs';
 class Memory {
   constructor(){this.data=new Map();this.fail=false;}
@@ -81,15 +81,38 @@ await test('loss keeps camp and grants only completed-wave resources; abandon gr
   const b=new Expedition(2,'second-run');await s.begin(b.snapshot());await s.abandon();assert.equal(s.state.camp.stones,9);assert.equal(s.state.run,null);
 });
 await test('explicit save deletion clears only progress and preserves account login and preferences',async()=>{
-  const m=new Memory(),s=new SaveStore(m);m.setItem('emberwild_account_session_v1','{"version":1,"label":"蕨林獵人","signedInAt":1}');m.setItem('emberwild_experience_v1','{"volume":0.35}');
+  const m=new Memory(),s=new SaveStore(m);m.setItem('emberwild_account_session_v1','{"version":2,"playerId":"player-1","label":"蕨林獵人","authenticatedAt":1770000000000,"accessExpiresAt":1770003600000}');m.setItem('emberwild_experience_v1','{"volume":0.35}');
   await s.mutate(x=>buildCamp(x,'tent',0));m.setItem(LEGACY_KEY,'{"runs":9}');await s.clearProgress();
-  assert.ok(PROGRESS_KEYS.every(key=>m.getItem(key)===null));assert.equal(m.getItem('emberwild_account_session_v1'),'{\"version\":1,\"label\":\"蕨林獵人\",\"signedInAt\":1}');assert.equal(m.getItem('emberwild_experience_v1'),'{"volume":0.35}');
+  assert.ok(PROGRESS_KEYS.every(key=>m.getItem(key)===null));assert.equal(m.getItem('emberwild_account_session_v1'),'{\"version\":2,\"playerId\":\"player-1\",\"label\":\"蕨林獵人\",\"authenticatedAt\":1770000000000,\"accessExpiresAt\":1770003600000}');assert.equal(m.getItem('emberwild_experience_v1'),'{"volume":0.35}');
   assert.equal(s.state.profile.runs,0);assert.equal(s.state.profile.tutorialDone,false);assert.equal(s.state.camp.stones,8);assert.equal(s.raw,null);
 });
 await test('new run cannot silently overwrite active run',async()=>{const s=new SaveStore(new Memory());await s.begin(game().snapshot());await assert.rejects(s.begin(new Expedition(2,'other-run').snapshot()));assert.equal(s.state.profile.runs,1);});
+await test('verified StoreKit delivery is atomic and transaction-idempotent',async()=>{
+  const s=new SaveStore(new Memory()),g=game();await s.begin(g.snapshot());const delivered=g.snapshot();delivered.inventory.watchtower+=2;
+  assert.equal(await s.recordStoreKitDelivery(delivered,{transactionId:'900000001',offerId:'pack-fortify',deliveredAt:123}),true);
+  assert.equal(s.state.run.inventory.watchtower,4);assert.deepEqual(s.state.profile.purchaseTransactions,[{transactionId:'900000001',offerId:'pack-fortify',deliveredAt:123}]);
+  const duplicate=structuredClone(delivered);duplicate.inventory.watchtower+=2;
+  assert.equal(await s.recordStoreKitDelivery(duplicate,{transactionId:'900000001',offerId:'pack-fortify',deliveredAt:124}),false);
+  assert.equal(s.state.run.inventory.watchtower,4);assert.equal(s.state.profile.purchaseTransactions.length,1);
+});
+await test('starter and weekly offer prompts persist without affecting purchase delivery',async()=>{
+  const s=new SaveStore(new Memory()),week=offerWeekKey(Date.UTC(2026,8,21));
+  assert.deepEqual(s.state.profile.offerPrompts,{starterShown:false,weeklyShownWeek:''});
+  await s.markOfferPrompt('starter',week);await s.markOfferPrompt('weekly',week);
+  assert.deepEqual(new SaveStore(s.storage).state.profile.offerPrompts,{starterShown:true,weeklyShownWeek:week});
+});
 await test('failed quota write leaves in-memory camp and primary untouched',async()=>{
   const m=new Memory(),s=new SaveStore(m);await s.mutate(()=>{});const raw=m.getItem(SAVE_KEY);m.fail=true;
   await assert.rejects(s.mutate(x=>buildCamp(x,'tent',0)));assert.equal(s.state.camp.stones,8);assert.equal(s.state.camp.buildings.length,0);assert.equal(m.getItem(SAVE_KEY),raw);
+});
+await test('combined gift prompts are atomic and preserve old save fields',async()=>{
+  const m=new Memory(),s=new SaveStore(m),week=offerWeekKey();await s.mutate(()=>{});
+  const before=m.getItem(SAVE_KEY);m.fail=true;
+  await assert.rejects(s.markOfferPrompts(['starter','weekly'],week));
+  assert.equal(m.getItem(SAVE_KEY),before);assert.equal(s.state.profile.offerPrompts.starterShown,false);
+  m.fail=false;await assert.rejects(s.markOfferPrompts(['starter','invalid'],week));assert.equal(m.getItem(SAVE_KEY),before);
+  await s.markOfferPrompts(['starter','weekly'],week);
+  assert.deepEqual(new SaveStore(m).state.profile.offerPrompts,{starterShown:true,weeklyShownWeek:week});
 });
 await test('failed settlement remains resumable and retry rewards once',async()=>{
   const m=new Memory(),s=new SaveStore(m),g=game();await s.begin(g.snapshot());g.phase='lose';g.wave=2;g.stats.waves=1;g.hero.hp=0;m.fail=true;await assert.rejects(s.complete(g.snapshot()));assert.ok(s.state.run);assert.equal(s.state.camp.stones,8);m.fail=false;await s.complete(g.snapshot());assert.equal(s.state.camp.stones,10);

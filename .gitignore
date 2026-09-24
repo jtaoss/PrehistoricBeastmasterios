@@ -43,6 +43,7 @@ prototypes/emberwild/acceptance-reset.json
 handoff/*.zip
 
 # Editor state
+node_modules/
 .idea/
 .vscode/
 *.swp

@@ -7,7 +7,7 @@ enum ContentMode: String {
 
     static func fromServer(_ value: String?) -> ContentMode {
         let raw = (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        return ContentMode(rawValue: raw) ?? .both
+        return ContentMode(rawValue: raw) ?? .miniOnly
     }
 
     var allowsMiniGame: Bool { self != .onlineOnly }
@@ -17,28 +17,44 @@ enum ContentMode: String {
 
 struct ContentConfig {
     let mode: ContentMode
+    let onlineGameURL: URL?
     let revision: Int64
     let updatedAt: String
 
-    init(mode: ContentMode = .both, revision: Int64 = 0, updatedAt: String = "") {
+    init(mode: ContentMode = .miniOnly, onlineGameURL: URL? = nil,
+         revision: Int64 = 0, updatedAt: String = "") {
         self.mode = mode
+        self.onlineGameURL = onlineGameURL
         self.revision = max(0, revision)
         self.updatedAt = updatedAt
     }
 }
 
 final class ContentConfigManager {
-    private let store = UserDefaults.standard
-    private let modeKey = "shell_content_mode"
-    private let revisionKey = "shell_content_revision"
-    private let updatedAtKey = "shell_content_updated_at"
+    private let store: UserDefaults
+    // Debug device builds and App Store builds may be installed over one
+    // another under the same bundle identifier. Keep their routing revisions
+    // separate so a high local/debug revision cannot permanently reject a
+    // newer production decision after an overwrite install.
+    private var cacheNamespace: String { ShellConfig.isDebug ? "debug" : "release" }
+    private var modeKey: String { "shell_content_mode_\(cacheNamespace)" }
+    private var onlineGameURLKey: String { "shell_content_online_url_\(cacheNamespace)" }
+    private var revisionKey: String { "shell_content_revision_\(cacheNamespace)" }
+    private var updatedAtKey: String { "shell_content_updated_at_\(cacheNamespace)" }
     private var lastRefresh: Date = .distantPast
     private var refreshInProgress = false
     private var destroyed = false
 
+    init(store: UserDefaults = .standard) {
+        self.store = store
+    }
+
     func cachedOrDefault() -> ContentConfig {
-        ContentConfig(
-            mode: ContentMode.fromServer(store.string(forKey: modeKey)),
+        let mode = ContentMode.fromServer(store.string(forKey: modeKey))
+        let url = IOSWebNavigationPolicy.validatedOnlineGameURL(store.string(forKey: onlineGameURLKey) ?? "")
+        return ContentConfig(
+            mode: mode.allowsOnlineGame && url == nil ? .miniOnly : mode,
+            onlineGameURL: url,
             revision: Int64(store.integer(forKey: revisionKey)),
             updatedAt: store.string(forKey: updatedAtKey) ?? ""
         )
@@ -53,12 +69,12 @@ final class ContentConfigManager {
         refreshInProgress = true
         lastRefresh = Date()
         Task {
-            let config = try? await fetch(endpoint)
-            if let config {
-                save(config)
-            }
+            let accepted = try? await fetch(endpoint)
+            // Revisions belong to individual backend rules. Deleting an exact
+            // rule can select a fallback with a lower revision, which must win.
+            if let config = accepted { save(config) }
             refreshInProgress = false
-            if let config, !destroyed {
+            if let config = accepted, !destroyed {
                 await MainActor.run { completion(config) }
             }
         }
@@ -82,12 +98,17 @@ final class ContentConfigManager {
         ])
         components.queryItems = items
         guard let url = components.url else { throw URLError(.badURL) }
-        var request = URLRequest(url: url, timeoutInterval: 5)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else { throw URLError(.badServerResponse) }
         let json = try JSONObject(json: String(data: data, encoding: .utf8) ?? "")
+        return try Self.parseResponse(json, lastOnlineGameURL: cachedOrDefault().onlineGameURL)
+    }
+
+    static func parseResponse(_ json: JSONObject, lastOnlineGameURL: URL? = nil) throws -> ContentConfig {
         guard json.int("code", -1) == 0, let dataObject = json.jsonObject("data") else {
             throw URLError(.cannotParseResponse)
         }
@@ -101,10 +122,20 @@ final class ContentConfigManager {
         guard mode.rawValue.caseInsensitiveCompare(rawMode) == .orderedSame else {
             throw URLError(.cannotParseResponse)
         }
-        return ContentConfig(mode: mode, revision: dataObject.int64("revision"), updatedAt: dataObject.string("updatedAt"))
+        let rawURL = dataObject.string("onlineGameURL")
+        let parsedURL = IOSWebNavigationPolicy.validatedOnlineGameURL(rawURL)
+        guard !mode.allowsOnlineGame || parsedURL != nil else {
+            throw URLError(.cannotParseResponse)
+        }
+        // MINI_ONLY responses may omit the entry; keep the last validated URL
+        // until the current remote page has safely returned to the mini-game.
+        let gameURL = parsedURL ?? lastOnlineGameURL
+        return ContentConfig(mode: mode, onlineGameURL: gameURL,
+                             revision: dataObject.int64("revision"), updatedAt: dataObject.string("updatedAt"))
     }
 
     private func save(_ config: ContentConfig) {
+        if let url = config.onlineGameURL { store.set(url.absoluteString, forKey: onlineGameURLKey) }
         store.set(config.mode.rawValue, forKey: modeKey)
         store.set(config.revision, forKey: revisionKey)
         store.set(config.updatedAt, forKey: updatedAtKey)

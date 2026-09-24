@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const path=require('node:path');
 const fs=require('node:fs');
 const {chromium}=require('playwright');
-const {veteran}=require('./camp-helpers.cjs');
+const {veteran,approach,depart}=require('./camp-helpers.cjs');
 const url=process.env.EMBERWILD_URL||'http://127.0.0.1:4174';
 const out=path.resolve(__dirname,'../../../output/playwright');fs.mkdirSync(out,{recursive:true});
 async function step(page,name){await page.waitForFunction(name=>emberwildQA.game?.tutorial?.step===name&&!emberwildQA.game.tutorial.awaiting,name);await page.waitForFunction(name=>document.querySelector('#tutorial').dataset.step===name,name);}
@@ -17,7 +17,18 @@ async function touchDrag(context,page,from,to){
   try{
     for(const viewport of [{width:393,height:852},{width:1440,height:1024},{width:375,height:667},{width:844,height:390}]){
       const mobile=viewport.width<800||viewport.height<500,context=await browser.newContext({viewport,isMobile:mobile,hasTouch:mobile}),page=await context.newPage(),errors=[];
-      page.on('pageerror',error=>errors.push(error.message));await page.goto(url+'/?qa=1');assert.equal(await page.locator('#tutorial-replay').isVisible(),false);await page.locator('#begin').click();await step(page,'move');assert.equal(await page.locator('#camp').isVisible(),false);assert.equal(await page.locator('#tutorial-skip').isVisible(),false);assert.equal(await page.locator('#return-camp').isVisible(),false);assert.equal(await page.evaluate(()=>emberwildQA.game.skipTutorial()),false);await page.locator('#tutorial-next').click();
+      page.on('pageerror',error=>errors.push(error.message));await page.addInitScript(()=>{const now=Date.now();localStorage.setItem('emberwild_account_session_v1',JSON.stringify({version:2,playerId:'tutorial-test',label:'測試新玩家',authenticatedAt:now,accessExpiresAt:now+86400000}));});await page.goto(url+'/?qa=1');await page.waitForFunction(()=>window.emberwildQA);assert.equal(await page.locator('#tutorial-replay').isVisible(),false);await page.locator('#begin').click();await step(page,'move');assert.equal(await page.locator('#camp').isVisible(),false);assert.equal(await page.locator('#tutorial-skip').isVisible(),false);assert.equal(await page.locator('#return-camp').isVisible(),false);assert.equal(await page.evaluate(()=>emberwildQA.game.skipTutorial()),false);await page.locator('#tutorial-next').click();
+      const idleUpdates=await page.evaluate(async()=>{
+        const counts={hud:0,mask:0},hp=document.querySelector('#hp'),holes=document.querySelector('#tutorial-holes');
+        const hud=new MutationObserver(records=>counts.hud+=records.length);
+        const mask=new MutationObserver(records=>counts.mask+=records.length);
+        hud.observe(hp,{childList:true,characterData:true,subtree:true});
+        mask.observe(holes,{attributes:true,attributeFilter:['d']});
+        await new Promise(resolve=>setTimeout(resolve,250));
+        hud.disconnect();mask.disconnect();return counts;
+      });
+      assert.ok(idleUpdates.hud<=6,`idle tutorial HUD updated too often: ${idleUpdates.hud}`);
+      assert.ok(idleUpdates.mask<=3,`stationary tutorial mask repainted too often: ${idleUpdates.mask}`);
       const startPoint=await page.evaluate(()=>({x:emberwildQA.game.hero.x,y:emberwildQA.game.hero.y}));await page.keyboard.down('a');await page.keyboard.down('w');await page.waitForTimeout(150);await page.keyboard.up('a');await page.keyboard.up('w');assert.deepEqual(await page.evaluate(()=>({x:emberwildQA.game.hero.x,y:emberwildQA.game.hero.y})),startPoint);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
       const panel=await page.locator('#tutorial').boundingBox(),controls=await page.locator('.field-controls').boundingBox();assert.ok(panel.y+panel.height<controls.y||panel.x+panel.width<controls.x,'guide must leave movement and skills accessible');
@@ -32,7 +43,7 @@ async function touchDrag(context,page,from,to){
       await completed(page);await step(page,'attack');await completed(page);await step(page,'skill');await page.locator('#pause').click();const before=await page.evaluate(()=>emberwildQA.game.tutorial);await page.waitForTimeout(100);assert.deepEqual(await page.evaluate(()=>emberwildQA.game.tutorial),before);await page.locator('[data-action="resume"]').click();
       await page.screenshot({path:path.join(out,`strong-skill-${viewport.width}.png`)});
       await page.locator('#skill-volley').click();await completed(page);await step(page,'build');
-      await page.locator('#save-game').click();await page.waitForFunction(()=>emberwildQA.store.state.run.tutorial.step==='build');await page.reload();await page.locator('#begin').click();assert.equal(await page.locator('[data-action="save-camp"]').count(),0);await page.locator('[data-action="resume"]').click();await step(page,'build');
+      await page.locator('#save-game').click();await page.waitForFunction(()=>emberwildQA.store.state.run.tutorial.step==='build');await page.reload();await page.waitForFunction(()=>window.emberwildQA);await page.locator('#begin').click();assert.equal(await page.locator('[data-action="save-camp"]').count(),0);await page.locator('[data-action="resume"]').click();await step(page,'build');
       if(viewport.width===393){
         for(const size of [{width:844,height:390},viewport]){await page.setViewportSize(size);await page.waitForFunction(()=>{const t=emberwildQA.game.tutorial,p=emberwildQA.painter.screen(t.buildSpot.x,t.buildSpot.y),r=document.querySelector('#tutorial-marker').getBoundingClientRect();return Math.abs(p.x-r.x-r.width/2)<1&&Math.abs(p.y-r.y-r.height/2)<1;});}
         const before=await page.evaluate(()=>({...emberwildQA.game.inventory})),card=await page.locator('#hand [data-slot="0"]').boundingBox(),wrong=await page.evaluate(()=>emberwildQA.painter.screen(600,650));await touchDrag(context,page,{x:card.x+card.width/2,y:card.y+card.height/2},{x:wrong.x,y:wrong.y+55});assert.deepEqual(await page.evaluate(()=>emberwildQA.game.inventory),before);assert.equal(await page.evaluate(()=>emberwildQA.game.buildings.length),0);assert.equal(await page.evaluate(()=>emberwildQA.game.tutorial.awaiting),false);
@@ -45,7 +56,7 @@ async function touchDrag(context,page,from,to){
       // One full first wave runs naturally. Other sizes reuse the combat result to check persistence/layout.
       if(viewport.width===393)await page.waitForFunction(()=>emberwildQA.game.tutorial.reward,null,{timeout:60000});
       else await page.evaluate(()=>{const g=emberwildQA.game;g.enemies=[];g.spawnQueue=[];g.finishWave();emberwildQA.render();});await page.waitForSelector('#tutorial-claim:not([hidden])');
-      const reward=await page.evaluate(()=>({materials:{...emberwildQA.game.materials},amber:emberwildQA.game.amber,pending:emberwildQA.game.tutorial.reward}));await page.waitForFunction(()=>emberwildQA.store.state.run.tutorial.reward);await page.reload();await page.locator('#begin').click();await page.locator('[data-action="resume"]').click();
+      const reward=await page.evaluate(()=>({materials:{...emberwildQA.game.materials},amber:emberwildQA.game.amber,pending:emberwildQA.game.tutorial.reward}));await page.waitForFunction(()=>emberwildQA.store.state.run.tutorial.reward);await page.reload();await page.waitForFunction(()=>window.emberwildQA);await page.locator('#begin').click();await page.locator('[data-action="resume"]').click();
       assert.equal(await page.locator('#next-wave').isDisabled(),true);await page.locator('#tutorial-claim').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,`strong-reward-${viewport.width}.png`)});
       if(viewport.width===393){
         await page.evaluate(()=>{window.originalTutorialSet=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='emberwild_save_v2')throw Error('test quota');return window.originalTutorialSet.call(this,key,value);};});
@@ -53,13 +64,29 @@ async function touchDrag(context,page,from,to){
         await page.evaluate(()=>{Storage.prototype.setItem=window.originalTutorialSet;});await page.locator('[data-action="retry-save"]').click();await page.locator('[data-action="resume"]').click();
       }
       await page.locator('#tutorial-claim').click();await page.waitForFunction(()=>emberwildQA.store.state.profile.tutorialDone===true);assert.equal(await page.locator('#tutorial').isVisible(),false);
-      await page.locator('#camp:not([hidden])').waitFor();assert.equal(await page.evaluate(()=>emberwildQA.store.state.run.materials.wood),Math.min(999,reward.materials.wood+reward.pending.wood));assert.equal(await page.evaluate(()=>emberwildQA.store.state.run.tutorial.status),'done');await page.locator('#camp-loadout').click();await page.locator('#modal:not([hidden])').waitFor();assert.deepEqual(errors,[]);
+      await page.locator('#camp:not([hidden])').waitFor();await page.locator('#modal.promotion-modal:not([hidden]) #promotion-dismiss').click();await page.waitForFunction(()=>document.querySelector('#modal').hidden);
+      assert.equal(await page.evaluate(()=>emberwildQA.store.state.run.materials.wood),Math.min(999,reward.materials.wood+reward.pending.wood));assert.equal(await page.evaluate(()=>emberwildQA.store.state.run.tutorial.status),'done');assert.deepEqual(await page.evaluate(()=>emberwildQA.store.state.profile.offerPrompts.starterShown),true);await page.locator('#camp-loadout').click();await page.locator('#modal:not([hidden])').waitFor();assert.deepEqual(errors,[]);
+      if(viewport.width===393){
+        await page.locator('[data-action="loadout-close"]').tap();
+        await approach(page,'merchant');
+        await page.waitForSelector('[data-buy="wall"]');
+        const beforeShop=await page.evaluate(()=>({count:emberwildQA.game.inventory.wall,wood:emberwildQA.game.materials.wood,bone:emberwildQA.game.materials.bone}));
+        await page.locator('[data-buy="wall"]').tap();
+        await page.waitForFunction(n=>emberwildQA.store.state.run.inventory.wall===n+1,beforeShop.count);
+        const paid=await page.evaluate(()=>emberwildQA.store.state.run.materials);
+        assert.ok(paid.wood<beforeShop.wood||paid.bone<beforeShop.bone,'first reward can buy a real material-priced card');
+        await page.locator('[data-action="market-close"]').tap();await depart(page);
+        await page.locator('#return-camp').tap();await page.waitForSelector('#camp:not([hidden])');
+        assert.equal(await page.evaluate(()=>emberwildQA.store.state.run.inventory.wall),beforeShop.count+1);
+        assert.equal(await page.locator('#modal').isVisible(),false,'returning after shopping must not trigger another gift');
+        console.log('PASS first-session reward -> camp merchant -> material purchase -> expedition -> camp retains purchased cards (site positioning uses QA helper)');
+      }
       console.log(`PASS ${viewport.width}x${viewport.height}: focused controls, explicit confirmations, movement, actual hits, skill, real drag, pause/reload and one-time reward`);await context.close();
     }
-    const context=await browser.newContext(),page=await context.newPage();await page.goto(url+'/?qa=1');await veteran(page);await page.evaluate(()=>emberwildQA.start());assert.equal(await page.evaluate(()=>emberwildQA.game.tutorial),null);console.log('PASS graduate keeps normal gameplay and optional practice');
-    await page.locator('#pause').click();await page.waitForTimeout(200);await page.reload();const saved=await page.evaluate(()=>localStorage.getItem('emberwild_save_v2'));await page.locator('#tutorial-replay').click();assert.equal(await page.evaluate(()=>emberwildQA.game.runId.startsWith('practice-')),true);await page.locator('#tutorial-next').click();await page.keyboard.down('d');await page.waitForFunction(()=>emberwildQA.game.tutorial.awaiting);await page.keyboard.up('d');await completed(page);await completed(page);await page.locator('#skill-volley').click();await completed(page);
+    const context=await browser.newContext(),page=await context.newPage();await page.addInitScript(()=>{const now=Date.now();localStorage.setItem('emberwild_account_session_v1',JSON.stringify({version:2,playerId:'tutorial-test',label:'測試新玩家',authenticatedAt:now,accessExpiresAt:now+86400000}));});await page.goto(url+'/?qa=1');await page.waitForFunction(()=>window.emberwildQA);await veteran(page);await page.evaluate(()=>emberwildQA.start());assert.equal(await page.evaluate(()=>emberwildQA.game.tutorial),null);console.log('PASS graduate keeps normal gameplay and optional practice');
+    await page.locator('#pause').click();await page.waitForTimeout(200);await page.reload();await page.waitForFunction(()=>window.emberwildQA);const saved=await page.evaluate(()=>localStorage.getItem('emberwild_save_v2'));await page.locator('#tutorial-replay').click();assert.equal(await page.evaluate(()=>emberwildQA.game.runId.startsWith('practice-')),true);await page.locator('#tutorial-next').click();await page.keyboard.down('d');await page.waitForFunction(()=>emberwildQA.game.tutorial.awaiting);await page.keyboard.up('d');await completed(page);await completed(page);await page.locator('#skill-volley').click();await completed(page);
     // Keyboard-accessible card selection plus a real world click is the alternative to dragging.
     await page.keyboard.press('1');const p=await page.evaluate(()=>{const p=emberwildQA.game.tutorial.buildSpot;return emberwildQA.painter.screen(p.x,p.y);});await page.mouse.click(p.x,p.y);await completed(page);await page.evaluate(()=>{const g=emberwildQA.game;g.enemies=[];g.spawnQueue=[];g.finishWave();emberwildQA.render();});await page.locator('#tutorial-claim').click();await page.locator('#camp:not([hidden])').waitFor();assert.equal(await page.evaluate(()=>localStorage.getItem('emberwild_save_v2')),saved);assert.equal(await page.locator('#tutorial-layer').isVisible(),false);console.log('PASS replay completes without changing the real save and supports keyboard card placement');
-    await page.reload();await page.locator('#tutorial-replay').click();await page.locator('#pause').click();await page.locator('[data-action="exit-confirm"]').click();await page.locator('[data-action="abandon"]').click();await page.locator('#camp:not([hidden])').waitFor();assert.equal(await page.evaluate(()=>localStorage.getItem('emberwild_save_v2')),saved);console.log('PASS abandoning practice preserves the original suspended expedition');await context.close();
+    await page.reload();await page.waitForFunction(()=>window.emberwildQA);await page.locator('#tutorial-replay').click();await page.locator('#pause').click();await page.locator('[data-action="exit-confirm"]').click();await page.locator('[data-action="abandon"]').click();await page.locator('#camp:not([hidden])').waitFor();assert.equal(await page.evaluate(()=>localStorage.getItem('emberwild_save_v2')),saved);console.log('PASS abandoning practice preserves the original suspended expedition');await context.close();
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

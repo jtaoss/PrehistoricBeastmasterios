@@ -126,6 +126,8 @@ enum PaymentDebugLog { static func record(_ message: String) {} }
     func showPaymentProgress(_ request: PayRequest, message: String) { progress.append(request.cpOrder) }
     func showCurrentPaymentProgress() { progress.append("current") }
     func refreshPaymentWaitControl() {}
+    // Content routing is exercised by the content configuration tests.
+    func reconcileContentRouteWhenAvailable() {}
     func paymentSubject(_ request: PayRequest?) -> String { request.map { "「\($0.cpOrder)」：" } ?? "" }
     func paymentFields(_ request: PayRequest?, code: String, message: String) -> String { code }
     func callH5(_ method: String, fields: String) { callbacks.append((method, fields)) }

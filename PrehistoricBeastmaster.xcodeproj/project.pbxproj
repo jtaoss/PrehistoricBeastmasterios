@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A71000000000000000000001 /* MiniGameAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71000000000000000000002 /* MiniGameAuthService.swift */; };
 		E74600000000000000000001 /* PrivacyPolicyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74600000000000000000002 /* PrivacyPolicyViewController.swift */; };
 		E73500000000000000000001 /* GameOrderEndpointRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73500000000000000000002 /* GameOrderEndpointRouter.swift */; };
 		BE28909CAB714CCFA11A1001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = BE28909CAB714CCFA11A1002 /* GoogleService-Info.plist */; };
@@ -25,6 +26,7 @@
 		98F6BC4A8F6B4283B3BCA07D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6D11828286664910A07A6F3A /* Assets.xcassets */; };
 		9CAB54A087094B55A5CDD0B5 /* BackendGateway.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ACAAD41CBFD4085A6466E25 /* BackendGateway.swift */; };
 		9CB81B316E3C488099E8BA20 /* game in Resources */ = {isa = PBXBuildFile; fileRef = 7CE3FA4EE99C4E4292B4FBB5 /* game */; };
+		E9211E6A1000000000000001 /* legal in Resources */ = {isa = PBXBuildFile; fileRef = E9211E6A1000000000000002 /* legal */; };
 		A023DD3AED8E483D84A6685E /* ShellConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E25B6CC8D564A55ACD3FF8A /* ShellConfig.swift */; };
 		BBBD28576F5A4DA5B35E787E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 218589122493462BA26894E9 /* FirebaseCore */; };
 		C295ADE195C04E7A85EF162C /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = A471A171A22C459B9CBC10BA /* FirebaseAnalyticsCore */; };
@@ -36,6 +38,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A71000000000000000000002 /* MiniGameAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniGameAuthService.swift; sourceTree = "<group>"; };
 		E74600000000000000000002 /* PrivacyPolicyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyViewController.swift; sourceTree = "<group>"; };
 		E73500000000000000000002 /* GameOrderEndpointRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameOrderEndpointRouter.swift; sourceTree = "<group>"; };
 		BE28909CAB714CCFA11A1002 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -55,6 +58,7 @@
 		6D11828286664910A07A6F3A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7B959F02B0854DBDB14412EC /* TrustedWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedWebView.swift; sourceTree = "<group>"; };
 		7CE3FA4EE99C4E4292B4FBB5 /* game */ = {isa = PBXFileReference; lastKnownFileType = folder; path = game; sourceTree = "<group>"; };
+		E9211E6A1000000000000002 /* legal */ = {isa = PBXFileReference; lastKnownFileType = folder; path = legal; sourceTree = "<group>"; };
 		91EF9A6031C64E1BBED7F6E6 /* JSONObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONObject.swift; sourceTree = "<group>"; };
 		9ACAAD41CBFD4085A6466E25 /* BackendGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendGateway.swift; sourceTree = "<group>"; };
 		A496A6F78E2C403D82617557 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
@@ -89,6 +93,7 @@
 				ED652A1EDDDE47B7B10F8B2F /* SplashViewController.swift */,
 				03D57F75DA97492987B6E580 /* GameViewController.swift */,
 				E74600000000000000000002 /* PrivacyPolicyViewController.swift */,
+				A71000000000000000000003 /* Auth */,
 				38B0E225F23641C982199C89 /* Analytics */,
 				0F0FD6105D9D4C398DDF9182 /* Config */,
 				B49426170F244DE3BF56487E /* Content */,
@@ -102,6 +107,14 @@
 				5AA232A3503143AB89BB89D3 /* Resources */,
 			);
 			path = PrehistoricBeastmaster;
+			sourceTree = "<group>";
+		};
+		A71000000000000000000003 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				A71000000000000000000002 /* MiniGameAuthService.swift */,
+			);
+			path = Auth;
 			sourceTree = "<group>";
 		};
 		0CBF712CBD994AA6A7A8C1E7 = {
@@ -134,6 +147,7 @@
 			isa = PBXGroup;
 			children = (
 				7CE3FA4EE99C4E4292B4FBB5 /* game */,
+				E9211E6A1000000000000002 /* legal */,
 				E9FC4206E99042B9802068F1 /* js */,
 			);
 			path = Resources;
@@ -195,6 +209,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2B9EC3DF5181482EAB02336F /* Build configuration list for PBXNativeTarget "PrehistoricBeastmaster" */;
 			buildPhases = (
+				EBE2B0070000000000000001 /* Verify Emberwild Resources */,
 				F05531E96AA04CCDB9DD4AAF /* Sources */,
 				C36F2710DA5A4E20A73576AE /* Frameworks */,
 				C7C8B82647F04413AED817C0 /* Resources */,
@@ -251,6 +266,22 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		EBE2B0070000000000000001 /* Verify Emberwild Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputFileListPaths = ("$(SRCROOT)/scripts/emberwild-resources.xcfilelist");
+			inputPaths = ("$(SRCROOT)/scripts/verify-emberwild-ios.sh", "$(SRCROOT)/scripts/emberwild-resources.sha256", "$(SRCROOT)/PrehistoricBeastmaster/Resources/game", "$(SRCROOT)/prototypes/emberwild");
+			name = "Verify Emberwild Resources";
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"$SRCROOT/scripts/verify-emberwild-ios.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXResourcesBuildPhase section */
 		C7C8B82647F04413AED817C0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
@@ -260,6 +291,7 @@
 				98F6BC4A8F6B4283B3BCA07D /* Assets.xcassets in Resources */,
 				7DFD08B4694444AEB8624304 /* PrivacyInfo.xcprivacy in Resources */,
 				9CB81B316E3C488099E8BA20 /* game in Resources */,
+				E9211E6A1000000000000001 /* legal in Resources */,
 				F0E6E47DD7334C58A2D350FB /* js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -276,6 +308,7 @@
 				5B63081B1EAA4BCFA8AA66EF /* SplashViewController.swift in Sources */,
 				02CD82354ADA409F853227DA /* GameViewController.swift in Sources */,
 				E74600000000000000000001 /* PrivacyPolicyViewController.swift in Sources */,
+				A71000000000000000000001 /* MiniGameAuthService.swift in Sources */,
 				A023DD3AED8E483D84A6685E /* ShellConfig.swift in Sources */,
 				DDF7012C55CA44EC9756273E /* JSONObject.swift in Sources */,
 				6AC3EF893FB34900AA527F83 /* PayRequest.swift in Sources */,
@@ -302,7 +335,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_TEAM = ADR4GMT9V3;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PrehistoricBeastmaster/Info.plist;
@@ -333,8 +366,8 @@
 			baseConfigurationReference = A496A6F78E2C403D82617557 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 49;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PLATFORM_DIR)/Developer/Library/Frameworks",

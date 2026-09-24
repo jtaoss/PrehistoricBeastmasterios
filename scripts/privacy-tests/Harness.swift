@@ -116,6 +116,7 @@ final class BillingStub {
 }
 final class GameViewController: UIViewController {
     let billing = BillingStub()
+    var contentRouteReleased = true
     /* PRESENTATION */
     override init() { Spy.games += 1; Spy.sequence.append("game"); super.init() }
 }
@@ -202,15 +203,17 @@ case "not-game":
     delegate.applicationDidBecomeActive(app); request()
     expect(ATTrackingManager.requests == 0, "No prompt over splash")
     showGame(); request(); expect(ATTrackingManager.requests == 1, "Request when game appears")
-case "modal", "payment", "apple-finishing", "no-window":
+case "modal", "payment", "apple-finishing", "no-window", "route-pending":
     showGame(); let game = window.rootViewController as! GameViewController
     if scenario == "modal" { game.presentedViewController = UIViewController() }
     if scenario == "payment" { game.billing.isProcessingPayment = true }
     if scenario == "apple-finishing" { game.billing.checkoutBlockingMessage = "still finishing" }
     if scenario == "no-window" { game.view.window = nil }
+    if scenario == "route-pending" { game.contentRouteReleased = false }
     request(); expect(ATTrackingManager.requests == 0, "Never compete with unavailable UI or checkout")
     game.presentedViewController = nil; game.billing.isProcessingPayment = false
     game.billing.checkoutBlockingMessage = nil; game.view.window = window
+    game.contentRouteReleased = true
     request(); expect(ATTrackingManager.requests == 1, "Later safe lifecycle may request")
 case "undetermined-callback", "no-callback", "stale-callback":
     showGame(); request()

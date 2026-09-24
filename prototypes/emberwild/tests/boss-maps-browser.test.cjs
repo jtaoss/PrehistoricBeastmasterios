@@ -31,10 +31,13 @@ fs.mkdirSync(out,{recursive:true});
     ]);
     await p.screenshot({path:path.join(out,'43-three-bosses-mobile.png'),fullPage:true,animations:'disabled'});
     await require('./camp-helpers.cjs').openVeteran(p,`${url}/?qa=route`);await p.waitForSelector('#route-map:not([hidden])');
-    assert.equal(await p.locator('.route-node').count(),8);assert.equal(await p.locator('#route-progress').textContent(),'0 / 8');
+    assert.equal(await p.locator('.route-node').count(),8);assert.equal(await p.locator('.chapter-preview-node').count(),4);assert.equal(await p.locator('.route-coming-card').count(),2);assert.equal(await p.locator('#route-progress').textContent(),'0 / 8');
+    const atlas=await p.evaluate(async()=>{const view=document.querySelector('#route-chapter-scroll'),image=new Image();image.src='assets/painted-v1/chapter-2-moonbone-highlands-v1.jpg';await image.decode();return{scrollable:view.scrollHeight>view.clientHeight,startsAboveBottom:view.scrollTop>0,image:[image.naturalWidth,image.naturalHeight]};});
+    assert.equal(atlas.scrollable,true);assert.equal(atlas.startsAboveBottom,true);assert.deepEqual(atlas.image,[1024,1536]);
+    const saveBefore=await p.evaluate(()=>JSON.stringify(emberwildQA.store.state));await p.locator('[data-coming-soon="月門聖壇"]').click({force:true});assert.match(await p.locator('#route-coming-toast').textContent(),/月門聖壇.*敬請期待/);assert.equal(await p.locator('#route-coming-toast').isVisible(),true);assert.equal(await p.evaluate(()=>JSON.stringify(emberwildQA.store.state)),saveBefore);
     await p.screenshot({path:path.join(out,'44-eight-stage-route-mobile.png'),fullPage:true,animations:'disabled'});
     assert.deepEqual(errors,[]);
-    console.log('PASS three boss maps, final-phase warnings, exposed weakpoints and eight-stage route render on mobile without overflow');
+    console.log('PASS boss maps and upward-scrolling chapter atlas render on mobile; future chapters return coming-soon feedback');
     await context.close();
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

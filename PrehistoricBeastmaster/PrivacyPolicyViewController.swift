@@ -29,7 +29,7 @@ final class PrivacyPolicyViewController: UIViewController, WKNavigationDelegate 
             reader.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             reader.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
-        documentURL = Bundle.main.url(forResource: "privacy-policy", withExtension: "html", subdirectory: "game")
+        documentURL = Bundle.main.url(forResource: "privacy-policy", withExtension: "html", subdirectory: "legal")
         guard let documentURL else {
             let error = UILabel()
             error.text = "隱私政策檔案無法讀取，請更新 App，或聯繫 fushengridi@gmail.com。"

@@ -56,11 +56,12 @@ try {
   execFileSync('xcrun', ['swiftc', '-swift-version', '5', source, '-o', binary], {stdio:'inherit'});
   for (const scenario of ['no-consent','allow','deny','restricted','previously-denied','returning-authorized',
     'legacy-agreement','repeat-lifecycle','not-active','not-game','modal','payment','apple-finishing','no-window',
+    'route-pending',
     'undetermined-callback','no-callback','stale-callback','background-callback','revocation','reenable',
     'early-events','missing-firebase','wrong-firebase','launch-options','ios17-meta']) {
     execFileSync(binary, [scenario], {stdio:'inherit', timeout:5000});
   }
-  console.log('Native ATT: 25 behavior scenarios + system prompt, unchanged game legal links, SDK authorization and manifest guards passed');
+  console.log('Native ATT: 26 behavior scenarios + system prompt, unchanged game legal links, SDK authorization and manifest guards passed');
 } finally {
   fs.rmSync(scratch, {recursive:true, force:true});
 }
