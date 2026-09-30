@@ -1,5 +1,3 @@
-// Native code owns order creation, Apple verification and delivery; the
-// browser preview never simulates a successful payment.
 import {DEPLOY_CARDS} from './engine.mjs';
 
 export const SHOP_PAYMENT_COPY='僅在 iOS App 內使用 App Store 付款；實際金額與幣別以系統付款頁為準。未驗證成功不會發放卡牌。';
@@ -115,8 +113,6 @@ export function shopCheckoutHTML(offer,phase='confirm',orderId='',art='',detail=
 }
 
 export function cardPayButton(id){
-  // Individual card purchases intentionally remain disabled in the first
-  // release. This prevents silently expanding the App Store product matrix.
   return '';
 }
 

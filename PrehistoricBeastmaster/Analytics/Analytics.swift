@@ -6,8 +6,6 @@ import Foundation
 import UIKit
 
 enum AnalyticsSDK {
-    // This is the app's sole initialization path. Reading Firebase's app()/allApps
-    // before configure() produces a misleading error even during a healthy boot.
     private(set) static var isFirebaseConfigured = false
     private(set) static var isConfigured = false
     private static var collectionEnabled = false
@@ -21,8 +19,6 @@ enum AnalyticsSDK {
         application: UIApplication,
         launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        // Conservative app policy: both native measurement SDKs require ATT.
-        // ATT is not agreement acceptance; never infer it from privacy_accepted.
         guard ATTrackingManager.trackingAuthorizationStatus == .authorized else {
             updateCollection(false)
             return false
@@ -31,10 +27,7 @@ enum AnalyticsSDK {
             updateCollection(true)
             return false
         }
-        // This entry point is used only by the UIApplication lifecycle/ATT flow.
         precondition(Thread.isMainThread)
-        // Disabling IDFA is not an ATT exemption. Cross-company tracking must
-        // still be assessed separately against the actual SDK/backend data use.
         Settings.shared.isAutoLogAppEventsEnabled = false
         Settings.shared.isAdvertiserIDCollectionEnabled = false
         updateMetaTrackingAuthorization(true)
@@ -43,7 +36,6 @@ enum AnalyticsSDK {
             didFinishLaunchingWithOptions: launchOptions
         )
 
-        // Never initialize against a different app's Firebase configuration.
         if !isFirebaseConfigured,
            let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
            let options = FirebaseOptions(contentsOfFile: path),
@@ -58,13 +50,11 @@ enum AnalyticsSDK {
     }
 
     private static func updateMetaTrackingAuthorization(_ allowed: Bool) {
-        // FBSDK 18 reads ATT itself on iOS 17+; iOS 16 still needs this flag.
         if #available(iOS 17.0, *) { return }
         Settings.shared.isAdvertiserTrackingEnabled = allowed
     }
 
     private static func updateCollection(_ allowed: Bool) {
-        // Before first authorization, do not even touch SDK singleton objects.
         guard isConfigured, collectionEnabled != allowed else { return }
         collectionEnabled = allowed
         updateMetaTrackingAuthorization(allowed)
@@ -80,8 +70,6 @@ enum AnalyticsSDK {
 }
 
 enum AnalyticsNames {
-    // These are the existing operations tiers, identified by SKU, not by the
-    // localized price (e.g. a 0.99 USD tier may cost NT$30 in the TW storefront).
     static let purchaseTiers: [String: String] = [
         "pbm_tier_099": "purchase_tier_0_99", "pbm_tier_199": "purchase_tier_1_99",
         "pbm_tier_299": "purchase_tier_2_99", "pbm_tier_499": "purchase_tier_4_99",
@@ -201,7 +189,6 @@ final class AnalyticsManager {
     }
 
     func logEvent(_ suppliedName: String, json: String?) {
-        // Do not enqueue or replay events generated before consent.
         guard AnalyticsSDK.isCollectionAllowed else { return }
         var eventName = suppliedName
         let source = JSONObject.parse(json)
@@ -222,8 +209,6 @@ final class AnalyticsManager {
             logFacebook(normalized, fields: fields)
         }
         NSLog("[PBM-ANALYTICS] event=%@", AnalyticsNames.operationsName(normalized))
-        // Local diagnostics record routing only, never user fields or credentials.
-        // SDK submission is not proof of dashboard delivery.
         PaymentDebugLog.record("analytics-enqueued event=\(AnalyticsNames.operationsName(normalized)) firebase=\(isFirebaseConfigured) meta=\(isFacebookConfigured)")
     }
 
@@ -344,7 +329,6 @@ enum AnalyticsMilestoneRules {
     }
 
     static func isFirstDayMonthCard(roleDay: Int, goodsId: Int, goodsName: String, productId: String) -> Bool {
-        // Match the verified reference SKU, not its localized TWD price or H5 price.
         guard roleDay == 1, productId == "pbm_tier_499" else { return false }
         if goodsId == monthCardGoodsId { return true }
         let normalized = goodsName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -354,10 +338,6 @@ enum AnalyticsMilestoneRules {
 }
 
 final class AnalyticsEventCoordinator {
-    /// Upgrade bridge for builds before the payment completion journal existed.
-    /// This exact native flag is written only by onPurchaseSuccess, after the
-    /// backend confirms consume=true. Generic H5 events/SDK queues are NOT proof.
-    /// Consumers may suppress/re-finish that transaction, never grant content.
     static func hasLegacyVerifiedPurchase(transactionId: String) -> Bool {
         guard !transactionId.isEmpty else { return false }
         let key = "analytics_event_\(ShellText.sha256Hex("purchase|\(transactionId)"))_verified_purchase"
@@ -430,6 +410,7 @@ final class AnalyticsEventCoordinator {
         processH5Event(normalized, fields: fields, occurredAt: now())
     }
 
+
     private func processH5Event(_ normalized: String, fields suppliedFields: JSONObject, occurredAt: TimeInterval) {
         var fields = suppliedFields
         if Self.roleEventNames.contains(normalized), !currentRole.hasIdentity {
@@ -487,10 +468,8 @@ final class AnalyticsEventCoordinator {
             PaymentDebugLog.record("analytics-purchase-skipped reason=incomplete-product-info")
             return
         }
-        // A recovered transaction must not be counted again after changing roles.
         let scope = "purchase|\(resolvedId)"
         guard markOnce(scope: scope, eventName: "verified_purchase") else { return }
-        // Respect receipts already counted by the previous role-scoped version.
         let legacyScope = "purchase|\(ShellText.firstNonBlank(currentRole.scope, currentAccount, request?.username))|\(resolvedId)"
         guard !store.bool(forKey: stateKey(scope: legacyScope, eventName: "verified_purchase")) else { return }
         let purchase = purchaseFields(request, productInfo, transactionId: resolvedId, completed: true)
@@ -506,8 +485,6 @@ final class AnalyticsEventCoordinator {
             first.remove("transaction_id")
             emitRoleOnce("first_purchase", fields: first)
         }
-        // Revenue retains the actual storefront amount/currency. The game's
-        // USD milestone instead uses the verified SKU's fixed reference tier.
         if let referenceUSD = ProductCatalog.referenceUSD(forProductId: productInfo.productId), AnalyticsMilestoneRules.crossesFirstDayPack(
             previousTotal: previousTotal, paidAmount: referenceUSD, roleDay: request.roleDay
         ) {
@@ -579,7 +556,6 @@ final class AnalyticsEventCoordinator {
 
     private func updateRole(_ source: JSONObject) {
         let candidate = RoleContext(source, fallback: currentRole)
-        // Keep partial identity while loading; never inherit another role's ID/name.
         currentRole = candidate
         let account = ShellText.firstNonBlank(
             source.string("account_id"), source.string("uid"), source.string("user_name"),
@@ -711,7 +687,6 @@ final class AnalyticsEventCoordinator {
         func isCompatible(with other: RoleContext) -> Bool {
             let pairs = [(uid, other.uid), (serverId, other.serverId), (roleId, other.roleId)]
             guard pairs.allSatisfy({ $0.0.isEmpty || $0.1.isEmpty || $0.0 == $0.1 }) else { return false }
-            // Names are only a loading-time hint, never a replacement for a role ID.
             return hasIdentity || roleName.isEmpty || other.roleName.isEmpty || roleName == other.roleName
         }
 

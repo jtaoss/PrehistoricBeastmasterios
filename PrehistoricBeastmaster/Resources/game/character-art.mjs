@@ -1,5 +1,3 @@
-// Animation-ready AI sprite atlases. Every pose is drawn at a stable foot
-// baseline and fixed scale: no procedural limb stretching or face morphing.
 const images=new Map();
 export const CHARACTER_ART={
  ranger:{file:'assets/motion-v4/scout-run-v1.png',cols:5,height:92,pivotX:[195.9,195.9],
@@ -23,7 +21,6 @@ export const CHARACTER_ART={
 export function preloadCharacters(){for(const type of Object.keys(CHARACTER_ART))if(!images.has(type)){const im=new Image(),art=CHARACTER_ART[type];im.decoding='async';im.src=art.file||`assets/motion-v2/${type}.png`;images.set(type,im);}const extras=[CHARACTER_ART.ranger.idle,CHARACTER_ART.ranger.run,...Object.values(CHARACTER_ART.ranger.attack)];for(const art of extras)if(!images.has(art.key)){const im=new Image();im.decoding='async';im.src=art.file;images.set(art.key,im);}return Promise.all([...images.values()].map(im=>im.decode().catch(()=>{})));}
 export const characterStatus=()=>Object.fromEntries([...images].map(([key,im])=>[key,im.complete&&im.naturalWidth>0]));
 export const attackFrame=attack=>Math.max(0,Math.min(4,Math.floor((1-attack)*5+1e-6)));
-// Kept as a small pure helper for cadence validation and future footstep FX.
 export function footPose(phase,stride,amount=1){
  const p=((phase%1)+1)%1,A=stride*.30;
  if(p<.6)return{travel:(A-p/.6*2*A)*amount,lift:0};
@@ -43,11 +40,7 @@ export function drawCharacter(c,type,x,y,pose,{height,weapon}={}){
  const art=run||idle||rig,im=images.get(run?.key||idle?.key||type);if(!im?.complete||!im.naturalWidth)return null;
  const row=pose.back?1:0,cols=art.cols||5,frame=locomoting?Math.max(0,Math.min(cols-1,run?(pose.runFrame??pose.frame??0):(pose.frame??0))):idle?Math.max(0,Math.min(cols-1,pose.idleFrame??0)):0;
  const sw=im.naturalWidth/cols,sh=im.naturalHeight/2,sx=frame*sw,sy=row*sh;
- // Scale comes only from the neutral pose. Per-frame feet are aligned back to
- // y=0, so AI crop differences cannot make the character bounce or resize.
  const k=(height||art.height||rig.height)/(art.base[row][0]-art.top[row][0]),pivotX=Array.isArray(art.pivotX[row])?art.pivotX[row][frame]:art.pivotX[row],baseline=art.base[row][frame];
- // The authored idle atlas already contains breathing and weight changes. Do
- // not scale it procedurally as well, otherwise the planted boots appear soft.
  const breathing=idle?1:1+(pose.breath||0)*.006;
  c.save();c.translate(x,y);c.scale(pose.flip?-1:1,breathing);c.rotate(pose.lean||0);
  c.drawImage(im,sx,sy,sw,sh,-pivotX*k,-baseline*k,sw*k,sh*k);c.restore();

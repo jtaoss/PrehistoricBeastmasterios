@@ -89,14 +89,14 @@ final class AnalyticsManager {
     func safeFields(_ source: JSONObject) -> [String: Any] { [:] }
     func safeName(_ source: String) -> String { source }
     func logFacebook(_ name: String, fields: [String: Any]) { Spy.metaEvents += 1 }
-    /* LOG_EVENT */
+    
 }
-/* SDK */
+
 final class AppDelegate {
     var window: UIWindow?
     var analyticsLaunchOptions: [UIApplication.LaunchOptionsKey: Any]?
     var trackingRequestInFlight = false, trackingPromptAttempted = false
-    /* ACTIVATION */
+    
 }
 class UIViewController {
     let view = TestView()
@@ -117,12 +117,12 @@ final class BillingStub {
 final class GameViewController: UIViewController {
     let billing = BillingStub()
     var contentRouteReleased = true
-    /* PRESENTATION */
+    
     override init() { Spy.games += 1; Spy.sequence.append("game"); super.init() }
 }
 final class SplashViewController: UIViewController {
     var hasOpenedGame = false
-    /* STARTUP */
+    
 }
 func expect(_ value: @autoclosure () -> Bool, _ description: String) {
     guard value() else { fatalError(description) }

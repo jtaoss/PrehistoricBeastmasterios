@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B1B78CCAB185430DA9B5022E"
+               BlueprintIdentifier = "E7D7D48B1DD047A9B0C59B3F"
                BuildableName = "PrehistoricBeastmaster.app"
                BlueprintName = "PrehistoricBeastmaster"
                ReferencedContainer = "container:PrehistoricBeastmaster.xcodeproj">
@@ -42,7 +42,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B1B78CCAB185430DA9B5022E"
+            BlueprintIdentifier = "E7D7D48B1DD047A9B0C59B3F"
             BuildableName = "PrehistoricBeastmaster.app"
             BlueprintName = "PrehistoricBeastmaster"
             ReferencedContainer = "container:PrehistoricBeastmaster.xcodeproj">
@@ -59,7 +59,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B1B78CCAB185430DA9B5022E"
+            BlueprintIdentifier = "E7D7D48B1DD047A9B0C59B3F"
             BuildableName = "PrehistoricBeastmaster.app"
             BlueprintName = "PrehistoricBeastmaster"
             ReferencedContainer = "container:PrehistoricBeastmaster.xcodeproj">

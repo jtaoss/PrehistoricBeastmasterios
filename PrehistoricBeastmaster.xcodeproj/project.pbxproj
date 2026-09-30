@@ -7,197 +7,242 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A71000000000000000000001 /* MiniGameAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71000000000000000000002 /* MiniGameAuthService.swift */; };
-		E74600000000000000000001 /* PrivacyPolicyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74600000000000000000002 /* PrivacyPolicyViewController.swift */; };
-		E73500000000000000000001 /* GameOrderEndpointRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73500000000000000000002 /* GameOrderEndpointRouter.swift */; };
-		BE28909CAB714CCFA11A1001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = BE28909CAB714CCFA11A1002 /* GoogleService-Info.plist */; };
-		CE730DBE32914879A4EEA001 /* PaymentDiagnosticsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE730DBE32914879A4EEA002 /* PaymentDiagnosticsViewController.swift */; };
-		9A774CE33E504908B960B801 /* LocalMusicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A774CE33E504908B960B802 /* LocalMusicPlayer.swift */; };
-		02CD82354ADA409F853227DA /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D57F75DA97492987B6E580 /* GameViewController.swift */; };
-		5B63081B1EAA4BCFA8AA66EF /* SplashViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED652A1EDDDE47B7B10F8B2F /* SplashViewController.swift */; };
-		6AC3EF893FB34900AA527F83 /* PayRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4221067D220A46169FD8D758 /* PayRequest.swift */; };
-		6F4A8C19249144F1A722A253 /* InjectedScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = B003497B06B44B71BEC16FF6 /* InjectedScripts.swift */; };
-		7DFD08B4694444AEB8624304 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 208D7FACF6D64D0AB0308A99 /* PrivacyInfo.xcprivacy */; };
-		86E5D7277EDC417584015296 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 345CD259E4F543B6B8712174 /* AppDelegate.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* LocalStoreKitBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5061728394A5B6C /* LocalStoreKitBootstrap.swift */; };
-		8B261A7A074F404FA5915CA0 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1613BF3E1AE465298BA5787 /* Analytics.swift */; };
-		8FBA9E228A0A45D3BF1862A7 /* ContentConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F6121134F9F4E0985E4DBD8 /* ContentConfig.swift */; };
-		95A124542AA0423883BF799D /* TrustedWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B959F02B0854DBDB14412EC /* TrustedWebView.swift */; };
-		98F6BC4A8F6B4283B3BCA07D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6D11828286664910A07A6F3A /* Assets.xcassets */; };
-		9CAB54A087094B55A5CDD0B5 /* BackendGateway.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ACAAD41CBFD4085A6466E25 /* BackendGateway.swift */; };
-		9CB81B316E3C488099E8BA20 /* game in Resources */ = {isa = PBXBuildFile; fileRef = 7CE3FA4EE99C4E4292B4FBB5 /* game */; };
-		E9211E6A1000000000000001 /* legal in Resources */ = {isa = PBXBuildFile; fileRef = E9211E6A1000000000000002 /* legal */; };
-		A023DD3AED8E483D84A6685E /* ShellConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E25B6CC8D564A55ACD3FF8A /* ShellConfig.swift */; };
-		BBBD28576F5A4DA5B35E787E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 218589122493462BA26894E9 /* FirebaseCore */; };
-		C295ADE195C04E7A85EF162C /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = A471A171A22C459B9CBC10BA /* FirebaseAnalyticsCore */; };
-		CAAEA5D0866B4B7D91725418 /* GameAPIProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A2207A118E4F56B23ED8B7 /* GameAPIProxy.swift */; };
-		D31596CBAB35428D8B50CD09 /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = EAEDAFCF49674BB9AB80A19F /* FacebookCore */; };
-		D92ED7131E5D419A89705265 /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29A48F90AB74495A1FBF20C /* StoreKitManager.swift */; };
-		DDF7012C55CA44EC9756273E /* JSONObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EF9A6031C64E1BBED7F6E6 /* JSONObject.swift */; };
-		F0E6E47DD7334C58A2D350FB /* js in Resources */ = {isa = PBXBuildFile; fileRef = E9FC4206E99042B9802068F1 /* js */; };
+		7519F9E036224E1EAD7D4642 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E62AF43A123497EA6B5113D /* AppDelegate.swift */; };
+		3BCA3BC7694442D19AB296E7 /* LocalStoreKitBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509483B704FF4FF094C24CB8 /* LocalStoreKitBootstrap.swift */; };
+		5395672BFF0844728BA4179F /* SplashViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A28762EE18443AADF2AB94 /* SplashViewController.swift */; };
+		CAECCAE321BE4721AC12CD36 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AB0888B1D34CB9B4752C71 /* GameViewController.swift */; };
+		567A51D438BB4566ACC65BC9 /* GameActivityWebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9804B894C7C44A959C4F360B /* GameActivityWebViewController.swift */; };
+		3DFE32AB72C94438BFAF35AC /* GameShopViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C99E361CED4034BDA6E4CF /* GameShopViewController.swift */; };
+		C11F56947B9B44028CF11E61 /* PrivacyPolicyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36281A5807C14F1FB34B9FE0 /* PrivacyPolicyViewController.swift */; };
+		ECDE44B7D0B44D93B3FAA5FA /* NetworkTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287993B4745641C99C6EB712 /* NetworkTransport.swift */; };
+		BA7B944D3B5D4EE780098079 /* ServiceEndpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E4FE63FDDD4DC39B283503 /* ServiceEndpoints.swift */; };
+		35F993BCC224495BB784DBF5 /* ShellConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 329D2500C85C41CF93AFD50F /* ShellConfig.swift */; };
+		C8E7BBED8B4A4F8B8273A13F /* JSONObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70421985D054489D95B12725 /* JSONObject.swift */; };
+		79D833F525CA4DE4A3CFB1D2 /* GameModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FE074E058374D77842D7C6D /* GameModule.swift */; };
+		AC5EC947621E4DCA9DC58CBC /* ModuleCatalogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 551B4E1DF7F7473E99CFB484 /* ModuleCatalogParser.swift */; };
+		1578DA6B22404083977744CD /* ModuleCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51ED9B9D8C4A43B5ADC67738 /* ModuleCatalogService.swift */; };
+		371CBD0C37444283A7770794 /* ModuleSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD8C442E4258481B823E15BC /* ModuleSession.swift */; };
+		8D84A5768D6943EF92ED2C13 /* ModuleDockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30A9F76475614464A61A4272 /* ModuleDockView.swift */; };
+		D5F415EA62344294899D2D8E /* ModuleContainerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43E0D6D2F2094B3ABE29C555 /* ModuleContainerController.swift */; };
+		4514E23FAC0348198FDF365A /* PayRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F8D8424F784825B945C743 /* PayRequest.swift */; };
+		612FC708F29E43A090C66B89 /* BillingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2782F4BA7B7A40F9B04103D8 /* BillingService.swift */; };
+		0EAB63D565D548C89DD2748D /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE4896C867F431FA034DC44 /* StoreKitManager.swift */; };
+		564EB50BDBE041AFA9C1514E /* MiniGameAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAD6453C278F4453BD17FE1E /* MiniGameAuthService.swift */; };
+		242294B8C5DE4E2D9C02F4E0 /* LocalMusicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638D90E41E5547BBB12E744D /* LocalMusicPlayer.swift */; };
+		BDEBCBAEB9924774A293F4E6 /* PaymentDiagnosticsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB76AF9C9EA4853B2D209D9 /* PaymentDiagnosticsViewController.swift */; };
+		C6067FA0AFAA4176807536E9 /* AppStoreBillingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B2839FBA443E9858FB44B /* AppStoreBillingService.swift */; };
+		8D58FC49F31043BDBAD0D703 /* LocalAssetSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44298CB49F164B45AF46C6EA /* LocalAssetSyncManager.swift */; };
+		E90D17333B314CDBA6DBEB14 /* WebActionSyncHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F060DA47EB9C4A11AA58CE55 /* WebActionSyncHandler.swift */; };
+		6C523E3FDF8C4C40A4C29086 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D85FD96326F499A996DE494 /* Config.swift */; };
+		9720D4D5E4114223B900AD86 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D35EA22F0345A4A0112EA8 /* Analytics.swift */; };
+		4635FD6327F5458DA7F98E4D /* TelemetryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2D27B0ED4D46EBB0AA446E /* TelemetryEvent.swift */; };
+		2A61374899FF42DA9062306E /* TelemetryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA4CA4C431904BD985D67A49 /* TelemetryProvider.swift */; };
+		C41EE3C5EAFA42B8AA208C7C /* TelemetryTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB720CE7514E44A685C6C70E /* TelemetryTracker.swift */; };
+		936191CE031C4F8298F076A0 /* GameEconomyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C565FC2F0ABA42EF8736451E /* GameEconomyManager.swift */; };
+		15280EE287724BFE93CC4D9D /* PageScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66C744798B24BB0B0E8B04A /* PageScripts.swift */; };
+		8A3CA8B4009341848960F7F5 /* TrustedWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56FE681DD96A477F8D18A413 /* TrustedWebView.swift */; };
+		2D050F0F39FD43589296A9F6 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7F75445F6BAB42AF89B40162 /* GoogleService-Info.plist */; };
+		ECB7F46D050D402EA0DC6DF8 /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = 365C09984F2445DBBC221D2D /* FacebookCore */; };
+		3E979E2CE53B444FBFE19804 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = B7C35F20925044A4B5D5397F /* FirebaseCore */; };
+		0961423E98024BA5A81F9E47 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = F46D331296C1436EA004DFA3 /* FirebaseAnalyticsCore */; };
+		A3180901EDA04A9FBCC80F77 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9D99DEA9715940A7BA4F6EE8 /* Assets.xcassets */; };
+		DCDAA23F7A9844B985EA4B5F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 109FD9B4B3004C069B5CBB30 /* PrivacyInfo.xcprivacy */; };
+		75DFC6898B134EC2A8246A6F /* game in Resources */ = {isa = PBXBuildFile; fileRef = DF3A641738E04035A3233DC7 /* game */; };
+		08AC2556E90543AFBCB86728 /* js in Resources */ = {isa = PBXBuildFile; fileRef = F2DC5DCF87F44A08AC519E41 /* js */; };
+		623B4E2C8C2541BFB3D64CE2 /* legal in Resources */ = {isa = PBXBuildFile; fileRef = 2DCD7DED39C841198A794FD1 /* legal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A71000000000000000000002 /* MiniGameAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniGameAuthService.swift; sourceTree = "<group>"; };
-		E74600000000000000000002 /* PrivacyPolicyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyViewController.swift; sourceTree = "<group>"; };
-		E73500000000000000000002 /* GameOrderEndpointRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameOrderEndpointRouter.swift; sourceTree = "<group>"; };
-		BE28909CAB714CCFA11A1002 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		CE730DBE32914879A4EEA002 /* PaymentDiagnosticsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentDiagnosticsViewController.swift; sourceTree = "<group>"; };
-		9A774CE33E504908B960B802 /* LocalMusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMusicPlayer.swift; sourceTree = "<group>"; };
-		03D57F75DA97492987B6E580 /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
-		1864DA016BD14C728FC9D3B5 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
-		208D7FACF6D64D0AB0308A99 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		345CD259E4F543B6B8712174 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		B1C2D3E4F5061728394A5B6C /* LocalStoreKitBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStoreKitBootstrap.swift; sourceTree = "<group>"; };
-		3E25B6CC8D564A55ACD3FF8A /* ShellConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellConfig.swift; sourceTree = "<group>"; };
-		4221067D220A46169FD8D758 /* PayRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayRequest.swift; sourceTree = "<group>"; };
-		5F6121134F9F4E0985E4DBD8 /* ContentConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentConfig.swift; sourceTree = "<group>"; };
-		60A2207A118E4F56B23ED8B7 /* GameAPIProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameAPIProxy.swift; sourceTree = "<group>"; };
-		66537E8F5A70409590BE30CF /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
-		6A4A094C2A804D37BCF9A5A4 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
-		6D11828286664910A07A6F3A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		7B959F02B0854DBDB14412EC /* TrustedWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedWebView.swift; sourceTree = "<group>"; };
-		7CE3FA4EE99C4E4292B4FBB5 /* game */ = {isa = PBXFileReference; lastKnownFileType = folder; path = game; sourceTree = "<group>"; };
-		E9211E6A1000000000000002 /* legal */ = {isa = PBXFileReference; lastKnownFileType = folder; path = legal; sourceTree = "<group>"; };
-		91EF9A6031C64E1BBED7F6E6 /* JSONObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONObject.swift; sourceTree = "<group>"; };
-		9ACAAD41CBFD4085A6466E25 /* BackendGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendGateway.swift; sourceTree = "<group>"; };
-		A496A6F78E2C403D82617557 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
-		B003497B06B44B71BEC16FF6 /* InjectedScripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InjectedScripts.swift; sourceTree = "<group>"; };
-		C83A5AD4B4D0418786F68762 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		D1613BF3E1AE465298BA5787 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
-		E29A48F90AB74495A1FBF20C /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
-		E9FC4206E99042B9802068F1 /* js */ = {isa = PBXFileReference; lastKnownFileType = folder; path = js; sourceTree = "<group>"; };
-		ED652A1EDDDE47B7B10F8B2F /* SplashViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashViewController.swift; sourceTree = "<group>"; };
-		F9A01915066948A5BC93E00B /* PrehistoricBeastmaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrehistoricBeastmaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7E62AF43A123497EA6B5113D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		509483B704FF4FF094C24CB8 /* LocalStoreKitBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStoreKitBootstrap.swift; sourceTree = "<group>"; };
+		62A28762EE18443AADF2AB94 /* SplashViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashViewController.swift; sourceTree = "<group>"; };
+		C3AB0888B1D34CB9B4752C71 /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
+		9804B894C7C44A959C4F360B /* GameActivityWebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameActivityWebViewController.swift; sourceTree = "<group>"; };
+		F3C99E361CED4034BDA6E4CF /* GameShopViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameShopViewController.swift; sourceTree = "<group>"; };
+		36281A5807C14F1FB34B9FE0 /* PrivacyPolicyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyViewController.swift; sourceTree = "<group>"; };
+		287993B4745641C99C6EB712 /* NetworkTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkTransport.swift; sourceTree = "<group>"; };
+		01E4FE63FDDD4DC39B283503 /* ServiceEndpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceEndpoints.swift; sourceTree = "<group>"; };
+		329D2500C85C41CF93AFD50F /* ShellConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellConfig.swift; sourceTree = "<group>"; };
+		70421985D054489D95B12725 /* JSONObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONObject.swift; sourceTree = "<group>"; };
+		5FE074E058374D77842D7C6D /* GameModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameModule.swift; sourceTree = "<group>"; };
+		551B4E1DF7F7473E99CFB484 /* ModuleCatalogParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleCatalogParser.swift; sourceTree = "<group>"; };
+		51ED9B9D8C4A43B5ADC67738 /* ModuleCatalogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleCatalogService.swift; sourceTree = "<group>"; };
+		DD8C442E4258481B823E15BC /* ModuleSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleSession.swift; sourceTree = "<group>"; };
+		30A9F76475614464A61A4272 /* ModuleDockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleDockView.swift; sourceTree = "<group>"; };
+		43E0D6D2F2094B3ABE29C555 /* ModuleContainerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleContainerController.swift; sourceTree = "<group>"; };
+		D5F8D8424F784825B945C743 /* PayRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayRequest.swift; sourceTree = "<group>"; };
+		2782F4BA7B7A40F9B04103D8 /* BillingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingService.swift; sourceTree = "<group>"; };
+		CCE4896C867F431FA034DC44 /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
+		EAD6453C278F4453BD17FE1E /* MiniGameAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniGameAuthService.swift; sourceTree = "<group>"; };
+		638D90E41E5547BBB12E744D /* LocalMusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMusicPlayer.swift; sourceTree = "<group>"; };
+		6AB76AF9C9EA4853B2D209D9 /* PaymentDiagnosticsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentDiagnosticsViewController.swift; sourceTree = "<group>"; };
+		4B1B2839FBA443E9858FB44B /* AppStoreBillingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreBillingService.swift; sourceTree = "<group>"; };
+		44298CB49F164B45AF46C6EA /* LocalAssetSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssetSyncManager.swift; sourceTree = "<group>"; };
+		F060DA47EB9C4A11AA58CE55 /* WebActionSyncHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebActionSyncHandler.swift; sourceTree = "<group>"; };
+		1D85FD96326F499A996DE494 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		A7D35EA22F0345A4A0112EA8 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
+		5E2D27B0ED4D46EBB0AA446E /* TelemetryEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryEvent.swift; sourceTree = "<group>"; };
+		DA4CA4C431904BD985D67A49 /* TelemetryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryProvider.swift; sourceTree = "<group>"; };
+		DB720CE7514E44A685C6C70E /* TelemetryTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryTracker.swift; sourceTree = "<group>"; };
+		C565FC2F0ABA42EF8736451E /* GameEconomyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEconomyManager.swift; sourceTree = "<group>"; };
+		A66C744798B24BB0B0E8B04A /* PageScripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageScripts.swift; sourceTree = "<group>"; };
+		56FE681DD96A477F8D18A413 /* TrustedWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedWebView.swift; sourceTree = "<group>"; };
+		7F75445F6BAB42AF89B40162 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = GoogleService-Info.plist; sourceTree = "<group>"; };
+		156D5BDFEA9C4AEEAFC895FA /* PrehistoricBeastmaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrehistoricBeastmaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D99DEA9715940A7BA4F6EE8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		473A06D94240424AA640EE71 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		109FD9B4B3004C069B5CBB30 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A115E7D4B2BB456893E1C207 /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Products.storekit; sourceTree = "<group>"; };
+		DF3A641738E04035A3233DC7 /* game */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "game"; sourceTree = "<group>"; };
+		F2DC5DCF87F44A08AC519E41 /* js */ = {isa = PBXFileReference; lastKnownFileType = folder; path = js; sourceTree = "<group>"; };
+		2DCD7DED39C841198A794FD1 /* legal */ = {isa = PBXFileReference; lastKnownFileType = folder; path = legal; sourceTree = "<group>"; };
+		25421FFE759A4DC8B4D9F3B3 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
+		0DEAD1E310B24EF5B6E7974E /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		1CFF9310D012487BB52277FE /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		C36F2710DA5A4E20A73576AE /* Frameworks */ = {
+		9D1AB79427824666AFDF0B01 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D31596CBAB35428D8B50CD09 /* FacebookCore in Frameworks */,
-				BBBD28576F5A4DA5B35E787E /* FirebaseCore in Frameworks */,
-				C295ADE195C04E7A85EF162C /* FirebaseAnalyticsCore in Frameworks */,
+				ECB7F46D050D402EA0DC6DF8 /* FacebookCore in Frameworks */,
+				3E979E2CE53B444FBFE19804 /* FirebaseCore in Frameworks */,
+				0961423E98024BA5A81F9E47 /* FirebaseAnalyticsCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0B5825249F3F445F9ABE618D /* PrehistoricBeastmaster */ = {
+		F8FDE321FDF5453D816092F6 = {
 			isa = PBXGroup;
 			children = (
-				345CD259E4F543B6B8712174 /* AppDelegate.swift */,
-				B1C2D3E4F5061728394A5B6C /* LocalStoreKitBootstrap.swift */,
-				ED652A1EDDDE47B7B10F8B2F /* SplashViewController.swift */,
-				03D57F75DA97492987B6E580 /* GameViewController.swift */,
-				E74600000000000000000002 /* PrivacyPolicyViewController.swift */,
-				A71000000000000000000003 /* Auth */,
-				38B0E225F23641C982199C89 /* Analytics */,
-				0F0FD6105D9D4C398DDF9182 /* Config */,
-				B49426170F244DE3BF56487E /* Content */,
-				8BB591C6943444278574E2A6 /* Payment */,
-				7D954EA113D9456D962CDA3B /* Web */,
-				6D11828286664910A07A6F3A /* Assets.xcassets */,
-				C83A5AD4B4D0418786F68762 /* Info.plist */,
-				BE28909CAB714CCFA11A1002 /* GoogleService-Info.plist */,
-				208D7FACF6D64D0AB0308A99 /* PrivacyInfo.xcprivacy */,
-				66537E8F5A70409590BE30CF /* Products.storekit */,
-				5AA232A3503143AB89BB89D3 /* Resources */,
+				7F5681A62C5D489492AE11B5 /* Config */,
+				BD923C5DBD1F49F899342471 /* PrehistoricBeastmaster */,
+				34C74DB01E4D4BE48591C376 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7F5681A62C5D489492AE11B5 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				25421FFE759A4DC8B4D9F3B3 /* Shared.xcconfig */,
+				0DEAD1E310B24EF5B6E7974E /* Debug.xcconfig */,
+				1CFF9310D012487BB52277FE /* Release.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		BD923C5DBD1F49F899342471 /* PrehistoricBeastmaster */ = {
+			isa = PBXGroup;
+			children = (
+				7E62AF43A123497EA6B5113D /* AppDelegate.swift */,
+				509483B704FF4FF094C24CB8 /* LocalStoreKitBootstrap.swift */,
+				62A28762EE18443AADF2AB94 /* SplashViewController.swift */,
+				C3AB0888B1D34CB9B4752C71 /* GameViewController.swift */,
+				9804B894C7C44A959C4F360B /* GameActivityWebViewController.swift */,
+				F3C99E361CED4034BDA6E4CF /* GameShopViewController.swift */,
+				36281A5807C14F1FB34B9FE0 /* PrivacyPolicyViewController.swift */,
+				71FA12D2F2B34981B783FDEA /* Analytics */,
+				DA6EAA65D5C3495BBBB0A14E /* Auth */,
+				815525E06DF94D0F9CD723D2 /* Config */,
+				5A9008ED41314CD9B70AE7AC /* Payment */,
+				515FA10DE3834715B787930E /* Portal */,
+				56FB3269C08B4DB7B269E1DC /* Web */,
+				7F75445F6BAB42AF89B40162 /* GoogleService-Info.plist */,
+				9D99DEA9715940A7BA4F6EE8 /* Assets.xcassets */,
+				473A06D94240424AA640EE71 /* Info.plist */,
+				109FD9B4B3004C069B5CBB30 /* PrivacyInfo.xcprivacy */,
+				A115E7D4B2BB456893E1C207 /* Products.storekit */,
+				E575BE21EBCB403A8C2281D3 /* Resources */,
 			);
 			path = PrehistoricBeastmaster;
 			sourceTree = "<group>";
 		};
-		A71000000000000000000003 /* Auth */ = {
+		E575BE21EBCB403A8C2281D3 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				A71000000000000000000002 /* MiniGameAuthService.swift */,
-			);
-			path = Auth;
-			sourceTree = "<group>";
-		};
-		0CBF712CBD994AA6A7A8C1E7 = {
-			isa = PBXGroup;
-			children = (
-				9D521192C8E34A85B7E1F12E /* Config */,
-				0B5825249F3F445F9ABE618D /* PrehistoricBeastmaster */,
-				D3E8B9F1EA814F77AA9FA573 /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		0F0FD6105D9D4C398DDF9182 /* Config */ = {
-			isa = PBXGroup;
-			children = (
-				3E25B6CC8D564A55ACD3FF8A /* ShellConfig.swift */,
-				91EF9A6031C64E1BBED7F6E6 /* JSONObject.swift */,
-			);
-			path = Config;
-			sourceTree = "<group>";
-		};
-		38B0E225F23641C982199C89 /* Analytics */ = {
-			isa = PBXGroup;
-			children = (
-				D1613BF3E1AE465298BA5787 /* Analytics.swift */,
-			);
-			path = Analytics;
-			sourceTree = "<group>";
-		};
-		5AA232A3503143AB89BB89D3 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				7CE3FA4EE99C4E4292B4FBB5 /* game */,
-				E9211E6A1000000000000002 /* legal */,
-				E9FC4206E99042B9802068F1 /* js */,
+				DF3A641738E04035A3233DC7 /* game */,
+				F2DC5DCF87F44A08AC519E41 /* js */,
+				2DCD7DED39C841198A794FD1 /* legal */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		7D954EA113D9456D962CDA3B /* Web */ = {
+		815525E06DF94D0F9CD723D2 /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				B003497B06B44B71BEC16FF6 /* InjectedScripts.swift */,
-				60A2207A118E4F56B23ED8B7 /* GameAPIProxy.swift */,
-				E73500000000000000000002 /* GameOrderEndpointRouter.swift */,
-				7B959F02B0854DBDB14412EC /* TrustedWebView.swift */,
-				9A774CE33E504908B960B802 /* LocalMusicPlayer.swift */,
-			);
-			path = Web;
-			sourceTree = "<group>";
-		};
-		8BB591C6943444278574E2A6 /* Payment */ = {
-			isa = PBXGroup;
-			children = (
-				4221067D220A46169FD8D758 /* PayRequest.swift */,
-				9ACAAD41CBFD4085A6466E25 /* BackendGateway.swift */,
-				E29A48F90AB74495A1FBF20C /* StoreKitManager.swift */,
-				CE730DBE32914879A4EEA002 /* PaymentDiagnosticsViewController.swift */,
-			);
-			path = Payment;
-			sourceTree = "<group>";
-		};
-		9D521192C8E34A85B7E1F12E /* Config */ = {
-			isa = PBXGroup;
-			children = (
-				6A4A094C2A804D37BCF9A5A4 /* Shared.xcconfig */,
-				A496A6F78E2C403D82617557 /* Debug.xcconfig */,
-				1864DA016BD14C728FC9D3B5 /* Release.xcconfig */,
+				287993B4745641C99C6EB712 /* NetworkTransport.swift */,
+				01E4FE63FDDD4DC39B283503 /* ServiceEndpoints.swift */,
+				329D2500C85C41CF93AFD50F /* ShellConfig.swift */,
+				70421985D054489D95B12725 /* JSONObject.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
 		};
-		B49426170F244DE3BF56487E /* Content */ = {
+		515FA10DE3834715B787930E /* Portal */ = {
 			isa = PBXGroup;
 			children = (
-				5F6121134F9F4E0985E4DBD8 /* ContentConfig.swift */,
+				5FE074E058374D77842D7C6D /* GameModule.swift */,
+				551B4E1DF7F7473E99CFB484 /* ModuleCatalogParser.swift */,
+				51ED9B9D8C4A43B5ADC67738 /* ModuleCatalogService.swift */,
+				DD8C442E4258481B823E15BC /* ModuleSession.swift */,
+				30A9F76475614464A61A4272 /* ModuleDockView.swift */,
+				43E0D6D2F2094B3ABE29C555 /* ModuleContainerController.swift */,
 			);
-			path = Content;
+			path = Portal;
 			sourceTree = "<group>";
 		};
-		D3E8B9F1EA814F77AA9FA573 /* Products */ = {
+		5A9008ED41314CD9B70AE7AC /* Payment */ = {
 			isa = PBXGroup;
 			children = (
-				F9A01915066948A5BC93E00B /* PrehistoricBeastmaster.app */,
+				D5F8D8424F784825B945C743 /* PayRequest.swift */,
+				2782F4BA7B7A40F9B04103D8 /* BillingService.swift */,
+				CCE4896C867F431FA034DC44 /* StoreKitManager.swift */,
+				6AB76AF9C9EA4853B2D209D9 /* PaymentDiagnosticsViewController.swift */,
+				4B1B2839FBA443E9858FB44B /* AppStoreBillingService.swift */,
+				44298CB49F164B45AF46C6EA /* LocalAssetSyncManager.swift */,
+				F060DA47EB9C4A11AA58CE55 /* WebActionSyncHandler.swift */,
+				1D85FD96326F499A996DE494 /* Config.swift */,
+			);
+			path = Payment;
+			sourceTree = "<group>";
+		};
+		DA6EAA65D5C3495BBBB0A14E /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				EAD6453C278F4453BD17FE1E /* MiniGameAuthService.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		56FB3269C08B4DB7B269E1DC /* Web */ = {
+			isa = PBXGroup;
+			children = (
+				638D90E41E5547BBB12E744D /* LocalMusicPlayer.swift */,
+				A66C744798B24BB0B0E8B04A /* PageScripts.swift */,
+				56FE681DD96A477F8D18A413 /* TrustedWebView.swift */,
+			);
+			path = Web;
+			sourceTree = "<group>";
+		};
+		71FA12D2F2B34981B783FDEA /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				A7D35EA22F0345A4A0112EA8 /* Analytics.swift */,
+				5E2D27B0ED4D46EBB0AA446E /* TelemetryEvent.swift */,
+				DA4CA4C431904BD985D67A49 /* TelemetryProvider.swift */,
+				DB720CE7514E44A685C6C70E /* TelemetryTracker.swift */,
+				C565FC2F0ABA42EF8736451E /* GameEconomyManager.swift */,
+			);
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+		34C74DB01E4D4BE48591C376 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				156D5BDFEA9C4AEEAFC895FA /* PrehistoricBeastmaster.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -205,45 +250,44 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		B1B78CCAB185430DA9B5022E /* PrehistoricBeastmaster */ = {
+		E7D7D48B1DD047A9B0C59B3F /* PrehistoricBeastmaster */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2B9EC3DF5181482EAB02336F /* Build configuration list for PBXNativeTarget "PrehistoricBeastmaster" */;
+			buildConfigurationList = 77CA14ABAA57401A8BB2F62D /* Build configuration list for PBXNativeTarget "PrehistoricBeastmaster" */;
 			buildPhases = (
-				EBE2B0070000000000000001 /* Verify Emberwild Resources */,
-				F05531E96AA04CCDB9DD4AAF /* Sources */,
-				C36F2710DA5A4E20A73576AE /* Frameworks */,
-				C7C8B82647F04413AED817C0 /* Resources */,
+				B5806EFD9F974D178B90E592 /* Sources */,
+				9D1AB79427824666AFDF0B01 /* Frameworks */,
+				2A63FC1976D048108516EDE1 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = PrehistoricBeastmaster;
 			packageProductDependencies = (
-				EAEDAFCF49674BB9AB80A19F /* FacebookCore */,
-				218589122493462BA26894E9 /* FirebaseCore */,
-				A471A171A22C459B9CBC10BA /* FirebaseAnalyticsCore */,
+				365C09984F2445DBBC221D2D /* FacebookCore */,
+				B7C35F20925044A4B5D5397F /* FirebaseCore */,
+				F46D331296C1436EA004DFA3 /* FirebaseAnalyticsCore */,
 			);
+			name = PrehistoricBeastmaster;
 			productName = PrehistoricBeastmaster;
-			productReference = F9A01915066948A5BC93E00B /* PrehistoricBeastmaster.app */;
+			productReference = 156D5BDFEA9C4AEEAFC895FA /* PrehistoricBeastmaster.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		042B3A15DAD8404EA0D5F73C /* Project object */ = {
+		174C1B03B4BF4A96BC443D68 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
-					B1B78CCAB185430DA9B5022E = {
+					E7D7D48B1DD047A9B0C59B3F = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
 			};
-			buildConfigurationList = D403E5B18E5F485390DEC8D3 /* Build configuration list for PBXProject "PrehistoricBeastmaster" */;
+			buildConfigurationList = E38704C67FB24DD2BEE299BB /* Build configuration list for PBXProject "PrehistoricBeastmaster" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = "zh-Hant";
 			hasScannedForEncodings = 0;
@@ -252,155 +296,84 @@
 				"zh-Hant",
 				Base,
 			);
-			mainGroup = 0CBF712CBD994AA6A7A8C1E7;
+			mainGroup = F8FDE321FDF5453D816092F6;
 			packageReferences = (
-				CE43A79697CE43648819CBBD /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
-				1D0F660FF0DC4CDC99F1BE66 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				046ADCE190AE4B388F677499 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
+				019DFED3BF9343D0AF9E6874 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
-			productRefGroup = D3E8B9F1EA814F77AA9FA573 /* Products */;
+			productRefGroup = 34C74DB01E4D4BE48591C376 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				B1B78CCAB185430DA9B5022E /* PrehistoricBeastmaster */,
+				E7D7D48B1DD047A9B0C59B3F /* PrehistoricBeastmaster */,
 			);
 		};
 /* End PBXProject section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		EBE2B0070000000000000001 /* Verify Emberwild Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = ();
-			inputFileListPaths = ("$(SRCROOT)/scripts/emberwild-resources.xcfilelist");
-			inputPaths = ("$(SRCROOT)/scripts/verify-emberwild-ios.sh", "$(SRCROOT)/scripts/emberwild-resources.sha256", "$(SRCROOT)/PrehistoricBeastmaster/Resources/game", "$(SRCROOT)/prototypes/emberwild");
-			name = "Verify Emberwild Resources";
-			outputPaths = ();
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$SRCROOT/scripts/verify-emberwild-ios.sh\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXResourcesBuildPhase section */
-		C7C8B82647F04413AED817C0 /* Resources */ = {
+		2A63FC1976D048108516EDE1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BE28909CAB714CCFA11A1001 /* GoogleService-Info.plist in Resources */,
-				98F6BC4A8F6B4283B3BCA07D /* Assets.xcassets in Resources */,
-				7DFD08B4694444AEB8624304 /* PrivacyInfo.xcprivacy in Resources */,
-				9CB81B316E3C488099E8BA20 /* game in Resources */,
-				E9211E6A1000000000000001 /* legal in Resources */,
-				F0E6E47DD7334C58A2D350FB /* js in Resources */,
+				A3180901EDA04A9FBCC80F77 /* Assets.xcassets in Resources */,
+				DCDAA23F7A9844B985EA4B5F /* PrivacyInfo.xcprivacy in Resources */,
+				75DFC6898B134EC2A8246A6F /* game in Resources */,
+				08AC2556E90543AFBCB86728 /* js in Resources */,
+				623B4E2C8C2541BFB3D64CE2 /* legal in Resources */,
+				2D050F0F39FD43589296A9F6 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		F05531E96AA04CCDB9DD4AAF /* Sources */ = {
+		B5806EFD9F974D178B90E592 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				86E5D7277EDC417584015296 /* AppDelegate.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5C /* LocalStoreKitBootstrap.swift in Sources */,
-				5B63081B1EAA4BCFA8AA66EF /* SplashViewController.swift in Sources */,
-				02CD82354ADA409F853227DA /* GameViewController.swift in Sources */,
-				E74600000000000000000001 /* PrivacyPolicyViewController.swift in Sources */,
-				A71000000000000000000001 /* MiniGameAuthService.swift in Sources */,
-				A023DD3AED8E483D84A6685E /* ShellConfig.swift in Sources */,
-				DDF7012C55CA44EC9756273E /* JSONObject.swift in Sources */,
-				6AC3EF893FB34900AA527F83 /* PayRequest.swift in Sources */,
-				9CAB54A087094B55A5CDD0B5 /* BackendGateway.swift in Sources */,
-				D92ED7131E5D419A89705265 /* StoreKitManager.swift in Sources */,
-				CE730DBE32914879A4EEA001 /* PaymentDiagnosticsViewController.swift in Sources */,
-				8FBA9E228A0A45D3BF1862A7 /* ContentConfig.swift in Sources */,
-				8B261A7A074F404FA5915CA0 /* Analytics.swift in Sources */,
-				6F4A8C19249144F1A722A253 /* InjectedScripts.swift in Sources */,
-				CAAEA5D0866B4B7D91725418 /* GameAPIProxy.swift in Sources */,
-				E73500000000000000000001 /* GameOrderEndpointRouter.swift in Sources */,
-				95A124542AA0423883BF799D /* TrustedWebView.swift in Sources */,
-				9A774CE33E504908B960B801 /* LocalMusicPlayer.swift in Sources */,
+				7519F9E036224E1EAD7D4642 /* AppDelegate.swift in Sources */,
+				3BCA3BC7694442D19AB296E7 /* LocalStoreKitBootstrap.swift in Sources */,
+				5395672BFF0844728BA4179F /* SplashViewController.swift in Sources */,
+				CAECCAE321BE4721AC12CD36 /* GameViewController.swift in Sources */,
+				567A51D438BB4566ACC65BC9 /* GameActivityWebViewController.swift in Sources */,
+				3DFE32AB72C94438BFAF35AC /* GameShopViewController.swift in Sources */,
+				C11F56947B9B44028CF11E61 /* PrivacyPolicyViewController.swift in Sources */,
+				ECDE44B7D0B44D93B3FAA5FA /* NetworkTransport.swift in Sources */,
+				BA7B944D3B5D4EE780098079 /* ServiceEndpoints.swift in Sources */,
+				35F993BCC224495BB784DBF5 /* ShellConfig.swift in Sources */,
+				C8E7BBED8B4A4F8B8273A13F /* JSONObject.swift in Sources */,
+				79D833F525CA4DE4A3CFB1D2 /* GameModule.swift in Sources */,
+				AC5EC947621E4DCA9DC58CBC /* ModuleCatalogParser.swift in Sources */,
+				1578DA6B22404083977744CD /* ModuleCatalogService.swift in Sources */,
+				371CBD0C37444283A7770794 /* ModuleSession.swift in Sources */,
+				8D84A5768D6943EF92ED2C13 /* ModuleDockView.swift in Sources */,
+				D5F415EA62344294899D2D8E /* ModuleContainerController.swift in Sources */,
+				4514E23FAC0348198FDF365A /* PayRequest.swift in Sources */,
+				612FC708F29E43A090C66B89 /* BillingService.swift in Sources */,
+				0EAB63D565D548C89DD2748D /* StoreKitManager.swift in Sources */,
+				564EB50BDBE041AFA9C1514E /* MiniGameAuthService.swift in Sources */,
+				242294B8C5DE4E2D9C02F4E0 /* LocalMusicPlayer.swift in Sources */,
+				BDEBCBAEB9924774A293F4E6 /* PaymentDiagnosticsViewController.swift in Sources */,
+				C6067FA0AFAA4176807536E9 /* AppStoreBillingService.swift in Sources */,
+				8D58FC49F31043BDBAD0D703 /* LocalAssetSyncManager.swift in Sources */,
+				E90D17333B314CDBA6DBEB14 /* WebActionSyncHandler.swift in Sources */,
+				6C523E3FDF8C4C40A4C29086 /* Config.swift in Sources */,
+				9720D4D5E4114223B900AD86 /* Analytics.swift in Sources */,
+				4635FD6327F5458DA7F98E4D /* TelemetryEvent.swift in Sources */,
+				2A61374899FF42DA9062306E /* TelemetryProvider.swift in Sources */,
+				C41EE3C5EAFA42B8AA208C7C /* TelemetryTracker.swift in Sources */,
+				936191CE031C4F8298F076A0 /* GameEconomyManager.swift in Sources */,
+				15280EE287724BFE93CC4D9D /* PageScripts.swift in Sources */,
+				8A3CA8B4009341848960F7F5 /* TrustedWebView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		15D8E0696B4E469EA7AC8989 /* Release */ = {
+		1179386211824CBDB597208C /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1864DA016BD14C728FC9D3B5 /* Release.xcconfig */;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "Apple Distribution";
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 49;
-				DEVELOPMENT_TEAM = ADR4GMT9V3;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = PrehistoricBeastmaster/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0.12;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"-ObjC",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.stone.primitive.saga;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = Primal_Legends_AppStore_YU_KANG_2026;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
-		A296D8DA2062426D8C1658BB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = A496A6F78E2C403D82617557 /* Debug.xcconfig */;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 49;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PLATFORM_DIR)/Developer/Library/Frameworks",
-				);
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = PrehistoricBeastmaster/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"/Developer/Library/Frameworks",
-				);
-				MARKETING_VERSION = 1.0.12;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"-ObjC",
-					"-weak_framework",
-					StoreKitTest,
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		AC8FCC542E9D49489A308C77 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = A496A6F78E2C403D82617557 /* Debug.xcconfig */;
+			baseConfigurationReference = 0DEAD1E310B24EF5B6E7974E /* Debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
@@ -416,9 +389,9 @@
 			};
 			name = Debug;
 		};
-		CC8C568490C24B58A27A9971 /* Release */ = {
+		6EFB5B75103147728BFDDAD6 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1864DA016BD14C728FC9D3B5 /* Release.xcconfig */;
+			baseConfigurationReference = 1CFF9310D012487BB52277FE /* Release.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
@@ -433,23 +406,76 @@
 			};
 			name = Release;
 		};
+		F49BA5668E6041028528D34B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0DEAD1E310B24EF5B6E7974E /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 52;
+				FRAMEWORK_SEARCH_PATHS = "$(inherited) $(PLATFORM_DIR)/Developer/Library/Frameworks";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PrehistoricBeastmaster/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks /Developer/Library/Frameworks";
+				MARKETING_VERSION = 1.0.12;
+				OTHER_LDFLAGS = "$(inherited) -ObjC -weak_framework StoreKitTest";
+				PRODUCT_BUNDLE_IDENTIFIER = com.stone.primitive.saga;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		237AEF0C9CCE4723B945F84E /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1CFF9310D012487BB52277FE /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 52;
+				DEVELOPMENT_TEAM = ADR4GMT9V3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PrehistoricBeastmaster/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0.12;
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.stone.primitive.saga;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = Primal_Legends_AppStore_YU_KANG_2026;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2B9EC3DF5181482EAB02336F /* Build configuration list for PBXNativeTarget "PrehistoricBeastmaster" */ = {
+		E38704C67FB24DD2BEE299BB /* Build configuration list for PBXProject "PrehistoricBeastmaster" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A296D8DA2062426D8C1658BB /* Debug */,
-				15D8E0696B4E469EA7AC8989 /* Release */,
+				1179386211824CBDB597208C /* Debug */,
+				6EFB5B75103147728BFDDAD6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D403E5B18E5F485390DEC8D3 /* Build configuration list for PBXProject "PrehistoricBeastmaster" */ = {
+		77CA14ABAA57401A8BB2F62D /* Build configuration list for PBXNativeTarget "PrehistoricBeastmaster" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AC8FCC542E9D49489A308C77 /* Debug */,
-				CC8C568490C24B58A27A9971 /* Release */,
+				F49BA5668E6041028528D34B /* Debug */,
+				237AEF0C9CCE4723B945F84E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -457,15 +483,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		1D0F660FF0DC4CDC99F1BE66 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 12.18.0;
-			};
-		};
-		CE43A79697CE43648819CBBD /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
+		046ADCE190AE4B388F677499 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/facebook/facebook-ios-sdk.git";
 			requirement = {
@@ -473,25 +491,33 @@
 				minimumVersion = 18.1.1;
 			};
 		};
+		019DFED3BF9343D0AF9E6874 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.18.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		218589122493462BA26894E9 /* FirebaseCore */ = {
+		365C09984F2445DBBC221D2D /* FacebookCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 1D0F660FF0DC4CDC99F1BE66 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = 046ADCE190AE4B388F677499 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookCore;
+		};
+		B7C35F20925044A4B5D5397F /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 019DFED3BF9343D0AF9E6874 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCore;
 		};
-		A471A171A22C459B9CBC10BA /* FirebaseAnalyticsCore */ = {
+		F46D331296C1436EA004DFA3 /* FirebaseAnalyticsCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 1D0F660FF0DC4CDC99F1BE66 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = 019DFED3BF9343D0AF9E6874 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAnalyticsCore;
-		};
-		EAEDAFCF49674BB9AB80A19F /* FacebookCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CE43A79697CE43648819CBBD /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FacebookCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 042B3A15DAD8404EA0D5F73C /* Project object */;
+	rootObject = 174C1B03B4BF4A96BC443D68 /* Project object */;
 }

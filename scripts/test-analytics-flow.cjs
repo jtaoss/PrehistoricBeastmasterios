@@ -8,6 +8,16 @@ const {execFileSync} = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
 const analytics = read('PrehistoricBeastmaster/Analytics/Analytics.swift');
+const telemetry = read('PrehistoricBeastmaster/Analytics/TelemetryTracker.swift');
+const providers = read('PrehistoricBeastmaster/Analytics/TelemetryProvider.swift');
+assert.ok((telemetry.match(/AnalyticsSDK\.isCollectionAllowed/g) ?? []).length >= 2,
+  'Telemetry must check consent before enqueue and again before delivery');
+assert.doesNotMatch(telemetry.slice(telemetry.indexOf('public init('), telemetry.indexOf('// MARK: - Provider')), /TelemetryDeviceIdentity\.current/,
+  'Constructing the tracker must not create a device identifier');
+assert.doesNotMatch(telemetry, /identifierForVendor/,
+  'Telemetry must not read IDFV when an app-install identifier is sufficient');
+assert.ok((providers.match(/AnalyticsSDK\.isCollectionAllowed/g) ?? []).length >= 3,
+  'Network and Firebase providers must independently enforce consent');
 const names = analytics.slice(analytics.indexOf('enum AnalyticsNames'), analytics.indexOf('final class AnalyticsManager'));
 const flow = analytics.slice(analytics.indexOf('enum AnalyticsMilestoneRules'));
 assert.ok(names.includes('requiresNativePayment'));

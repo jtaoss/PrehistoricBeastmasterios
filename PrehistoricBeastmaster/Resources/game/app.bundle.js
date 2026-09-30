@@ -1,5 +1,4 @@
 (() => {
-  // prototypes/emberwild/tutorial.mjs
   var TUTORIAL_STEPS = Object.freeze(["move", "attack", "skill", "build", "reward"]);
   var TUTORIAL_BUILD_RADIUS = 72;
   var freshTutorial = ({ mandatory = false } = {}) => ({ version: 2, mandatory, step: "move", status: "active", started: false, awaiting: false, skillCast: false, attackHits: 0, moveTarget: { x: 455, y: 475 }, buildSpot: null, slot: 0, moved: 0, elapsed: 0, reward: null });
@@ -16,7 +15,6 @@
     return !!p && Number.isFinite(p.x) && p.x >= 55 && p.x <= 665 && Number.isFinite(p.y) && p.y >= 85 && p.y <= 735;
   }
 
-  // prototypes/emberwild/engine.mjs
   var WORLD = Object.freeze({ width: 720, height: 820 });
   var MAX_WAVES = 8;
   var STAGE_BALANCE = Object.freeze([
@@ -31,14 +29,14 @@
   ].map((v) => Object.freeze(v)));
   var FORTIFICATION_BALANCE = Object.freeze({ incomingDamage: 0.78, betweenStageRepair: 0.35, heroRecovery: 15, eggRecovery: 18 });
   var STAGE_OBJECTIVES = Object.freeze([
-    Object.freeze({ type: "defend", icon: "◉", title: "守住聖獸卵", short: "守護目標", detail: "擊退獸群，確保聖獸卵不被摧毀。" }),
-    Object.freeze({ type: "escort", icon: "↗", title: "護送採集師", short: "護送 NPC", detail: "靠近採集師帶路，護送他穿過巨蕨巢道。" }),
-    Object.freeze({ type: "destroy", icon: "✹", title: "摧毀三座獸巢", short: "摧毀巢穴", detail: "清除沼澤母獸的三座孵化巢，阻斷幼獸增援。" }),
-    Object.freeze({ type: "mining", icon: "◆", title: "限時採集熔晶", short: "限時採礦", detail: "在 50 秒內擊碎三處標記晶礦並擊退守衛。" }),
-    Object.freeze({ type: "rescue", icon: "⌁", title: "營救受困弓手", short: "營救伙伴", detail: "靠近牢籠並守住救援圈，完成後弓手加入本局。" }),
-    Object.freeze({ type: "defend", icon: "◉", title: "守住焦木防線", short: "首領守護", detail: "保護聖獸靈巢，避開衝角獸的蓄力衝鋒。" }),
-    Object.freeze({ type: "strongholds", icon: "△", title: "守住三處月骨據點", short: "多點防守", detail: "獸群會分路攻擊三處據點；任一失守都會結束遠征。" }),
-    Object.freeze({ type: "defend", icon: "◉", title: "守住泰坦聖所", short: "最終守護", detail: "在琥珀泰坦的震地攻勢下守住最後火種。" })
+    Object.freeze({ type: "defend", icon: "\u25C9", title: "\u5B88\u4F4F\u8056\u7378\u5375", short: "\u5B88\u8B77\u76EE\u6A19", detail: "\u64CA\u9000\u7378\u7FA4\uFF0C\u78BA\u4FDD\u8056\u7378\u5375\u4E0D\u88AB\u6467\u6BC0\u3002" }),
+    Object.freeze({ type: "escort", icon: "\u2197", title: "\u8B77\u9001\u63A1\u96C6\u5E2B", short: "\u8B77\u9001 NPC", detail: "\u9760\u8FD1\u63A1\u96C6\u5E2B\u5E36\u8DEF\uFF0C\u8B77\u9001\u4ED6\u7A7F\u904E\u5DE8\u8568\u5DE2\u9053\u3002" }),
+    Object.freeze({ type: "destroy", icon: "\u2739", title: "\u6467\u6BC0\u4E09\u5EA7\u7378\u5DE2", short: "\u6467\u6BC0\u5DE2\u7A74", detail: "\u6E05\u9664\u6CBC\u6FA4\u6BCD\u7378\u7684\u4E09\u5EA7\u5B75\u5316\u5DE2\uFF0C\u963B\u65B7\u5E7C\u7378\u589E\u63F4\u3002" }),
+    Object.freeze({ type: "mining", icon: "\u25C6", title: "\u9650\u6642\u63A1\u96C6\u7194\u6676", short: "\u9650\u6642\u63A1\u7926", detail: "\u5728 50 \u79D2\u5167\u64CA\u788E\u4E09\u8655\u6A19\u8A18\u6676\u7926\u4E26\u64CA\u9000\u5B88\u885B\u3002" }),
+    Object.freeze({ type: "rescue", icon: "\u2301", title: "\u71DF\u6551\u53D7\u56F0\u5F13\u624B", short: "\u71DF\u6551\u4F19\u4F34", detail: "\u9760\u8FD1\u7262\u7C60\u4E26\u5B88\u4F4F\u6551\u63F4\u5708\uFF0C\u5B8C\u6210\u5F8C\u5F13\u624B\u52A0\u5165\u672C\u5C40\u3002" }),
+    Object.freeze({ type: "defend", icon: "\u25C9", title: "\u5B88\u4F4F\u7126\u6728\u9632\u7DDA", short: "\u9996\u9818\u5B88\u8B77", detail: "\u4FDD\u8B77\u8056\u7378\u9748\u5DE2\uFF0C\u907F\u958B\u885D\u89D2\u7378\u7684\u84C4\u529B\u885D\u92D2\u3002" }),
+    Object.freeze({ type: "strongholds", icon: "\u25B3", title: "\u5B88\u4F4F\u4E09\u8655\u6708\u9AA8\u64DA\u9EDE", short: "\u591A\u9EDE\u9632\u5B88", detail: "\u7378\u7FA4\u6703\u5206\u8DEF\u653B\u64CA\u4E09\u8655\u64DA\u9EDE\uFF1B\u4EFB\u4E00\u5931\u5B88\u90FD\u6703\u7D50\u675F\u9060\u5F81\u3002" }),
+    Object.freeze({ type: "defend", icon: "\u25C9", title: "\u5B88\u4F4F\u6CF0\u5766\u8056\u6240", short: "\u6700\u7D42\u5B88\u8B77", detail: "\u5728\u7425\u73C0\u6CF0\u5766\u7684\u9707\u5730\u653B\u52E2\u4E0B\u5B88\u4F4F\u6700\u5F8C\u706B\u7A2E\u3002" })
   ]);
   var ESCORT_PATH = Object.freeze([[125, 650], [205, 585], [275, 515], [390, 435], [500, 325], [585, 235], [640, 145]].map(([x, y]) => Object.freeze({ x, y })));
   var ENEMY_BALANCE = Object.freeze({
@@ -50,27 +48,27 @@
     boss: Object.freeze({ hp: 1500, speed: 26, damage: 22, radius: 46, drop: 14, chance: 1 })
   });
   var BOSS_WEAKPOINTS = Object.freeze({
-    matriarch: Object.freeze({ kind: "brood-core", name: "孵化囊", hp: 105, radius: 17, color: "#b9df78", bonus: 0.12 }),
-    charger: Object.freeze({ kind: "shoulder-plate", name: "裂角肩甲", hp: 155, radius: 18, color: "#f0bd71", bonus: 0.1 }),
-    boss: Object.freeze({ kind: "amber-core", name: "琥珀核心", hp: 235, radius: 20, color: "#ffc35c", bonus: 0.14 })
+    matriarch: Object.freeze({ kind: "brood-core", name: "\u5B75\u5316\u56CA", hp: 105, radius: 17, color: "#b9df78", bonus: 0.12 }),
+    charger: Object.freeze({ kind: "shoulder-plate", name: "\u88C2\u89D2\u80A9\u7532", hp: 155, radius: 18, color: "#f0bd71", bonus: 0.1 }),
+    boss: Object.freeze({ kind: "amber-core", name: "\u7425\u73C0\u6838\u5FC3", hp: 235, radius: 20, color: "#ffc35c", bonus: 0.14 })
   });
   var MAP_EVENT_DEFS = Object.freeze({
-    merchant: Object.freeze({ name: "荒境行商", icon: "◇", short: "以 6 琥珀交換補給" }),
-    ruin: Object.freeze({ name: "古獸遺跡", icon: "⌘", short: "解讀一枚遠征祝福" }),
-    hunter: Object.freeze({ name: "受傷獵人", icon: "⌁", short: "救援後加入本關作戰" }),
-    chest: Object.freeze({ name: "荒野寶箱", icon: "▣", short: "開啟取得隨機材料" }),
-    elite: Object.freeze({ name: "精英獸群", icon: "♜", short: "擊敗金印獸群領取懸賞" })
+    merchant: Object.freeze({ name: "\u8352\u5883\u884C\u5546", icon: "\u25C7", short: "\u4EE5 6 \u7425\u73C0\u4EA4\u63DB\u88DC\u7D66" }),
+    ruin: Object.freeze({ name: "\u53E4\u7378\u907A\u8DE1", icon: "\u2318", short: "\u89E3\u8B80\u4E00\u679A\u9060\u5F81\u795D\u798F" }),
+    hunter: Object.freeze({ name: "\u53D7\u50B7\u7375\u4EBA", icon: "\u2301", short: "\u6551\u63F4\u5F8C\u52A0\u5165\u672C\u95DC\u4F5C\u6230" }),
+    chest: Object.freeze({ name: "\u8352\u91CE\u5BF6\u7BB1", icon: "\u25A3", short: "\u958B\u555F\u53D6\u5F97\u96A8\u6A5F\u6750\u6599" }),
+    elite: Object.freeze({ name: "\u7CBE\u82F1\u7378\u7FA4", icon: "\u265C", short: "\u64CA\u6557\u91D1\u5370\u7378\u7FA4\u9818\u53D6\u61F8\u8CDE" })
   });
   var MAP_EVENT_SPOTS = Object.freeze([[105, 415], [615, 415], [215, 690], [505, 690], [155, 130], [565, 130], [100, 650], [620, 650]].map(([x, y]) => Object.freeze({ x, y })));
   var ACTIVE_SKILLS = Object.freeze({
-    volley: Object.freeze({ name: "貫骨齊射", cooldown: 7, description: "向自動鎖定方向射出五支穿透骨矛；可在商人處擴充箭數與穿透。" }),
-    shock: Object.freeze({ name: "荒骨震擊", cooldown: 11, description: "震擊身邊敵人並使其減速；可在商人處解鎖持續減速地帶。" })
+    volley: Object.freeze({ name: "\u8CAB\u9AA8\u9F4A\u5C04", cooldown: 7, description: "\u5411\u81EA\u52D5\u9396\u5B9A\u65B9\u5411\u5C04\u51FA\u4E94\u652F\u7A7F\u900F\u9AA8\u77DB\uFF1B\u53EF\u5728\u5546\u4EBA\u8655\u64F4\u5145\u7BAD\u6578\u8207\u7A7F\u900F\u3002" }),
+    shock: Object.freeze({ name: "\u8352\u9AA8\u9707\u64CA", cooldown: 11, description: "\u9707\u64CA\u8EAB\u908A\u6575\u4EBA\u4E26\u4F7F\u5176\u6E1B\u901F\uFF1B\u53EF\u5728\u5546\u4EBA\u8655\u89E3\u9396\u6301\u7E8C\u6E1B\u901F\u5730\u5E36\u3002" })
   });
   var COMPANION_MAX_LEVEL = 10;
   var COMPANIONS = Object.freeze({
     emberclaw: Object.freeze({
-      name: "焰脊迅龍",
-      title: "烈焰獵手",
+      name: "\u7130\u810A\u8FC5\u9F8D",
+      title: "\u70C8\u7130\u7375\u624B",
       color: "#f3a24d",
       hp: 82,
       radius: 16,
@@ -78,12 +76,12 @@
       range: 48,
       damage: 17,
       cooldown: 0.66,
-      ability: "每第 4 次撲擊引爆焰爪，灼燒周圍敵人。",
-      short: "高速近戰 · 焰爪爆發"
+      ability: "\u6BCF\u7B2C 4 \u6B21\u64B2\u64CA\u5F15\u7206\u7130\u722A\uFF0C\u707C\u71D2\u5468\u570D\u6575\u4EBA\u3002",
+      short: "\u9AD8\u901F\u8FD1\u6230 \xB7 \u7130\u722A\u7206\u767C"
     }),
     tideroot: Object.freeze({
-      name: "潮汐角龍",
-      title: "潮息守護",
+      name: "\u6F6E\u6C50\u89D2\u9F8D",
+      title: "\u6F6E\u606F\u5B88\u8B77",
       color: "#75cfca",
       hp: 105,
       radius: 18,
@@ -91,12 +89,12 @@
       range: 245,
       damage: 12,
       cooldown: 1.05,
-      ability: "發射潮汐彈緩速敵人，並週期治療獵人與聖獸卵。",
-      short: "遠程緩速 · 潮息治療"
+      ability: "\u767C\u5C04\u6F6E\u6C50\u5F48\u7DE9\u901F\u6575\u4EBA\uFF0C\u4E26\u9031\u671F\u6CBB\u7642\u7375\u4EBA\u8207\u8056\u7378\u5375\u3002",
+      short: "\u9060\u7A0B\u7DE9\u901F \xB7 \u6F6E\u606F\u6CBB\u7642"
     }),
     stoneback: Object.freeze({
-      name: "岩甲幼龍",
-      title: "晶甲壁壘",
+      name: "\u5CA9\u7532\u5E7C\u9F8D",
+      title: "\u6676\u7532\u58C1\u58D8",
       color: "#d2b36b",
       hp: 165,
       radius: 22,
@@ -104,33 +102,33 @@
       range: 58,
       damage: 20,
       cooldown: 1.08,
-      ability: "主動吸引近敵；晶甲減傷，重擊產生範圍震波。",
-      short: "吸引火力 · 晶甲震波"
+      ability: "\u4E3B\u52D5\u5438\u5F15\u8FD1\u6575\uFF1B\u6676\u7532\u6E1B\u50B7\uFF0C\u91CD\u64CA\u7522\u751F\u7BC4\u570D\u9707\u6CE2\u3002",
+      short: "\u5438\u5F15\u706B\u529B \xB7 \u6676\u7532\u9707\u6CE2"
     })
   });
   var companionXPNeeded = (level) => level >= COMPANION_MAX_LEVEL ? 0 : 45 + level * 35;
   var companionKillXP = Object.freeze({ raptor: 7, spitter: 10, brute: 14, matriarch: 42, charger: 50, boss: 65 });
   var CARDS = Object.freeze({
-    watchtower: { name: "獵脊弩台", cost: 5, color: "#d8c58f", short: "連發穿骨", hp: 180, radius: 29, range: 250, description: "快速射出骨弩箭；升級提高傷害，三級可穿透兩名敵人。" },
-    catapult: { name: "琥珀投獸器", cost: 6, color: "#e3ad52", short: "拋石震獸", hp: 215, radius: 34, range: 230, description: "拋出琥珀爆彈，落點造成範圍傷害並減速獸群。" },
-    torch: { name: "燧火炬", cost: 3, color: "#f5b463", short: "穿火燃矛", hp: 120, radius: 24, range: 148, description: "自動灼燒敵人；投矛穿過火圈會燃燒。" },
-    wall: { name: "裂骨牆", cost: 3, color: "#ede2bb", short: "衝刺引爆", hp: 300, radius: 31, range: 120, description: "吸引並阻擋敵人；衝刺穿牆引爆骨片。" },
-    nest: { name: "幼獸巢", cost: 5, color: "#b3d99b", short: "孵化戰友", hp: 135, radius: 25, range: 225, description: "孵出幼獸，自動撲擊附近敵人。" },
-    spring: { name: "潮汐泉", cost: 5, color: "#91d7d8", short: "回血緩敵", hp: 165, radius: 24, range: 112, description: "附近回復生命並減速敵人；泉邊衝刺釋放寒潮。" }
+    watchtower: { name: "\u7375\u810A\u5F29\u53F0", cost: 5, color: "#d8c58f", short: "\u9023\u767C\u7A7F\u9AA8", hp: 180, radius: 29, range: 250, description: "\u5FEB\u901F\u5C04\u51FA\u9AA8\u5F29\u7BAD\uFF1B\u5347\u7D1A\u63D0\u9AD8\u50B7\u5BB3\uFF0C\u4E09\u7D1A\u53EF\u7A7F\u900F\u5169\u540D\u6575\u4EBA\u3002" },
+    catapult: { name: "\u7425\u73C0\u6295\u7378\u5668", cost: 6, color: "#e3ad52", short: "\u62CB\u77F3\u9707\u7378", hp: 215, radius: 34, range: 230, description: "\u62CB\u51FA\u7425\u73C0\u7206\u5F48\uFF0C\u843D\u9EDE\u9020\u6210\u7BC4\u570D\u50B7\u5BB3\u4E26\u6E1B\u901F\u7378\u7FA4\u3002" },
+    torch: { name: "\u71E7\u706B\u70AC", cost: 3, color: "#f5b463", short: "\u7A7F\u706B\u71C3\u77DB", hp: 120, radius: 24, range: 148, description: "\u81EA\u52D5\u707C\u71D2\u6575\u4EBA\uFF1B\u6295\u77DB\u7A7F\u904E\u706B\u5708\u6703\u71C3\u71D2\u3002" },
+    wall: { name: "\u88C2\u9AA8\u7246", cost: 3, color: "#ede2bb", short: "\u885D\u523A\u5F15\u7206", hp: 300, radius: 31, range: 120, description: "\u5438\u5F15\u4E26\u963B\u64CB\u6575\u4EBA\uFF1B\u885D\u523A\u7A7F\u7246\u5F15\u7206\u9AA8\u7247\u3002" },
+    nest: { name: "\u5E7C\u7378\u5DE2", cost: 5, color: "#b3d99b", short: "\u5B75\u5316\u6230\u53CB", hp: 135, radius: 25, range: 225, description: "\u5B75\u51FA\u5E7C\u7378\uFF0C\u81EA\u52D5\u64B2\u64CA\u9644\u8FD1\u6575\u4EBA\u3002" },
+    spring: { name: "\u6F6E\u6C50\u6CC9", cost: 5, color: "#91d7d8", short: "\u56DE\u8840\u7DE9\u6575", hp: 165, radius: 24, range: 112, description: "\u9644\u8FD1\u56DE\u5FA9\u751F\u547D\u4E26\u6E1B\u901F\u6575\u4EBA\uFF1B\u6CC9\u908A\u885D\u523A\u91CB\u653E\u5BD2\u6F6E\u3002" }
   });
   var STARTING_BUILD_DECK = Object.freeze(["watchtower", "catapult", "wall", "spring"]);
   var BUILD_CARDS = Object.freeze(Object.fromEntries(STARTING_BUILD_DECK.map((id) => [id, CARDS[id]])));
   var HIRES = Object.freeze({
-    hunter: { name: "遊獵弓手", color: "#a6cfb8", short: "遠程跟隨", hp: 65, radius: 15, range: 240, description: "跟隨獵人，以骨箭遠程支援；倒下後需重新雇佣。" },
-    guard: { name: "骨盾衛士", color: "#d5c599", short: "近戰護衛", hp: 150, radius: 19, range: 140, description: "跟隨獵人，主動接敵並吸引攻擊；最多同時四名佣兵。" }
+    hunter: { name: "\u904A\u7375\u5F13\u624B", color: "#a6cfb8", short: "\u9060\u7A0B\u8DDF\u96A8", hp: 65, radius: 15, range: 240, description: "\u8DDF\u96A8\u7375\u4EBA\uFF0C\u4EE5\u9AA8\u7BAD\u9060\u7A0B\u652F\u63F4\uFF1B\u5012\u4E0B\u5F8C\u9700\u91CD\u65B0\u96C7\u4F63\u3002" },
+    guard: { name: "\u9AA8\u76FE\u885B\u58EB", color: "#d5c599", short: "\u8FD1\u6230\u8B77\u885B", hp: 150, radius: 19, range: 140, description: "\u8DDF\u96A8\u7375\u4EBA\uFF0C\u4E3B\u52D5\u63A5\u6575\u4E26\u5438\u5F15\u653B\u64CA\uFF1B\u6700\u591A\u540C\u6642\u56DB\u540D\u4F63\u5175\u3002" }
   });
   var DEPLOY_CARDS = Object.freeze({ ...CARDS, ...HIRES });
   var WEAPONS = Object.freeze({
-    spear: Object.freeze({ name: "骨矛", symbol: "↗", short: "直線穿透", range: 560, ranged: true, description: "穩定投擲並穿透獸群；鍛造後每第三擊分裂成三叉骨矛。" }),
-    axe: Object.freeze({ name: "骨斧", symbol: "◈", short: "扇形重斬", range: 104, ranged: false, description: "近身扇形重斬；鍛造後改為環身迴旋斬。" }),
-    bow: Object.freeze({ name: "獵骨弓", symbol: "➹", short: "遠程速射", range: 620, ranged: true, description: "最遠射程的高速骨箭；鍛造後每第三箭扇射三發。" }),
-    blades: Object.freeze({ name: "裂牙雙刃", symbol: "✕", short: "近戰連斬", range: 94, ranged: false, description: "高速雙段連斬；鍛造後每第四擊突進並環斬。" }),
-    hammer: Object.freeze({ name: "震骨重錘", symbol: "⬢", short: "範圍重擊", range: 132, ranged: false, description: "緩慢但寬廣的震退重擊；鍛造後追加地裂波。" })
+    spear: Object.freeze({ name: "\u9AA8\u77DB", symbol: "\u2197", short: "\u76F4\u7DDA\u7A7F\u900F", range: 560, ranged: true, description: "\u7A69\u5B9A\u6295\u64F2\u4E26\u7A7F\u900F\u7378\u7FA4\uFF1B\u935B\u9020\u5F8C\u6BCF\u7B2C\u4E09\u64CA\u5206\u88C2\u6210\u4E09\u53C9\u9AA8\u77DB\u3002" }),
+    axe: Object.freeze({ name: "\u9AA8\u65A7", symbol: "\u25C8", short: "\u6247\u5F62\u91CD\u65AC", range: 104, ranged: false, description: "\u8FD1\u8EAB\u6247\u5F62\u91CD\u65AC\uFF1B\u935B\u9020\u5F8C\u6539\u70BA\u74B0\u8EAB\u8FF4\u65CB\u65AC\u3002" }),
+    bow: Object.freeze({ name: "\u7375\u9AA8\u5F13", symbol: "\u27B9", short: "\u9060\u7A0B\u901F\u5C04", range: 620, ranged: true, description: "\u6700\u9060\u5C04\u7A0B\u7684\u9AD8\u901F\u9AA8\u7BAD\uFF1B\u935B\u9020\u5F8C\u6BCF\u7B2C\u4E09\u7BAD\u6247\u5C04\u4E09\u767C\u3002" }),
+    blades: Object.freeze({ name: "\u88C2\u7259\u96D9\u5203", symbol: "\u2715", short: "\u8FD1\u6230\u9023\u65AC", range: 94, ranged: false, description: "\u9AD8\u901F\u96D9\u6BB5\u9023\u65AC\uFF1B\u935B\u9020\u5F8C\u6BCF\u7B2C\u56DB\u64CA\u7A81\u9032\u4E26\u74B0\u65AC\u3002" }),
+    hammer: Object.freeze({ name: "\u9707\u9AA8\u91CD\u9318", symbol: "\u2B22", short: "\u7BC4\u570D\u91CD\u64CA", range: 132, ranged: false, description: "\u7DE9\u6162\u4F46\u5BEC\u5EE3\u7684\u9707\u9000\u91CD\u64CA\uFF1B\u935B\u9020\u5F8C\u8FFD\u52A0\u5730\u88C2\u6CE2\u3002" })
   });
   var LOADOUT_RULES = Object.freeze({ cardSlots: 4, buildCards: 3, hireCards: 1, weaponSlots: 1, skillSlots: 1 });
   var DEFAULT_LOADOUT = Object.freeze({
@@ -158,72 +156,72 @@
   }
   var CARD_PRICES = Object.freeze({ watchtower: { wood: 5, bone: 2, amber: 0 }, catapult: { wood: 6, bone: 4, amber: 3 }, torch: { wood: 3, bone: 1, amber: 0 }, wall: { wood: 3, bone: 2, amber: 0 }, nest: { wood: 4, bone: 3, amber: 0 }, spring: { wood: 5, bone: 3, amber: 0 }, hunter: { wood: 4, bone: 4, amber: 7 }, guard: { wood: 3, bone: 5, amber: 7 } });
   var UPGRADES = Object.freeze([
-    { id: "volley-fan", branch: "volley", rank: 1, maxRank: 2, name: "七矛展翼", symbol: "➶", desc: "貫骨齊射由 5 支提升為 7 支骨矛，扇面覆蓋更寬。", apply: (g) => {
+    { id: "volley-fan", branch: "volley", rank: 1, maxRank: 2, name: "\u4E03\u77DB\u5C55\u7FFC", symbol: "\u27B6", desc: "\u8CAB\u9AA8\u9F4A\u5C04\u7531 5 \u652F\u63D0\u5347\u70BA 7 \u652F\u9AA8\u77DB\uFF0C\u6247\u9762\u8986\u84CB\u66F4\u5BEC\u3002", apply: (g) => {
       g.mods.volleyArrows += 2;
     } },
-    { id: "volley-pierce", branch: "volley", rank: 2, maxRank: 2, requires: "volley-fan", name: "九矛貫陣", symbol: "↗", desc: "貫骨齊射再增加 2 支骨矛，且每支額外穿透 1 名敵人。", apply: (g) => {
+    { id: "volley-pierce", branch: "volley", rank: 2, maxRank: 2, requires: "volley-fan", name: "\u4E5D\u77DB\u8CAB\u9663", symbol: "\u2197", desc: "\u8CAB\u9AA8\u9F4A\u5C04\u518D\u589E\u52A0 2 \u652F\u9AA8\u77DB\uFF0C\u4E14\u6BCF\u652F\u984D\u5916\u7A7F\u900F 1 \u540D\u6575\u4EBA\u3002", apply: (g) => {
       g.mods.volleyArrows += 2;
       g.mods.volleyPierce++;
     } },
-    { id: "shock-field", branch: "shock", rank: 1, maxRank: 2, name: "震地餘波", symbol: "✹", desc: "荒骨震擊後留下 4 秒減速地帶，持續壓制進入區域的敵人。", apply: (g) => {
+    { id: "shock-field", branch: "shock", rank: 1, maxRank: 2, name: "\u9707\u5730\u9918\u6CE2", symbol: "\u2739", desc: "\u8352\u9AA8\u9707\u64CA\u5F8C\u7559\u4E0B 4 \u79D2\u6E1B\u901F\u5730\u5E36\uFF0C\u6301\u7E8C\u58D3\u5236\u9032\u5165\u5340\u57DF\u7684\u6575\u4EBA\u3002", apply: (g) => {
       g.mods.shockFieldDuration += 4;
     } },
-    { id: "shock-resonance", branch: "shock", rank: 2, maxRank: 2, requires: "shock-field", name: "地脈回響", symbol: "◎", desc: "減速地帶延長至 6 秒、範圍擴大，並每秒造成 12 點餘震傷害。", apply: (g) => {
+    { id: "shock-resonance", branch: "shock", rank: 2, maxRank: 2, requires: "shock-field", name: "\u5730\u8108\u56DE\u97FF", symbol: "\u25CE", desc: "\u6E1B\u901F\u5730\u5E36\u5EF6\u9577\u81F3 6 \u79D2\u3001\u7BC4\u570D\u64F4\u5927\uFF0C\u4E26\u6BCF\u79D2\u9020\u6210 12 \u9EDE\u9918\u9707\u50B7\u5BB3\u3002", apply: (g) => {
       g.mods.shockFieldDuration += 2;
       g.mods.shockFieldRadius += 25;
       g.mods.shockFieldDamage += 12;
     } },
-    { id: "fire", name: "弩機淬火", symbol: "♨", desc: "獵脊弩台傷害 +35%；舊式火炬燃燒亦獲得強化。", apply: (g) => {
+    { id: "fire", name: "\u5F29\u6A5F\u6DEC\u706B", symbol: "\u2668", desc: "\u7375\u810A\u5F29\u53F0\u50B7\u5BB3 +35%\uFF1B\u820A\u5F0F\u706B\u70AC\u71C3\u71D2\u4EA6\u7372\u5F97\u5F37\u5316\u3002", apply: (g) => {
       g.mods.fire += 0.35;
       g.mods.torch += 0.35;
     } },
-    { id: "bones", name: "碎骨風暴", symbol: "✧", desc: "骨牆引爆傷害 +50%，範圍 +20%。", apply: (g) => {
+    { id: "bones", name: "\u788E\u9AA8\u98A8\u66B4", symbol: "\u2727", desc: "\u9AA8\u7246\u5F15\u7206\u50B7\u5BB3 +50%\uFF0C\u7BC4\u570D +20%\u3002", apply: (g) => {
       g.mods.blast += 0.5;
       g.mods.blastRange += 0.2;
     } },
-    { id: "dash", name: "踏風步", symbol: "➶", desc: "衝刺冷卻縮短 25%，移速 +8%。", apply: (g) => {
+    { id: "dash", name: "\u8E0F\u98A8\u6B65", symbol: "\u27B6", desc: "\u885D\u523A\u51B7\u537B\u7E2E\u77ED 25%\uFF0C\u79FB\u901F +8%\u3002", apply: (g) => {
       g.mods.dash *= 0.75;
       g.mods.speed += 0.08;
     } },
-    { id: "spear", weapon: "spear", name: "裂矛三叉", symbol: "↗", desc: "改造矛頭與投擲握法：每第三次投矛同時射出三支分裂骨矛。", apply: (g) => {
+    { id: "spear", weapon: "spear", name: "\u88C2\u77DB\u4E09\u53C9", symbol: "\u2197", desc: "\u6539\u9020\u77DB\u982D\u8207\u6295\u64F2\u63E1\u6CD5\uFF1A\u6BCF\u7B2C\u4E09\u6B21\u6295\u77DB\u540C\u6642\u5C04\u51FA\u4E09\u652F\u5206\u88C2\u9AA8\u77DB\u3002", apply: (g) => {
       g.mods.spearFork = true;
     } },
-    { id: "axe", weapon: "axe", name: "環刃骨斧", symbol: "◈", desc: "重鑄雙面斧刃：骨斧由前方扇斬改為全周圍迴旋斬。", apply: (g) => {
+    { id: "axe", weapon: "axe", name: "\u74B0\u5203\u9AA8\u65A7", symbol: "\u25C8", desc: "\u91CD\u9444\u96D9\u9762\u65A7\u5203\uFF1A\u9AA8\u65A7\u7531\u524D\u65B9\u6247\u65AC\u6539\u70BA\u5168\u5468\u570D\u8FF4\u65CB\u65AC\u3002", apply: (g) => {
       g.mods.spin = true;
     } },
-    { id: "bow", weapon: "bow", name: "三弦齊發", symbol: "➹", desc: "裝上獸筋副弦：每第三次射擊向前方扇射三支骨箭。", apply: (g) => {
+    { id: "bow", weapon: "bow", name: "\u4E09\u5F26\u9F4A\u767C", symbol: "\u27B9", desc: "\u88DD\u4E0A\u7378\u7B4B\u526F\u5F26\uFF1A\u6BCF\u7B2C\u4E09\u6B21\u5C04\u64CA\u5411\u524D\u65B9\u6247\u5C04\u4E09\u652F\u9AA8\u7BAD\u3002", apply: (g) => {
       g.mods.bowVolley = true;
     } },
-    { id: "blades", weapon: "blades", name: "影步追獵", symbol: "✕", desc: "在雙刃加裝鉤牙配重：每第四次連斬突進穿敵並施展環身雙斬。", apply: (g) => {
+    { id: "blades", weapon: "blades", name: "\u5F71\u6B65\u8FFD\u7375", symbol: "\u2715", desc: "\u5728\u96D9\u5203\u52A0\u88DD\u9264\u7259\u914D\u91CD\uFF1A\u6BCF\u7B2C\u56DB\u6B21\u9023\u65AC\u7A81\u9032\u7A7F\u6575\u4E26\u65BD\u5C55\u74B0\u8EAB\u96D9\u65AC\u3002", apply: (g) => {
       g.mods.bladeRush = true;
     } },
-    { id: "hammer", weapon: "hammer", name: "地脈餘震", symbol: "⬢", desc: "將熔晶嵌入錘首：重擊後向前撕開寬廣地裂波，可貫穿獸群。", apply: (g) => {
+    { id: "hammer", weapon: "hammer", name: "\u5730\u8108\u9918\u9707", symbol: "\u2B22", desc: "\u5C07\u7194\u6676\u5D4C\u5165\u9318\u9996\uFF1A\u91CD\u64CA\u5F8C\u5411\u524D\u6495\u958B\u5BEC\u5EE3\u5730\u88C2\u6CE2\uFF0C\u53EF\u8CAB\u7A7F\u7378\u7FA4\u3002", apply: (g) => {
       g.mods.hammerQuake = true;
     } },
-    { id: "beast", name: "投獸匠藝", symbol: "♧", desc: "琥珀投獸器傷害 +40%，裝填間隔縮短 15%。", apply: (g) => {
+    { id: "beast", name: "\u6295\u7378\u5320\u85DD", symbol: "\u2667", desc: "\u7425\u73C0\u6295\u7378\u5668\u50B7\u5BB3 +40%\uFF0C\u88DD\u586B\u9593\u9694\u7E2E\u77ED 15%\u3002", apply: (g) => {
       g.mods.beast += 0.4;
       g.mods.beastSpeed *= 0.85;
     } },
-    { id: "spring", name: "潮汐回響", symbol: "≈", desc: "泉水治療 +50%，泉邊衝刺寒潮傷害翻倍。", apply: (g) => {
+    { id: "spring", name: "\u6F6E\u6C50\u56DE\u97FF", symbol: "\u2248", desc: "\u6CC9\u6C34\u6CBB\u7642 +50%\uFF0C\u6CC9\u908A\u885D\u523A\u5BD2\u6F6E\u50B7\u5BB3\u7FFB\u500D\u3002", apply: (g) => {
       g.mods.heal += 0.5;
       g.mods.frost += 1;
     } },
-    { id: "armor", name: "琥珀護甲", symbol: "⬡", desc: "受到傷害降低 15%，立即回復 20 生命。", apply: (g) => {
+    { id: "armor", name: "\u7425\u73C0\u8B77\u7532", symbol: "\u2B21", desc: "\u53D7\u5230\u50B7\u5BB3\u964D\u4F4E 15%\uFF0C\u7ACB\u5373\u56DE\u5FA9 20 \u751F\u547D\u3002", apply: (g) => {
       g.mods.armor *= 0.85;
       g.heal(20);
     } },
-    { id: "builder", name: "荒野工匠", symbol: "⌂", desc: "商人建築卡的木材價格減少 1（最低 1）。", apply: (g) => {
+    { id: "builder", name: "\u8352\u91CE\u5DE5\u5320", symbol: "\u2302", desc: "\u5546\u4EBA\u5EFA\u7BC9\u5361\u7684\u6728\u6750\u50F9\u683C\u6E1B\u5C11 1\uFF08\u6700\u4F4E 1\uFF09\u3002", apply: (g) => {
       g.mods.discount++;
     } },
-    { id: "heart", name: "巨獸之心", symbol: "♡", desc: "生命上限 +25，立即回滿 25 生命。", apply: (g) => {
+    { id: "heart", name: "\u5DE8\u7378\u4E4B\u5FC3", symbol: "\u2661", desc: "\u751F\u547D\u4E0A\u9650 +25\uFF0C\u7ACB\u5373\u56DE\u6EFF 25 \u751F\u547D\u3002", apply: (g) => {
       g.hero.maxHp += 25;
       g.heal(25);
     } },
-    { id: "loot", name: "拾荒直覺", symbol: "◆", desc: "掉落自動吸附距離 +80，每波多得 3 琥珀。", apply: (g) => {
+    { id: "loot", name: "\u62FE\u8352\u76F4\u89BA", symbol: "\u25C6", desc: "\u6389\u843D\u81EA\u52D5\u5438\u9644\u8DDD\u96E2 +80\uFF0C\u6BCF\u6CE2\u591A\u5F97 3 \u7425\u73C0\u3002", apply: (g) => {
       g.mods.magnet += 80;
       g.mods.income += 3;
     } },
-    { id: "repair", name: "守巢誓約", symbol: "◉", desc: "聖獸卵回復 45，每波結束再回復 15。", apply: (g) => {
+    { id: "repair", name: "\u5B88\u5DE2\u8A93\u7D04", symbol: "\u25C9", desc: "\u8056\u7378\u5375\u56DE\u5FA9 45\uFF0C\u6BCF\u6CE2\u7D50\u675F\u518D\u56DE\u5FA9 15\u3002", apply: (g) => {
       g.base.hp = Math.min(g.base.maxHp, g.base.hp + 45);
       g.mods.repair += 15;
     } }
@@ -300,7 +298,7 @@
   var own = (object, key) => Object.hasOwn(object, key);
   var isNum = (v, min = -Number.MAX_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
   function required(condition) {
-    if (!condition) throw new Error("遠征存檔格式損壞或版本不相容");
+    if (!condition) throw new Error("\u9060\u5F81\u5B58\u6A94\u683C\u5F0F\u640D\u58DE\u6216\u7248\u672C\u4E0D\u76F8\u5BB9");
   }
   function numbers(object, keys) {
     required(object && typeof object === "object" && !Array.isArray(object));
@@ -392,7 +390,7 @@
     list(s.projectiles, 250);
     list(s.drops, 150);
     list(s.nodes, 30);
-    const ids = /* @__PURE__ */ new Set(), mapEvents = s.eventPlan || [];
+    const ids = new Set(), mapEvents = s.eventPlan || [];
     if (s.eventPlan !== void 0) {
       list(mapEvents, 5);
       required(mapEvents.length === 5 && new Set(mapEvents.map((event) => event.type)).size === 5 && new Set(mapEvents.map((event) => event.stage)).size === 5);
@@ -726,8 +724,8 @@
           return enemy.id;
         });
         this.rng.setState(rngState);
-        this.event("notice", { message: "金印精英獸群現身 · 擊敗全部成員可領取懸賞" });
-      } else this.event("notice", { message: `發現地圖事件 · ${MAP_EVENT_DEFS[mapEvent.type].name}` });
+        this.event("notice", { message: "\u91D1\u5370\u7CBE\u82F1\u7378\u7FA4\u73FE\u8EAB \xB7 \u64CA\u6557\u5168\u90E8\u6210\u54E1\u53EF\u9818\u53D6\u61F8\u8CDE" });
+      } else this.event("notice", { message: `\u767C\u73FE\u5730\u5716\u4E8B\u4EF6 \xB7 ${MAP_EVENT_DEFS[mapEvent.type].name}` });
       return mapEvent;
     }
     nearbyMapEvent() {
@@ -735,14 +733,14 @@
     }
     mapEventPrompt(mapEvent = this.nearbyMapEvent()) {
       if (!mapEvent) return "";
-      if (mapEvent.type === "merchant") return this.amber >= 6 ? "交換補給 · 6 ◆" : "琥珀不足 · 需要 6 ◆";
-      return { ruin: "解讀遺跡", hunter: "救援獵人", chest: "開啟寶箱" }[mapEvent.type] || "互動";
+      if (mapEvent.type === "merchant") return this.amber >= 6 ? "\u4EA4\u63DB\u88DC\u7D66 \xB7 6 \u25C6" : "\u7425\u73C0\u4E0D\u8DB3 \xB7 \u9700\u8981 6 \u25C6";
+      return { ruin: "\u89E3\u8B80\u907A\u8DE1", hunter: "\u6551\u63F4\u7375\u4EBA", chest: "\u958B\u555F\u5BF6\u7BB1" }[mapEvent.type] || "\u4E92\u52D5";
     }
     resolveMapEvent(mapEvent, message) {
       if (!mapEvent || mapEvent.status !== "active") return false;
       mapEvent.status = "completed";
       this.effects.push({ kind: "burst", x: mapEvent.x, y: mapEvent.y, r: 78, color: "#f0d183", life: 0.7, maxLife: 0.7 });
-      this.float(mapEvent.x, mapEvent.y - 38, "事件完成", "#ffe4a0");
+      this.float(mapEvent.x, mapEvent.y - 38, "\u4E8B\u4EF6\u5B8C\u6210", "#ffe4a0");
       this.event("map-event", { eventType: mapEvent.type, name: MAP_EVENT_DEFS[mapEvent.type].name, message });
       return true;
     }
@@ -753,45 +751,51 @@
       if (!mapEvent || id !== void 0 && mapEvent.id !== id) return false;
       if (mapEvent.type === "merchant") {
         if (this.amber < 6) {
-          this.event("notice", { message: "荒境行商需要 6 琥珀 · 採集晶礦或擊敗敵人後再來" });
+          this.event("notice", { message: "\u8352\u5883\u884C\u5546\u9700\u8981 6 \u7425\u73C0 \xB7 \u63A1\u96C6\u6676\u7926\u6216\u64CA\u6557\u6575\u4EBA\u5F8C\u518D\u4F86" });
           return false;
         }
         this.amber -= 6;
         this.materials.wood = Math.min(999, this.materials.wood + 3);
         this.materials.bone = Math.min(999, this.materials.bone + 2);
         this.heal(20);
-        return this.resolveMapEvent(mapEvent, "行商收下琥珀 · 木材 +3、獸骨 +2、生命回復 20");
+        if (typeof globalThis.pbmNative?.gameTelemetry === "function") {
+          try {
+            globalThis.pbmNative.gameTelemetry(JSON.stringify({ event: "item_consume", item_id: "map_merchant_trade", cost_pearls: 6, remaining_balance: this.amber }));
+          } catch {
+          }
+        }
+        return this.resolveMapEvent(mapEvent, "\u884C\u5546\u6536\u4E0B\u7425\u73C0 \xB7 \u6728\u6750 +3\u3001\u7378\u9AA8 +2\u3001\u751F\u547D\u56DE\u5FA9 20");
       }
       if (mapEvent.type === "chest") {
         const rewards = [{ wood: 4, bone: 1, amber: 5 }, { wood: 2, bone: 3, amber: 7 }, { wood: 3, bone: 2, amber: 9 }][mapEvent.variant];
         this.materials.wood = Math.min(999, this.materials.wood + rewards.wood);
         this.materials.bone = Math.min(999, this.materials.bone + rewards.bone);
         this.amber = Math.min(99, this.amber + rewards.amber);
-        return this.resolveMapEvent(mapEvent, `寶箱已開啟 · 木材 +${rewards.wood}、獸骨 +${rewards.bone}、琥珀 +${rewards.amber}`);
+        return this.resolveMapEvent(mapEvent, `\u5BF6\u7BB1\u5DF2\u958B\u555F \xB7 \u6728\u6750 +${rewards.wood}\u3001\u7378\u9AA8 +${rewards.bone}\u3001\u7425\u73C0 +${rewards.amber}`);
       }
       if (mapEvent.type === "hunter") {
         if (this.allies.filter((ally) => ally.hp > 0).length < 4) {
           const d = HIRES.hunter;
           this.allies.push({ id: this.nextId++, type: "hunter", eventRescue: true, x: mapEvent.x, y: mapEvent.y, r: d.radius, hp: d.hp, maxHp: d.hp, cd: 0.2, angle: 0 });
-          return this.resolveMapEvent(mapEvent, "受傷獵人已包紮 · 本關加入隊伍");
+          return this.resolveMapEvent(mapEvent, "\u53D7\u50B7\u7375\u4EBA\u5DF2\u5305\u7D2E \xB7 \u672C\u95DC\u52A0\u5165\u968A\u4F0D");
         }
         this.materials.bone = Math.min(999, this.materials.bone + 3);
         this.amber = Math.min(99, this.amber + 5);
-        return this.resolveMapEvent(mapEvent, "隊伍已滿，獵人留下謝禮 · 獸骨 +3、琥珀 +5");
+        return this.resolveMapEvent(mapEvent, "\u968A\u4F0D\u5DF2\u6EFF\uFF0C\u7375\u4EBA\u7559\u4E0B\u8B1D\u79AE \xB7 \u7378\u9AA8 +3\u3001\u7425\u73C0 +5");
       }
       if (mapEvent.type === "ruin") {
         if (mapEvent.variant === 0) {
           this.hero.maxHp += 15;
           this.heal(15);
-          return this.resolveMapEvent(mapEvent, "生命刻印甦醒 · 生命上限 +15");
+          return this.resolveMapEvent(mapEvent, "\u751F\u547D\u523B\u5370\u7526\u9192 \xB7 \u751F\u547D\u4E0A\u9650 +15");
         }
         if (mapEvent.variant === 1) {
           for (const id2 of Object.keys(WEAPONS)) this.mods[id2] += 0.1;
-          return this.resolveMapEvent(mapEvent, "獵魂刻印甦醒 · 所有主武器傷害 +10%");
+          return this.resolveMapEvent(mapEvent, "\u7375\u9B42\u523B\u5370\u7526\u9192 \xB7 \u6240\u6709\u4E3B\u6B66\u5668\u50B7\u5BB3 +10%");
         }
         this.materials.wood = Math.min(999, this.materials.wood + 4);
         this.materials.bone = Math.min(999, this.materials.bone + 3);
-        return this.resolveMapEvent(mapEvent, "造物刻印甦醒 · 木材 +4、獸骨 +3");
+        return this.resolveMapEvent(mapEvent, "\u9020\u7269\u523B\u5370\u7526\u9192 \xB7 \u6728\u6750 +4\u3001\u7378\u9AA8 +3");
       }
       return false;
     }
@@ -804,7 +808,7 @@
       this.heal(20);
       this.base.hp = Math.min(this.base.maxHp, this.base.hp + 70);
       this.gainCompanionXP(18);
-      this.resolveMapEvent(mapEvent, "精英獸群已擊敗 · 懸賞入袋並修復聖獸靈巢 70");
+      this.resolveMapEvent(mapEvent, "\u7CBE\u82F1\u7378\u7FA4\u5DF2\u64CA\u6557 \xB7 \u61F8\u8CDE\u5165\u888B\u4E26\u4FEE\u5FA9\u8056\u7378\u9748\u5DE2 70");
     }
     setupObjective() {
       const def = STAGE_OBJECTIVES[this.wave - 1] || STAGE_OBJECTIVES[0], base = { stage: this.wave, type: def.type, completed: false };
@@ -813,7 +817,7 @@
         const start = ESCORT_PATH[0];
         base.npc = { id: this.nextId++, objectiveKind: "escort", x: start.x, y: start.y, r: 18, hp: 180, maxHp: 180, speed: 74, waypoint: 1, reached: false, angle: -Math.PI / 2 };
       } else if (def.type === "destroy") {
-        base.targets = [[135, 205], [585, 235], [360, 665]].map(([x, y], index) => ({ id: this.nextId++, objectiveKind: "nest", label: `孵化巢 ${index + 1}`, x, y, r: 31, hp: 165, maxHp: 165 }));
+        base.targets = [[135, 205], [585, 235], [360, 665]].map(([x, y], index) => ({ id: this.nextId++, objectiveKind: "nest", label: `\u5B75\u5316\u5DE2 ${index + 1}`, x, y, r: 31, hp: 165, maxHp: 165 }));
       } else if (def.type === "mining") {
         base.duration = 50;
         base.timeLeft = 50;
@@ -831,7 +835,7 @@
         base.rescued = false;
         base.captive = { id: this.nextId++, objectiveKind: "captive", x: 585, y: 175, r: 17, hp: 100, maxHp: 100, angle: Math.PI };
       } else if (def.type === "strongholds") {
-        base.points = [[150, 235], [570, 250], [360, 650]].map(([x, y], index) => ({ id: this.nextId++, objectiveKind: "stronghold", label: `月骨據點 ${index + 1}`, x, y, r: 29, hp: 320, maxHp: 320 }));
+        base.points = [[150, 235], [570, 250], [360, 650]].map(([x, y], index) => ({ id: this.nextId++, objectiveKind: "stronghold", label: `\u6708\u9AA8\u64DA\u9EDE ${index + 1}`, x, y, r: 29, hp: 320, maxHp: 320 }));
       }
       this.objective = base;
       this.event("objective", { objective: def.type, title: def.title });
@@ -853,22 +857,22 @@
     }
     objectiveStatus() {
       const o = this.objective, def = this.objectiveDefinition();
-      if (!o) return { ...def, text: "尚未開始", progress: 0, complete: false };
+      if (!o) return { ...def, text: "\u5C1A\u672A\u958B\u59CB", progress: 0, complete: false };
       if (o.type === "escort") {
         const current = Math.max(0, Math.min(o.npc.waypoint - 1, ESCORT_PATH.length - 1));
-        return { ...def, text: o.npc.reached ? "採集師已抵達出口" : distance(this.hero, o.npc) > 165 ? "靠近採集師才能帶路" : `路程 ${current} / ${ESCORT_PATH.length - 1}`, progress: o.npc.reached ? 1 : current / (ESCORT_PATH.length - 1), complete: o.npc.reached };
+        return { ...def, text: o.npc.reached ? "\u63A1\u96C6\u5E2B\u5DF2\u62B5\u9054\u51FA\u53E3" : distance(this.hero, o.npc) > 165 ? "\u9760\u8FD1\u63A1\u96C6\u5E2B\u624D\u80FD\u5E36\u8DEF" : `\u8DEF\u7A0B ${current} / ${ESCORT_PATH.length - 1}`, progress: o.npc.reached ? 1 : current / (ESCORT_PATH.length - 1), complete: o.npc.reached };
       }
       if (o.type === "destroy") {
         const destroyed = o.targets.filter((target) => target.hp <= 0).length;
-        return { ...def, text: `已摧毀 ${destroyed} / ${o.targets.length}`, progress: destroyed / o.targets.length, complete: destroyed === o.targets.length };
+        return { ...def, text: `\u5DF2\u6467\u6BC0 ${destroyed} / ${o.targets.length}`, progress: destroyed / o.targets.length, complete: destroyed === o.targets.length };
       }
-      if (o.type === "mining") return { ...def, text: `已採集 ${o.mined} / ${o.required} · 剩餘 ${Math.ceil(o.timeLeft)} 秒`, progress: o.mined / o.required, complete: o.mined >= o.required, timed: true };
-      if (o.type === "rescue") return { ...def, text: o.rescued ? "受困弓手已獲救" : `救援 ${o.progress.toFixed(1)} / ${o.required.toFixed(1)} 秒`, progress: o.rescued ? 1 : o.progress / o.required, complete: o.rescued };
+      if (o.type === "mining") return { ...def, text: `\u5DF2\u63A1\u96C6 ${o.mined} / ${o.required} \xB7 \u5269\u9918 ${Math.ceil(o.timeLeft)} \u79D2`, progress: o.mined / o.required, complete: o.mined >= o.required, timed: true };
+      if (o.type === "rescue") return { ...def, text: o.rescued ? "\u53D7\u56F0\u5F13\u624B\u5DF2\u7372\u6551" : `\u6551\u63F4 ${o.progress.toFixed(1)} / ${o.required.toFixed(1)} \u79D2`, progress: o.rescued ? 1 : o.progress / o.required, complete: o.rescued };
       if (o.type === "strongholds") {
         const alive = o.points.filter((point2) => point2.hp > 0), ratio = alive.length ? Math.min(...alive.map((point2) => point2.hp / point2.maxHp)) : 0;
-        return { ...def, text: `據點 ${alive.length} / ${o.points.length} · 最低耐久 ${Math.ceil(ratio * 100)}%`, progress: ratio, complete: o.completed };
+        return { ...def, text: `\u64DA\u9EDE ${alive.length} / ${o.points.length} \xB7 \u6700\u4F4E\u8010\u4E45 ${Math.ceil(ratio * 100)}%`, progress: ratio, complete: o.completed };
       }
-      return { ...def, text: `聖獸卵 ${Math.ceil(this.base.hp)} / ${this.base.maxHp}`, progress: this.base.hp / this.base.maxHp, complete: o.completed };
+      return { ...def, text: `\u8056\u7378\u5375 ${Math.ceil(this.base.hp)} / ${this.base.maxHp}`, progress: this.base.hp / this.base.maxHp, complete: o.completed };
     }
     objectiveReady() {
       const o = this.objective;
@@ -896,13 +900,36 @@
       this.event("end", { won: false, reason });
       return true;
     }
+    reviveAfterDefeat() {
+      if (this.phase !== "lose") return false;
+      this.hero.hp = Math.max(1, Math.ceil(this.hero.maxHp * 0.5));
+      this.hero.invulnerable = Math.max(this.hero.invulnerable || 0, 2);
+      if (this.base.hp <= 0) this.base.hp = Math.max(1, Math.ceil(this.base.maxHp * 0.35));
+      if (this.objective?.type === "escort" && this.objective.npc.hp <= 0) {
+        this.objective.npc.hp = Math.max(1, Math.ceil(this.objective.npc.maxHp * 0.5));
+      }
+      if (this.objective?.type === "strongholds") {
+        for (const point2 of this.objective.points) if (point2.hp <= 0) point2.hp = Math.max(1, Math.ceil(point2.maxHp * 0.35));
+      }
+      if (this.objective?.type === "mining" && this.objective.timeLeft <= 0) this.objective.timeLeft = 20;
+      this.projectiles = this.projectiles.filter((projectile) => !projectile.hostile);
+      for (const enemy of this.enemies) {
+        enemy.attackCD = Math.max(enemy.attackCD || 0, 1.5);
+        if ("windup" in enemy) enemy.windup = 0;
+      }
+      this.phase = "wave";
+      this.paused = false;
+      this.building = false;
+      this.event("notice", { message: "原始珍珠喚回了獵人 · 繼續守護" });
+      return true;
+    }
     updateObjective(dt) {
       const o = this.objective;
       if (!o || o.completed || this.phase !== "wave") return;
       if (o.type === "escort") {
         const npc = o.npc;
         if (npc.hp <= 0) {
-          this.failObjective("護送的採集師倒下了");
+          this.failObjective("\u8B77\u9001\u7684\u63A1\u96C6\u5E2B\u5012\u4E0B\u4E86");
           return;
         }
         if (!npc.reached && distance(this.hero, npc) <= 165) {
@@ -916,7 +943,7 @@
               npc.waypoint++;
               if (npc.waypoint >= ESCORT_PATH.length) {
                 npc.reached = true;
-                this.event("notice", { message: "採集師已抵達出口 · 繼續清除追兵" });
+                this.event("notice", { message: "\u63A1\u96C6\u5E2B\u5DF2\u62B5\u9054\u51FA\u53E3 \xB7 \u7E7C\u7E8C\u6E05\u9664\u8FFD\u5175" });
               }
             }
           }
@@ -925,7 +952,7 @@
         if (o.mined < o.required) {
           o.timeLeft = Math.max(0, o.timeLeft - dt);
           if (o.timeLeft <= 0) {
-            this.failObjective("限時採礦未能完成");
+            this.failObjective("\u9650\u6642\u63A1\u7926\u672A\u80FD\u5B8C\u6210");
             return;
           }
         }
@@ -938,10 +965,10 @@
           const d = HIRES.hunter;
           if (this.allies.length < 4) this.allies.push({ id: this.nextId++, type: "hunter", rescued: true, x: o.captive.x, y: o.captive.y, r: d.radius, hp: d.hp, maxHp: d.hp, cd: 0.2, angle: 0 });
           this.effects.push({ kind: "burst", x: o.captive.x, y: o.captive.y, r: 82, color: "#9fd7bc", life: 0.7, maxLife: 0.7 });
-          this.event("notice", { message: "受困弓手已獲救 · 本關加入隊伍" });
+          this.event("notice", { message: "\u53D7\u56F0\u5F13\u624B\u5DF2\u7372\u6551 \xB7 \u672C\u95DC\u52A0\u5165\u968A\u4F0D" });
         }
       } else if (o.type === "strongholds" && o.points.some((point2) => point2.hp <= 0)) {
-        this.failObjective("月骨據點失守");
+        this.failObjective("\u6708\u9AA8\u64DA\u9EDE\u5931\u5B88");
       }
     }
     hitObjective(target, damage) {
@@ -953,7 +980,7 @@
       if (target.hp <= 0) {
         const status = this.objectiveStatus();
         this.effects.push({ kind: "burst", x: target.x, y: target.y, r: 74, color: "#e39a5f", life: 0.65, maxLife: 0.65 });
-        this.event("notice", { message: `孵化巢已摧毀 · ${status.text}` });
+        this.event("notice", { message: `\u5B75\u5316\u5DE2\u5DF2\u6467\u6BC0 \xB7 ${status.text}` });
       }
       return true;
     }
@@ -1016,9 +1043,8 @@
     cost() {
       return 0;
     }
-    // Materials are paid at the merchant; deploying consumes one owned card.
     applyLoadout(loadout) {
-      if (!isValidLoadout(loadout)) throw new Error("出征配置不完整：需要 3 張建造卡、1 張佣兵卡、1 把武器與 1 個主動技能");
+      if (!isValidLoadout(loadout)) throw new Error("\u51FA\u5F81\u914D\u7F6E\u4E0D\u5B8C\u6574\uFF1A\u9700\u8981 3 \u5F35\u5EFA\u9020\u5361\u30011 \u5F35\u4F63\u5175\u5361\u30011 \u628A\u6B66\u5668\u8207 1 \u500B\u4E3B\u52D5\u6280\u80FD");
       this.loadout = copyLoadout(loadout);
       this.hero.weapon = this.loadout.weapons[0];
       this.hero.weaponChain = 0;
@@ -1063,20 +1089,20 @@
       return null;
     }
     purchasePlan(id) {
-      if (this.tutorial?.reward) return { ok: false, reason: "先領取第一關獎勵，再找商人整備" };
-      if (!["prep", "wave", "rest"].includes(this.phase)) return { ok: false, reason: "目前遠征已結束，請先返回營地" };
-      if (this.phase === "wave" && !this.paused) return { ok: false, reason: "打開商店後戰鬥會自動暫停，再進行購買" };
+      if (this.tutorial?.reward) return { ok: false, reason: "\u5148\u9818\u53D6\u7B2C\u4E00\u95DC\u734E\u52F5\uFF0C\u518D\u627E\u5546\u4EBA\u6574\u5099" };
+      if (!["prep", "wave", "rest"].includes(this.phase)) return { ok: false, reason: "\u76EE\u524D\u9060\u5F81\u5DF2\u7D50\u675F\uFF0C\u8ACB\u5148\u8FD4\u56DE\u71DF\u5730" };
+      if (this.phase === "wave" && !this.paused) return { ok: false, reason: "\u6253\u958B\u5546\u5E97\u5F8C\u6230\u9B25\u6703\u81EA\u52D5\u66AB\u505C\uFF0C\u518D\u9032\u884C\u8CFC\u8CB7" };
       const price = this.price(id);
-      if (!price) return { ok: false, reason: "找不到這件商品" };
-      if (own(DEPLOY_CARDS, id) && !this.carriesCard(id)) return { ok: false, reason: "這張卡未加入本次出征卡組" };
-      if (own(DEPLOY_CARDS, id) && this.inventory[id] >= 99) return { ok: false, reason: "這張卡已達持有上限" };
-      if (!own(DEPLOY_CARDS, id) && this.selectedUpgrades.includes(id.slice(6))) return { ok: false, reason: "本次遠征已學會這項強化" };
+      if (!price) return { ok: false, reason: "\u627E\u4E0D\u5230\u9019\u4EF6\u5546\u54C1" };
+      if (own(DEPLOY_CARDS, id) && !this.carriesCard(id)) return { ok: false, reason: "\u9019\u5F35\u5361\u672A\u52A0\u5165\u672C\u6B21\u51FA\u5F81\u5361\u7D44" };
+      if (own(DEPLOY_CARDS, id) && this.inventory[id] >= 99) return { ok: false, reason: "\u9019\u5F35\u5361\u5DF2\u9054\u6301\u6709\u4E0A\u9650" };
+      if (!own(DEPLOY_CARDS, id) && this.selectedUpgrades.includes(id.slice(6))) return { ok: false, reason: "\u672C\u6B21\u9060\u5F81\u5DF2\u5B78\u6703\u9019\u9805\u5F37\u5316" };
       if (!own(DEPLOY_CARDS, id)) {
         const skill = UPGRADES.find((u) => u.id === id.slice(6));
-        if (!this.upgradeFitsLoadout(skill)) return { ok: false, reason: "這項強化不屬於本次出征配置" };
-        if (skill?.requires && !this.selectedUpgrades.includes(skill.requires)) return { ok: false, reason: "需要先購買前一階技能強化" };
+        if (!this.upgradeFitsLoadout(skill)) return { ok: false, reason: "\u9019\u9805\u5F37\u5316\u4E0D\u5C6C\u65BC\u672C\u6B21\u51FA\u5F81\u914D\u7F6E" };
+        if (skill?.requires && !this.selectedUpgrades.includes(skill.requires)) return { ok: false, reason: "\u9700\u8981\u5148\u8CFC\u8CB7\u524D\u4E00\u968E\u6280\u80FD\u5F37\u5316" };
       }
-      if (this.materials.wood < price.wood || this.materials.bone < price.bone || this.amber < price.amber) return { ok: false, reason: "材料不足，完成獸潮或採集晶礦後再來" };
+      if (this.materials.wood < price.wood || this.materials.bone < price.bone || this.amber < price.amber) return { ok: false, reason: "\u6750\u6599\u4E0D\u8DB3\uFF0C\u5B8C\u6210\u7378\u6F6E\u6216\u63A1\u96C6\u6676\u7926\u5F8C\u518D\u4F86" };
       return { ok: true, price };
     }
     buy(id) {
@@ -1099,33 +1125,33 @@
     }
     placement(slot, x, y, findingTutorialSpot = false) {
       const type = this.hand[slot];
-      if (mandatoryTutorial(this) && this.tutorial.step !== "build") return { ok: false, reason: "完成目前教學步驟後才會解鎖建造" };
-      if (tutorialWaiting(this)) return { ok: false, reason: "先點擊教學面板繼續" };
+      if (mandatoryTutorial(this) && this.tutorial.step !== "build") return { ok: false, reason: "\u5B8C\u6210\u76EE\u524D\u6559\u5B78\u6B65\u9A5F\u5F8C\u624D\u6703\u89E3\u9396\u5EFA\u9020" };
+      if (tutorialWaiting(this)) return { ok: false, reason: "\u5148\u9EDE\u64CA\u6559\u5B78\u9762\u677F\u7E7C\u7E8C" };
       if (!findingTutorialSpot && tutorialProtected(this) && this.tutorial.version === 2 && this.tutorial.step === "build") {
-        if (!Number.isFinite(x) || !Number.isFinite(y) || slot !== this.tutorial.slot || distance({ x, y }, this.tutorial.buildSpot) > TUTORIAL_BUILD_RADIUS) return { ok: false, reason: "將發光卡牌拖到金色虛線圈內，再放開" };
+        if (!Number.isFinite(x) || !Number.isFinite(y) || slot !== this.tutorial.slot || distance({ x, y }, this.tutorial.buildSpot) > TUTORIAL_BUILD_RADIUS) return { ok: false, reason: "\u5C07\u767C\u5149\u5361\u724C\u62D6\u5230\u91D1\u8272\u865B\u7DDA\u5708\u5167\uFF0C\u518D\u653E\u958B" };
         ({ x, y } = this.tutorial.buildSpot);
       }
-      if (tutorialProtected(this) && (this.tutorial.step !== "build" || own(HIRES, type))) return { ok: false, reason: "先完成上方引導，再拖建造卡到空地" };
-      if (!this.canBuild || !type || this.cardTimers[slot] > 0) return { ok: false, reason: "現在不能使用這張卡" };
-      if (!this.inventory[type]) return { ok: false, reason: "這張卡已用完，休整時找商人補貨" };
-      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 55 || x > 665 || y < 85 || y > 735) return { ok: false, reason: "請拖到戰場內的空地" };
+      if (tutorialProtected(this) && (this.tutorial.step !== "build" || own(HIRES, type))) return { ok: false, reason: "\u5148\u5B8C\u6210\u4E0A\u65B9\u5F15\u5C0E\uFF0C\u518D\u62D6\u5EFA\u9020\u5361\u5230\u7A7A\u5730" };
+      if (!this.canBuild || !type || this.cardTimers[slot] > 0) return { ok: false, reason: "\u73FE\u5728\u4E0D\u80FD\u4F7F\u7528\u9019\u5F35\u5361" };
+      if (!this.inventory[type]) return { ok: false, reason: "\u9019\u5F35\u5361\u5DF2\u7528\u5B8C\uFF0C\u4F11\u6574\u6642\u627E\u5546\u4EBA\u88DC\u8CA8" };
+      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 55 || x > 665 || y < 85 || y > 735) return { ok: false, reason: "\u8ACB\u62D6\u5230\u6230\u5834\u5167\u7684\u7A7A\u5730" };
       const cost = 0;
       if (own(HIRES, type)) {
-        if (this.allies.filter((a) => a.hp > 0).length >= 4) return { ok: false, reason: "最多同時四名佣兵；卡片保留，不會消耗" };
-        if (distance(this.base, { x, y }) < 60 || [...this.buildings, ...this.allies, ...this.nodes].some((a) => a.hp > 0 && distance(a, { x, y }) < a.r + HIRES[type].radius + 5)) return { ok: false, reason: "請將佣兵放在空地" };
+        if (this.allies.filter((a) => a.hp > 0).length >= 4) return { ok: false, reason: "\u6700\u591A\u540C\u6642\u56DB\u540D\u4F63\u5175\uFF1B\u5361\u7247\u4FDD\u7559\uFF0C\u4E0D\u6703\u6D88\u8017" };
+        if (distance(this.base, { x, y }) < 60 || [...this.buildings, ...this.allies, ...this.nodes].some((a) => a.hp > 0 && distance(a, { x, y }) < a.r + HIRES[type].radius + 5)) return { ok: false, reason: "\u8ACB\u5C07\u4F63\u5175\u653E\u5728\u7A7A\u5730" };
         return { ok: true, x, y, cost, type, hire: true };
       }
       const found = this.buildingAt(x, y);
       if (found) {
-        if (found.type !== type) return { ok: false, reason: "只有同類建築才能疊卡升級" };
-        if (found.level >= 3) return { ok: false, reason: "已達最高三級" };
+        if (found.type !== type) return { ok: false, reason: "\u53EA\u6709\u540C\u985E\u5EFA\u7BC9\u624D\u80FD\u758A\u5361\u5347\u7D1A" };
+        if (found.level >= 3) return { ok: false, reason: "\u5DF2\u9054\u6700\u9AD8\u4E09\u7D1A" };
         return { ok: true, upgrade: found, cost, x: found.x, y: found.y, type };
       }
-      if (this.buildings.filter((b) => b.hp > 0).length >= 12) return { ok: false, reason: "戰場最多 12 座建築；可用同類卡升級" };
-      if (distance(this.base, { x, y }) < 73) return { ok: false, reason: "請留出聖獸卵的位置" };
-      if (this.buildings.some((b) => b.hp > 0 && distance(b, { x, y }) < b.r + CARDS[type].radius + 10)) return { ok: false, reason: "與旁邊建築太近，稍微移開一點" };
-      if (this.nodes.some((n) => n.hp > 0 && distance(n, { x, y }) < n.r + 35)) return { ok: false, reason: "這裡有晶礦，先用武器採集" };
-      if (this.activeMapEvents().some((mapEvent) => distance(mapEvent, { x, y }) < mapEvent.r + 42)) return { ok: false, reason: "請為地圖事件留出互動空間" };
+      if (this.buildings.filter((b) => b.hp > 0).length >= 12) return { ok: false, reason: "\u6230\u5834\u6700\u591A 12 \u5EA7\u5EFA\u7BC9\uFF1B\u53EF\u7528\u540C\u985E\u5361\u5347\u7D1A" };
+      if (distance(this.base, { x, y }) < 73) return { ok: false, reason: "\u8ACB\u7559\u51FA\u8056\u7378\u5375\u7684\u4F4D\u7F6E" };
+      if (this.buildings.some((b) => b.hp > 0 && distance(b, { x, y }) < b.r + CARDS[type].radius + 10)) return { ok: false, reason: "\u8207\u65C1\u908A\u5EFA\u7BC9\u592A\u8FD1\uFF0C\u7A0D\u5FAE\u79FB\u958B\u4E00\u9EDE" };
+      if (this.nodes.some((n) => n.hp > 0 && distance(n, { x, y }) < n.r + 35)) return { ok: false, reason: "\u9019\u88E1\u6709\u6676\u7926\uFF0C\u5148\u7528\u6B66\u5668\u63A1\u96C6" };
+      if (this.activeMapEvents().some((mapEvent) => distance(mapEvent, { x, y }) < mapEvent.r + 42)) return { ok: false, reason: "\u8ACB\u70BA\u5730\u5716\u4E8B\u4EF6\u7559\u51FA\u4E92\u52D5\u7A7A\u9593" };
       return { ok: true, x, y, cost, type };
     }
     placeCard(slot, x, y) {
@@ -1141,7 +1167,7 @@
         const d = HIRES[target.type], ally = { id: this.nextId++, type: target.type, x, y, r: d.radius, hp: d.hp, maxHp: d.hp, cd: 0.2, angle: 0 };
         this.allies.push(ally);
         this.event("build");
-        this.event("notice", { message: `${d.name} 加入隊伍 · 本次遠征跟隨作戰` });
+        this.event("notice", { message: `${d.name} \u52A0\u5165\u968A\u4F0D \xB7 \u672C\u6B21\u9060\u5F81\u8DDF\u96A8\u4F5C\u6230` });
         return { ...target, ally };
       }
       let b = target.upgrade;
@@ -1150,13 +1176,13 @@
         b.maxHp = CARDS[b.type].hp * (1 + (b.level - 1) * 0.6);
         b.hp = b.maxHp;
         this.stats.upgrades++;
-        this.event("notice", { message: `${CARDS[b.type].name} → ${b.level} 級，耐久回滿` });
+        this.event("notice", { message: `${CARDS[b.type].name} \u2192 ${b.level} \u7D1A\uFF0C\u8010\u4E45\u56DE\u6EFF` });
       } else {
         const def = CARDS[target.type];
         b = { id: this.nextId++, type: target.type, x, y, r: def.radius, hp: def.hp, maxHp: def.hp, level: 1, cd: 0.3, healCD: 2, pet: { x: x + 25, y: y + 16 } };
         this.buildings.push(b);
         this.stats.buildings++;
-        this.event("notice", { message: `${def.name} 已建造 · ${def.short}` });
+        this.event("notice", { message: `${def.name} \u5DF2\u5EFA\u9020 \xB7 ${def.short}` });
       }
       this.effects.push({ kind: "build", x: b.x, y: b.y, life: 0.7, maxLife: 0.7, color: "#eed48b", r: 55 });
       this.advanceTutorial("build");
@@ -1208,7 +1234,7 @@
           if (!t.buildSpot) {
             t.slot = 0;
             this.skipTutorial();
-            this.event("notice", { message: "目前沒有可用建造空地，已解除教學；可從首頁重玩新手試煉。" });
+            this.event("notice", { message: "\u76EE\u524D\u6C92\u6709\u53EF\u7528\u5EFA\u9020\u7A7A\u5730\uFF0C\u5DF2\u89E3\u9664\u6559\u5B78\uFF1B\u53EF\u5F9E\u9996\u9801\u91CD\u73A9\u65B0\u624B\u8A66\u7149\u3002" });
             return true;
           }
         }
@@ -1283,7 +1309,7 @@
       w.open = true;
       w.openTime = Math.max(w.openTime, duration);
       this.syncBossWeakpoint(boss);
-      if (!wasOpen) this.event("notice", { message: message || `${w.name}已暴露 · 集火可打斷首領能力` });
+      if (!wasOpen) this.event("notice", { message: message || `${w.name}\u5DF2\u66B4\u9732 \xB7 \u96C6\u706B\u53EF\u6253\u65B7\u9996\u9818\u80FD\u529B` });
       return true;
     }
     hitBossWeakpoint(w, damage) {
@@ -1309,7 +1335,7 @@
         } else boss.damage *= 0.82;
         this.effects.push({ kind: "burst", x: w.x, y: w.y, r: 92, color: def.color, life: 0.75, maxLife: 0.75 });
         this.event("weakpoint-broken", { boss: boss.type, name: def.name, bonus });
-        this.event("notice", { message: `${def.name}已破壞 · 首領能力被削弱` });
+        this.event("notice", { message: `${def.name}\u5DF2\u7834\u58DE \xB7 \u9996\u9818\u80FD\u529B\u88AB\u524A\u5F31` });
       }
       return true;
     }
@@ -1497,7 +1523,7 @@
       if (spring) {
         this.burst(h.x, h.y, 140, 24 * this.mods.frost, "#a0e6e5", "frost");
         this.stats.combos++;
-        this.event("combo", { message: "潮汐共鳴 · 寒潮衝刺" });
+        this.event("combo", { message: "\u6F6E\u6C50\u5171\u9CF4 \xB7 \u5BD2\u6F6E\u885D\u523A" });
       }
       this.event("dash");
       return true;
@@ -1521,13 +1547,13 @@
       if (n.hp <= 0) {
         this.amber = Math.min(99, this.amber + 3);
         this.stats.harvested++;
-        this.float(n.x, n.y - 15, "+3 ◆", "#ffe3a1");
+        this.float(n.x, n.y - 15, "+3 \u25C6", "#ffe3a1");
         this.event("collect");
         if (n.objectiveKind === "ore" && this.objective?.type === "mining" && this.objective.nodeIds.includes(n.id)) {
           this.objective.mined = Math.min(this.objective.required, this.objective.mined + 1);
           const status = this.objectiveStatus();
           this.effects.push({ kind: "burst", x: n.x, y: n.y, r: 68, color: "#f0ce70", life: 0.6, maxLife: 0.6 });
-          this.event("notice", { message: `熔晶採集完成 · ${status.text}` });
+          this.event("notice", { message: `\u7194\u6676\u63A1\u96C6\u5B8C\u6210 \xB7 ${status.text}` });
         }
       }
     }
@@ -1577,24 +1603,24 @@
       if (this.buildings.includes(t)) amount *= FORTIFICATION_BALANCE.incomingDamage;
       if (t === this.companion && t.type === "stoneback") amount *= 0.62;
       t.hp = Math.max(0, t.hp - amount);
-      this.float(t.x, t.y - (t.r || 25), `−${Math.round(amount)}`, "#ffb29a");
+      this.float(t.x, t.y - (t.r || 25), `\u2212${Math.round(amount)}`, "#ffb29a");
       this.checkDefeat();
     }
     checkDefeat() {
       if (["lose", "win"].includes(this.phase)) return;
       if (this.hero.hp <= 0) {
-        this.failObjective("獵人倒下了");
+        this.failObjective("\u7375\u4EBA\u5012\u4E0B\u4E86");
         return;
       }
       if (this.base.hp <= 0) {
-        this.failObjective("聖獸卵失去了庇護");
+        this.failObjective("\u8056\u7378\u5375\u5931\u53BB\u4E86\u5E87\u8B77");
         return;
       }
       if (this.objective?.type === "escort" && this.objective.npc.hp <= 0) {
-        this.failObjective("護送的採集師倒下了");
+        this.failObjective("\u8B77\u9001\u7684\u63A1\u96C6\u5E2B\u5012\u4E0B\u4E86");
         return;
       }
-      if (this.objective?.type === "strongholds" && this.objective.points.some((point2) => point2.hp <= 0)) this.failObjective("月骨據點失守");
+      if (this.objective?.type === "strongholds" && this.objective.points.some((point2) => point2.hp <= 0)) this.failObjective("\u6708\u9AA8\u64DA\u9EDE\u5931\u5B88");
     }
     finishWave() {
       if (this.phase !== "wave" || this.stats.waves >= this.wave) return false;
@@ -1620,7 +1646,7 @@
       if (this.companion) {
         const revive = this.companion.hp <= 0;
         this.companion.hp = revive ? Math.ceil(this.companion.maxHp * 0.55) : Math.min(this.companion.maxHp, this.companion.hp + this.companion.maxHp * 0.35);
-        if (revive) this.event("notice", { message: `${COMPANIONS[this.companion.type].name}重新振作，回到隊伍` });
+        if (revive) this.event("notice", { message: `${COMPANIONS[this.companion.type].name}\u91CD\u65B0\u632F\u4F5C\uFF0C\u56DE\u5230\u968A\u4F0D` });
       }
       for (const b of this.buildings) b.hp = Math.min(b.maxHp, b.hp + b.maxHp * FORTIFICATION_BALANCE.betweenStageRepair);
       this.nodes = this.nodes.filter((node) => node.objectiveKind !== "ore");
@@ -1666,7 +1692,7 @@
           b.hp = 0;
           this.burst(b.x, b.y, 120 * this.mods.blastRange, 75 * b.level * this.mods.blast, "#eee0bc");
           this.stats.combos++;
-          this.event("combo", { message: "裂骨共鳴 · 骨片爆破" });
+          this.event("combo", { message: "\u88C2\u9AA8\u5171\u9CF4 \xB7 \u9AA8\u7247\u7206\u7834" });
         }
       } else if (!this.building) {
         const x = input.x || 0, y = input.y || 0, len = Math.hypot(x, y);
@@ -1727,7 +1753,7 @@
         if (distance(h, d) < 25) {
           this.amber = Math.min(99, this.amber + d.value);
           d.life = 0;
-          this.float(h.x, h.y - 25, `+${d.value} ◆`, "#f5d687");
+          this.float(h.x, h.y - 25, `+${d.value} \u25C6`, "#f5d687");
           this.event("collect");
         }
       }
@@ -1757,10 +1783,10 @@
         const amount = 5 + p.level * 2;
         this.heal(amount);
         this.base.hp = Math.min(this.base.maxHp, this.base.hp + Math.ceil(amount * 0.7));
-        this.float(this.hero.x, this.hero.y - 31, `+${amount} ♥`, "#9ce8db");
+        this.float(this.hero.x, this.hero.y - 31, `+${amount} \u2665`, "#9ce8db");
         this.effects.push({ kind: "burst", x: p.x, y: p.y, r: 88, color: d.color, life: 0.55, maxLife: 0.55 });
         p.abilityCD = Math.max(5.2, 7.4 - p.level * 0.18);
-        this.event("companion-skill", { name: "潮息治療" });
+        this.event("companion-skill", { name: "\u6F6E\u606F\u6CBB\u7642" });
       }
       if (!canEngage || dist2 > reach || p.cd > 0) return;
       const levelScale = 1 + (p.level - 1) * 0.11;
@@ -1777,7 +1803,7 @@
             e.burn = Math.max(e.burn, 2.5);
           }
           this.effects.push({ kind: "burst", x: p.x, y: p.y, r: 82, color: d.color, life: 0.45, maxLife: 0.45 });
-          this.event("companion-skill", { name: "焰爪爆發" });
+          this.event("companion-skill", { name: "\u7130\u722A\u7206\u767C" });
         }
       } else {
         this.hitEnemy(target, d.damage * levelScale, d.color);
@@ -1788,7 +1814,7 @@
             e.slow = Math.max(e.slow, 1.25);
           }
           this.effects.push({ kind: "burst", x: p.x, y: p.y, r: 94, color: d.color, life: 0.48, maxLife: 0.48 });
-          this.event("companion-skill", { name: "晶甲震波" });
+          this.event("companion-skill", { name: "\u6676\u7532\u9707\u6CE2" });
         }
       }
       p.cd = Math.max(0.38, d.cooldown - p.level * 0.025);
@@ -1856,7 +1882,7 @@
             const amount = (4 + 3 * b.level) * this.mods.heal;
             this.heal(amount);
             b.healCD = 3;
-            this.float(this.hero.x, this.hero.y - 28, `+${Math.round(amount)} ♥`, "#b8efd3");
+            this.float(this.hero.x, this.hero.y - 28, `+${Math.round(amount)} \u2665`, "#b8efd3");
           }
         }
         if (b.type === "nest") {
@@ -1950,17 +1976,17 @@
           e.bossPhase = 1;
           e.speed += 3;
           this.summonBossAdds(e, ["raptor", "raptor", "spitter"]);
-          this.openBossWeakpoint(e, 8, "母獸孵化囊暴露 · 破壞後可阻止下一輪巢群");
+          this.openBossWeakpoint(e, 8, "\u6BCD\u7378\u5B75\u5316\u56CA\u66B4\u9732 \xB7 \u7834\u58DE\u5F8C\u53EF\u963B\u6B62\u4E0B\u4E00\u8F2A\u5DE2\u7FA4");
           this.effects.push({ kind: "burst", x: e.x, y: e.y, r: 108, color: "#b7d575", life: 0.7, maxLife: 0.7 });
-          this.event("notice", { message: "沼澤母獸進入繁殖狂潮 · 幼獸與毒液獸加入" });
+          this.event("notice", { message: "\u6CBC\u6FA4\u6BCD\u7378\u9032\u5165\u7E41\u6B96\u72C2\u6F6E \xB7 \u5E7C\u7378\u8207\u6BD2\u6DB2\u7378\u52A0\u5165" });
         } else if (e.bossPhase === 1 && ratio <= 0.35) {
           e.bossPhase = 2;
           e.speed += 3;
           e.damage += 4;
           if (!e.summonSuppressed) this.summonBossAdds(e, ["raptor", "spitter", "raptor", "brute"]);
-          this.openBossWeakpoint(e, 999, "母獸孵化囊完全暴露 · 摧毀可打斷終末孵化");
+          this.openBossWeakpoint(e, 999, "\u6BCD\u7378\u5B75\u5316\u56CA\u5B8C\u5168\u66B4\u9732 \xB7 \u6467\u6BC0\u53EF\u6253\u65B7\u7D42\u672B\u5B75\u5316");
           this.effects.push({ kind: "burst", x: e.x, y: e.y, r: 132, color: "#d2e985", life: 0.75, maxLife: 0.75 });
-          this.event("notice", { message: e.summonSuppressed ? "孵化囊已破壞 · 終末召喚被阻止" : "母獸進入終末孵化 · 巢群全面湧出" });
+          this.event("notice", { message: e.summonSuppressed ? "\u5B75\u5316\u56CA\u5DF2\u7834\u58DE \xB7 \u7D42\u672B\u53EC\u559A\u88AB\u963B\u6B62" : "\u6BCD\u7378\u9032\u5165\u7D42\u672B\u5B75\u5316 \xB7 \u5DE2\u7FA4\u5168\u9762\u6E67\u51FA" });
         }
       } else if (e.type === "charger") {
         if (e.bossPhase === 0 && ratio <= 0.68) {
@@ -1968,17 +1994,17 @@
           e.speed += 7;
           e.damage += 4;
           this.summonBossAdds(e, ["raptor", "raptor"]);
-          this.openBossWeakpoint(e, 4.5, "衝角獸裂角肩甲鬆動 · 趁現在破甲");
+          this.openBossWeakpoint(e, 4.5, "\u885D\u89D2\u7378\u88C2\u89D2\u80A9\u7532\u9B06\u52D5 \xB7 \u8D81\u73FE\u5728\u7834\u7532");
           this.effects.push({ kind: "burst", x: e.x, y: e.y, r: 118, color: "#efad66", life: 0.7, maxLife: 0.7 });
-          this.event("notice", { message: "骨甲衝角獸進入裂甲衝鋒 · 迅猛獸加入夾擊" });
+          this.event("notice", { message: "\u9AA8\u7532\u885D\u89D2\u7378\u9032\u5165\u88C2\u7532\u885D\u92D2 \xB7 \u8FC5\u731B\u7378\u52A0\u5165\u593E\u64CA" });
         } else if (e.bossPhase === 1 && ratio <= 0.32) {
           e.bossPhase = 2;
           e.speed += 5;
           e.damage += 4;
           this.summonBossAdds(e, ["brute", "raptor", "raptor"]);
-          this.openBossWeakpoint(e, 5.5, "裂角肩甲再次暴露 · 破壞可削弱所有衝鋒");
+          this.openBossWeakpoint(e, 5.5, "\u88C2\u89D2\u80A9\u7532\u518D\u6B21\u66B4\u9732 \xB7 \u7834\u58DE\u53EF\u524A\u5F31\u6240\u6709\u885D\u92D2");
           this.effects.push({ kind: "burst", x: e.x, y: e.y, r: 142, color: "#f3c078", life: 0.75, maxLife: 0.75 });
-          this.event("notice", { message: "衝角獸進入碎骨狂飆 · 衝鋒距離與頻率提升" });
+          this.event("notice", { message: "\u885D\u89D2\u7378\u9032\u5165\u788E\u9AA8\u72C2\u98C6 \xB7 \u885D\u92D2\u8DDD\u96E2\u8207\u983B\u7387\u63D0\u5347" });
         }
       } else if (e.type === "boss") {
         if (e.bossPhase === 0 && ratio <= 0.7) {
@@ -1986,17 +2012,17 @@
           e.speed += 3;
           e.damage += 3;
           this.summonBossAdds(e, ["spitter", "spitter", "raptor"]);
-          this.openBossWeakpoint(e, 4.5, "泰坦琥珀核心暴露 · 可打斷下一次震地");
+          this.openBossWeakpoint(e, 4.5, "\u6CF0\u5766\u7425\u73C0\u6838\u5FC3\u66B4\u9732 \xB7 \u53EF\u6253\u65B7\u4E0B\u4E00\u6B21\u9707\u5730");
           this.effects.push({ kind: "burst", x: e.x, y: e.y, r: 142, color: "#f1a056", life: 0.75, maxLife: 0.75 });
-          this.event("notice", { message: "琥珀泰坦進入共鳴階段 · 毒液獸受召而來" });
+          this.event("notice", { message: "\u7425\u73C0\u6CF0\u5766\u9032\u5165\u5171\u9CF4\u968E\u6BB5 \xB7 \u6BD2\u6DB2\u7378\u53D7\u53EC\u800C\u4F86" });
         } else if (e.bossPhase === 1 && ratio <= 0.35) {
           e.bossPhase = 2;
           e.speed += 3;
           e.damage += 4;
           this.summonBossAdds(e, ["brute", "brute", "spitter"]);
-          this.openBossWeakpoint(e, 999, "泰坦核心過載 · 摧毀可取消雙重震地");
+          this.openBossWeakpoint(e, 999, "\u6CF0\u5766\u6838\u5FC3\u904E\u8F09 \xB7 \u6467\u6BC0\u53EF\u53D6\u6D88\u96D9\u91CD\u9707\u5730");
           this.effects.push({ kind: "burst", x: e.x, y: e.y, r: 176, color: "#ffc160", life: 0.8, maxLife: 0.8 });
-          this.event("notice", { message: "琥珀泰坦核心過載 · 震地擴展為內外雙環" });
+          this.event("notice", { message: "\u7425\u73C0\u6CF0\u5766\u6838\u5FC3\u904E\u8F09 \xB7 \u9707\u5730\u64F4\u5C55\u70BA\u5167\u5916\u96D9\u74B0" });
         }
       }
     }
@@ -2008,14 +2034,14 @@
       if (e.type === "matriarch") {
         e.attackKind = e.bossPhase >= 1 && e.attackCount % 2 === 0 ? "brood-pool" : "venom-fan";
         e.windup = e.attackKind === "brood-pool" ? 1.25 : 0.9;
-        if (e.attackKind === "brood-pool") this.openBossWeakpoint(e, 3.2, "母獸蓄積毒沼 · 孵化囊短暫暴露");
+        if (e.attackKind === "brood-pool") this.openBossWeakpoint(e, 3.2, "\u6BCD\u7378\u84C4\u7A4D\u6BD2\u6CBC \xB7 \u5B75\u5316\u56CA\u77ED\u66AB\u66B4\u9732");
       } else if (e.type === "charger") {
         e.attackKind = "bone-charge";
         e.windup = e.bossPhase === 2 ? 0.72 : e.bossPhase === 1 ? 0.86 : 1;
       } else if (e.type === "boss") {
         e.attackKind = e.bossPhase === 2 ? "titan-double" : "titan-slam";
         e.windup = e.bossPhase === 2 ? 1.3 : 1.1;
-        this.openBossWeakpoint(e, 2.8, "泰坦正在聚能 · 攻擊琥珀核心可打斷震地");
+        this.openBossWeakpoint(e, 2.8, "\u6CF0\u5766\u6B63\u5728\u805A\u80FD \xB7 \u653B\u64CA\u7425\u73C0\u6838\u5FC3\u53EF\u6253\u65B7\u9707\u5730");
       } else {
         e.attackKind = e.type === "spitter" ? "spit" : "melee";
         e.windup = e.type === "spitter" ? 0.6 : 0.6;
@@ -2041,7 +2067,7 @@
         e.y = clamp(e.y + Math.sin(angle) * length, 70, WORLD.height - 55);
         for (const t of this.combatDefenders()) if (t.hp > 0 && pointToSegment(t, from, e) < t.r + e.r * (e.bossPhase === 2 ? 0.72 : 0.58)) this.damageTarget(t, e.damage);
         this.syncBossWeakpoint(e);
-        this.openBossWeakpoint(e, 3.4, "衝鋒結束 · 裂角肩甲暴露 3 秒");
+        this.openBossWeakpoint(e, 3.4, "\u885D\u92D2\u7D50\u675F \xB7 \u88C2\u89D2\u80A9\u7532\u66B4\u9732 3 \u79D2");
         this.effects.push({ kind: "trail", x: (from.x + e.x) / 2, y: (from.y + e.y) / 2, angle, r: e.bossPhase === 2 ? 47 : 36, color: "#efb06f", life: 0.45, maxLife: 0.45 });
         this.effects.push({ kind: "burst", x: e.x, y: e.y, r: 68, color: "#ef9b65", life: 0.45, maxLife: 0.45 });
       } else if (e.type === "boss") {
@@ -2109,8 +2135,7 @@
     }
   };
 
-  // prototypes/emberwild/character-art.mjs
-  var images = /* @__PURE__ */ new Map();
+  var images = new Map();
   var CHARACTER_ART = {
     ranger: {
       file: "assets/motion-v4/scout-run-v1.png",
@@ -2210,7 +2235,6 @@
     return hand ? { x: (hand[0] - pivotX) * k, y: (hand[1] - baseline) * k * breathing } : {};
   }
 
-  // prototypes/emberwild/painted-art.mjs
   var ATLASES = {
     ranger: { file: "ranger.png", size: [1536, 1024] },
     weapons: { file: "weapons.png", size: [1254, 1254] },
@@ -2267,7 +2291,7 @@
   SPRITES["shop-pack-hire"] = { sheet: "shopPackHire", rect: [0, 0, 1024, 1024] };
   SPRITES["shop-pack-relic"] = { sheet: "shopPackRelic", rect: [0, 0, 1024, 1024] };
   var spriteURL = (sheet) => `assets/painted-v1/${ATLASES[sheet].file}`;
-  var images2 = /* @__PURE__ */ new Map();
+  var images2 = new Map();
   function preloadArt() {
     for (const sheet of Object.keys(ATLASES)) if (!images2.has(sheet)) {
       const image = new Image();
@@ -2461,7 +2485,6 @@
     return true;
   }
 
-  // prototypes/emberwild/actor-motion.mjs
   var clamp2 = (n, a, b) => Math.max(a, Math.min(b, n));
   var ActorMotion = class {
     constructor({ stride = 96 } = {}) {
@@ -2549,7 +2572,6 @@
         amount,
         stride: this.stride,
         angle: a,
-        // All sprites are grounded by an explicit foot pivot; never bob the root.
         breath: walking || actor2.dashTime > 0 ? 0 : breath,
         lean: reduced ? 0 : actor2.dashTime > 0 ? Math.cos(a) * 0.065 : 0,
         attack: reduced ? 0 : clamp2(actor2.swing / 0.2, 0, 1)
@@ -2557,11 +2579,10 @@
     }
   };
 
-  // prototypes/emberwild/experience.mjs
   var STORAGE_KEY = "emberwild_experience_v1";
   var DEFAULTS = Object.freeze({ haptics: true, volume: 0.65, powerSaver: false, fontSize: "normal", quality: "auto" });
-  var FONT_SIZES = /* @__PURE__ */ new Set(["small", "normal", "large"]);
-  var QUALITIES = /* @__PURE__ */ new Set(["auto", "high", "balanced", "low"]);
+  var FONT_SIZES = new Set(["small", "normal", "large"]);
+  var QUALITIES = new Set(["auto", "high", "balanced", "low"]);
   function storage() {
     try {
       return window.localStorage;
@@ -2588,7 +2609,7 @@
   }
   var preferences = load();
   var nativeLowPower = false;
-  var listeners = /* @__PURE__ */ new Set();
+  var listeners = new Set();
   var motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   function effectiveLowPower() {
     return preferences.powerSaver || nativeLowPower;
@@ -2662,7 +2683,6 @@
   motionQuery.addEventListener?.("change", apply);
   apply();
 
-  // prototypes/emberwild/control-hints.mjs
   var query = "(pointer: coarse), (max-width: 1024px)";
   var deviceMedia = globalThis.matchMedia?.(query);
   function touchControls(host = globalThis) {
@@ -2670,10 +2690,9 @@
     return (host.navigator?.maxTouchPoints || 0) > 0 || !!media?.matches;
   }
   function controlLabel(label, key, touch = touchControls()) {
-    return touch ? label : `${label} · ${key}`;
+    return touch ? label : `${label} \xB7 ${key}`;
   }
 
-  // prototypes/emberwild/battle-viewport.mjs
   var clamp3 = (n, min, max) => Math.max(min, Math.min(max, n));
   function battleViewport(width, height, world, focus, { close = false } = {}) {
     const fit = Math.min(width / world.width, height / world.height);
@@ -2683,7 +2702,6 @@
     return { scale, ox: offset(width, world.width, focus.x), oy: offset(height, world.height, focus.y) };
   }
 
-  // prototypes/emberwild/art.mjs
   var shapes = {
     hunter: '<path d="M14 50l3-24h23l4 24" fill="#539781"/><circle cx="28" cy="16" r="10" fill="#d3ab78"/><path d="M15 16L28 2l14 15" fill="#385d46"/><path d="M45 16Q62 33 45 50V16M39 32h16" fill="none" stroke="#e3ce91" stroke-width="3"/>',
     guard: '<circle cx="27" cy="14" r="10" fill="#d3ab78"/><path d="M16 15V6l22 0v10" fill="#b4c5bb"/><path d="M13 52V27h27v25" fill="#9b7f50"/><path d="M24 27l21-5v20l-10 11-11-10z" fill="#719582" stroke="#e6d7ab" stroke-width="3"/><path d="M7 10v42" stroke="#dedec1" stroke-width="4"/>',
@@ -2729,13 +2747,13 @@
     c.fillText(label, x, y);
   }
   var ENEMY_SIZE = { raptor: 78, brute: 112, spitter: 88, matriarch: 186, charger: 190, boss: 176 };
-  var BOSS_NAMES = { matriarch: "沼澤母獸", charger: "骨甲衝角獸", boss: "琥珀泰坦" };
+  var BOSS_NAMES = { matriarch: "\u6CBC\u6FA4\u6BCD\u7378", charger: "\u9AA8\u7532\u885D\u89D2\u7378", boss: "\u7425\u73C0\u6CF0\u5766" };
   var ESCORT_PATH2 = [[125, 650], [205, 585], [275, 515], [390, 435], [500, 325], [585, 235], [640, 145]].map(([x, y]) => ({ x, y }));
   var Painter = class {
     constructor(canvas) {
       preloadArt();
       this.walkArt = new ActorMotion();
-      this.actorMotions = /* @__PURE__ */ new Map();
+      this.actorMotions = new Map();
       this.canvas = canvas;
       this.c = canvas.getContext("2d");
       this.backgrounds = ["assets/fern-valley.png", "assets/painted-v1/stage-2-fern-hollow-v1.png", "assets/painted-v1/stage-3-tidal-marsh-v1.png", "assets/painted-v1/stage-4-beast-ruins-v1.png", "assets/painted-v1/stage-5-amber-ridge-v1.png", "assets/painted-v1/stage-6-ashen-canopy-v1.png", "assets/painted-v1/stage-7-moonbone-ravine-v1.png", "assets/painted-v1/stage-8-titan-sanctuary-v1.png"].map((src) => {
@@ -2860,7 +2878,7 @@
       objects.forEach((o) => o.draw());
       for (const e of g.enemies) if (e.hp > 0 && e.weakpoint) this.weakpoint(e, g.time);
       for (const e of g.enemies) if (e.hp > 0 && e.elite) this.eliteMark(e, g.time);
-      const liveMotions = /* @__PURE__ */ new Set([...g.allies.map((a) => "ally-" + a.id), ...g.enemies.map((e) => "enemy-" + e.id)]);
+      const liveMotions = new Set([...g.allies.map((a) => "ally-" + a.id), ...g.enemies.map((e) => "enemy-" + e.id)]);
       for (const key of this.actorMotions.keys()) if ((key.startsWith("ally-") || key.startsWith("enemy-")) && !liveMotions.has(key)) this.actorMotions.delete(key);
       for (const p of g.projectiles) if (p.kind !== "shock-field") this.projectile(p);
       const effects = this.reduced ? g.effects.filter((f) => ["text", "beam", "muzzle", "slash", "enemy-death", "burst"].includes(f.kind)).slice(-45) : g.effects;
@@ -2881,8 +2899,8 @@
         c.fillRect(140, 90, 440, 42);
         c.fillStyle = boss.type === "matriarch" ? "#b9cf70" : boss.type === "charger" ? "#e2a765" : "#f0a84f";
         c.fillRect(148, 118, 424 * boss.hp / boss.maxHp, 5);
-        text(c, `${BOSS_NAMES[boss.type]} · 階段 ${phase}`, 360, 105, 12, "#ffddad");
-        text(c, weak?.broken ? `${weak.name}已破壞` : weak?.open ? `${weak.name}暴露中` : `${weak?.name || "弱點"}尚未暴露`, 360, 116, 8, weak?.broken ? "#9fd8ad" : weak?.open ? "#ffe19a" : "#9eab94");
+        text(c, `${BOSS_NAMES[boss.type]} \xB7 \u968E\u6BB5 ${phase}`, 360, 105, 12, "#ffddad");
+        text(c, weak?.broken ? `${weak.name}\u5DF2\u7834\u58DE` : weak?.open ? `${weak.name}\u66B4\u9732\u4E2D` : `${weak?.name || "\u5F31\u9EDE"}\u5C1A\u672A\u66B4\u9732`, 360, 116, 8, weak?.broken ? "#9fd8ad" : weak?.open ? "#ffe19a" : "#9eab94");
         c.restore();
       }
     }
@@ -2926,7 +2944,7 @@
         line(c, [[24, -12], [24, 17]], "#795d3d", 5);
         ellipse(c, 2, -19, 11, 13, "#c99a70");
         polygon(c, [[-12, -8], [14, -8], [18, 17], [-17, 17]], "#426e5d");
-        text(c, "◆", 1, -26, 12, "#ffe19a");
+        text(c, "\u25C6", 1, -26, 12, "#ffe19a");
       } else if (event.type === "ruin") {
         polygon(c, [[-29, 17], [-24, -36], [-12, -48], [-7, 17]], "#77806a", "#c8c291");
         polygon(c, [[8, 17], [12, -48], [26, -36], [30, 17]], "#77806a", "#c8c291");
@@ -2950,7 +2968,7 @@
         ellipse(c, 0, -8, 8, 8, "#f2c66f");
       }
       text(c, d.name, 0, event.r + 34, 11, event.type === "elite" ? "#ffc29b" : "#ffe8b2");
-      text(c, event.type === "elite" ? "擊敗金印獸群" : controlLabel("靠近後點互動", "E"), 0, event.r + 47, 8, "#d6ddbb");
+      text(c, event.type === "elite" ? "\u64CA\u6557\u91D1\u5370\u7378\u7FA4" : controlLabel("\u9760\u8FD1\u5F8C\u9EDE\u4E92\u52D5", "E"), 0, event.r + 47, 8, "#d6ddbb");
       c.restore();
     }
     eliteGround(e, t) {
@@ -2968,14 +2986,14 @@
       c.restore();
     }
     eliteMark(e) {
-      text(this.c, "精英", e.x, e.y - e.r - 24, 9, "#ffd88c");
+      text(this.c, "\u7CBE\u82F1", e.x, e.y - e.r - 24, 9, "#ffd88c");
     }
     ally(a, t) {
       const c = this.c, pose = this.actorPose("ally-" + (a.id ?? "preview"), a, t, 76);
       ellipse(c, a.x, a.y + 13, 21, 8, "#132a2559");
       const animated = a.type === "hunter" && drawCharacter(c, "hunter", a.x, a.y + 13, pose, { height: 78 });
       if (animated || drawSprite(c, a.type, a.x, a.y + 17, { height: 78, flip: pose.flip })) {
-        text(c, a.type === "guard" ? "盾衛" : "弓手", a.x, a.y + 29, 10, "#edf0bf");
+        text(c, a.type === "guard" ? "\u76FE\u885B" : "\u5F13\u624B", a.x, a.y + 29, 10, "#edf0bf");
         this.healthbar(a.x, a.y + 35, 35, a.hp / a.maxHp, "#9bd3b4");
         return;
       }
@@ -2999,7 +3017,7 @@
         line(c, [[16, -29], [16, 11]], "#e5cf98", 1);
         line(c, [[-2, -8], [30, -8]], "#d9c394", 2);
       }
-      text(c, guard ? "盾衛" : "弓手", 0, 27, 10, "#edf0bf");
+      text(c, guard ? "\u76FE\u885B" : "\u5F13\u624B", 0, 27, 10, "#edf0bf");
       this.healthbar(0, 33, 35, a.hp / a.maxHp, "#9bd3b4");
       c.restore();
     }
@@ -3014,7 +3032,7 @@
         c.lineWidth = 3;
         c.stroke();
         c.setLineDash([]);
-        text(c, "限時熔晶", n.x, n.y + 42, 9, "#ffe9ae");
+        text(c, "\u9650\u6642\u7194\u6676", n.x, n.y + 42, 9, "#ffe9ae");
         c.restore();
       }
       ellipse(c, n.x, n.y + 11, 24, 8, "#142d2452");
@@ -3056,7 +3074,7 @@
         polygon(c, [[3, -19], [11, -9], [6, 0], [-2, -5]], "#b3c798");
         c.restore();
       }
-      text(c, hatched ? "聖 獸 靈 巢" : "聖 獸 卵", b.x, b.y + 58, 12, "#fff0c8");
+      text(c, hatched ? "\u8056 \u7378 \u9748 \u5DE2" : "\u8056 \u7378 \u5375", b.x, b.y + 58, 12, "#fff0c8");
       this.healthbar(b.x, b.y + 68, 82, b.hp / b.maxHp, "#d9e5a9");
     }
     building(b, t, ghost = false) {
@@ -3222,7 +3240,7 @@
       const painted = drawSprite(c, `enemy-${e.type}`, 0, e.r + 9, { height: size, flip, alpha: e.flash > 0 ? 0.58 : 1 });
       c.restore();
       if (painted) {
-        if (e.burn > 0) text(c, "♨", e.x, e.y - e.r - 18, 18, "#ffc272");
+        if (e.burn > 0) text(c, "\u2668", e.x, e.y - e.r - 18, 18, "#ffc272");
         if (e.hp < e.maxHp) this.healthbar(e.x, e.y + e.r + 13, boss ? 104 : e.type === "brute" ? 48 : 38, e.hp / e.maxHp, boss ? "#f4b05f" : "#e6a179");
         return;
       }
@@ -3253,7 +3271,7 @@
       if (e.type === "spitter" || e.type === "matriarch") ellipse(c, 26, 0, 6, 5, "#b8d36d");
       c.restore();
       if (e.burn > 0) {
-        text(c, "♨", e.x, e.y - e.r - 10, 18, "#ffc272");
+        text(c, "\u2668", e.x, e.y - e.r - 10, 18, "#ffc272");
       }
       if (e.hp < e.maxHp) this.healthbar(e.x, e.y + e.r + 10, boss ? 90 : 35, e.hp / e.maxHp, boss ? "#f4b05f" : "#e6a179");
     }
@@ -3313,12 +3331,28 @@
       if (!d) return;
       const moving = Math.hypot(p.vx || 0, p.vy || 0) > 0.5, bob = this.reduced ? 0 : Math.sin(t * (moving ? 8 : 3.2)) * 1.5, flip = Math.cos(p.angle || 0) < 0, height = (camp ? 92 : 74) + Math.min(18, (p.level - 1) * 2);
       ellipse(c, p.x, p.y + 14, height * 0.3, 10, "#132a2558");
-      if (!drawSprite(c, `companion-${p.type}`, p.x, p.y + 18 + bob, { height, flip })) {
+      const limited = globalThis.__pbmEconomy?.limitedDinoSkin === true;
+      c.save();
+      if (limited) c.filter = "hue-rotate(145deg) saturate(1.45) brightness(1.08)";
+      const painted = drawSprite(c, `companion-${p.type}`, p.x, p.y + 18 + bob, { height, flip });
+      c.restore();
+      if (!painted) {
         this.pet(p, t);
         return;
       }
+      if (limited) {
+        c.save();
+        c.beginPath();
+        c.arc(p.x, p.y + 5, height * 0.43, 0, Math.PI * 2);
+        c.strokeStyle = "#79f0d8aa";
+        c.lineWidth = 2;
+        c.setLineDash([4, 5]);
+        c.stroke();
+        c.setLineDash([]);
+        c.restore();
+      }
       if (!camp) {
-        text(c, `${d.name} · Lv.${p.level}`, p.x, p.y + 33, 9, "#f7e8b6");
+        text(c, `${d.name}${limited ? " \xB7 \u9650\u5B9A" : ""} \xB7 Lv.${p.level}`, p.x, p.y + 33, 9, limited ? "#8ff5df" : "#f7e8b6");
         this.healthbar(p.x, p.y + 39, 43, p.hp / p.maxHp, d.color);
       }
     }
@@ -3353,7 +3387,7 @@
         ellipse(c, a.x, a.y + 13, 23, 8, "#10251d65");
         const pose = this.actorPose("objective-" + a.id, a, t, 75);
         drawCharacter(c, "hunter", a.x, a.y + 13, pose, { height: 76 });
-        text(c, "採集師", a.x, a.y + 33, 10, "#d9f0c8");
+        text(c, "\u63A1\u96C6\u5E2B", a.x, a.y + 33, 10, "#d9f0c8");
         this.healthbar(a.x, a.y + 40, 46, a.hp / a.maxHp, "#9bd3b4");
         return;
       }
@@ -3364,8 +3398,8 @@
           drawCharacter(c, "hunter", a.x, a.y + 13, pose, { height: 72 });
           for (const x of [-22, -7, 8, 23]) line(c, [[a.x + x, a.y - 43], [a.x + x, a.y + 24]], "#c7b986", 4);
           line(c, [[a.x - 25, a.y - 43], [a.x + 26, a.y - 43]], "#ece0b4", 5);
-          text(c, "救援中", a.x, a.y + 42, 10, "#c8ead2");
-        } else text(c, "已獲救", a.x, a.y + 8, 11, "#bde5c8");
+          text(c, "\u6551\u63F4\u4E2D", a.x, a.y + 42, 10, "#c8ead2");
+        } else text(c, "\u5DF2\u7372\u6551", a.x, a.y + 8, 11, "#bde5c8");
         return;
       }
       if (a.objectiveKind === "nest") {
@@ -3376,7 +3410,7 @@
         }
         ellipse(c, a.x, a.y, 25, 18, "#674b38");
         ellipse(c, a.x, a.y - 3, 16, 10, "#302821");
-        text(c, "敵對獸巢", a.x, a.y + 45, 10, "#ffd0ad");
+        text(c, "\u6575\u5C0D\u7378\u5DE2", a.x, a.y + 45, 10, "#ffd0ad");
         this.healthbar(a.x, a.y + 52, 58, a.hp / a.maxHp, "#e58d65");
         return;
       }
@@ -3588,7 +3622,7 @@
         this.ally({ x, y, type, hp: 1, maxHp: 1 }, g.time);
         c.globalAlpha = 1;
       } else this.building({ x, y, type, r: CARDS[type].radius }, g.time, true);
-      text(c, target.ok ? target.hire ? "放開派遣" : target.upgrade ? "疊卡升級" : "放開建造" : target.reason, x, Math.min(720, y + 62), 13, target.ok ? "#fef2c0" : "#ffc1a1");
+      text(c, target.ok ? target.hire ? "\u653E\u958B\u6D3E\u9063" : target.upgrade ? "\u758A\u5361\u5347\u7D1A" : "\u653E\u958B\u5EFA\u9020" : target.reason, x, Math.min(720, y + 62), 13, target.ok ? "#fef2c0" : "#ffc1a1");
       c.restore();
     }
     healthbar(x, y, w, v, color) {
@@ -3600,73 +3634,72 @@
     }
   };
 
-  // prototypes/emberwild/shop.mjs
-  var SHOP_PAYMENT_COPY = "僅在 iOS App 內使用 App Store 付款；實際金額與幣別以系統付款頁為準。未驗證成功不會發放卡牌。";
-  var SHOP_CURRENCY = Object.freeze({ id: "ingot", name: "晶錠", balance: 0 });
+  var SHOP_PAYMENT_COPY = "\u50C5\u5728 iOS App \u5167\u4F7F\u7528 App Store \u4ED8\u6B3E\uFF1B\u5BE6\u969B\u91D1\u984D\u8207\u5E63\u5225\u4EE5\u7CFB\u7D71\u4ED8\u6B3E\u9801\u70BA\u6E96\u3002\u672A\u9A57\u8B49\u6210\u529F\u4E0D\u6703\u767C\u653E\u5361\u724C\u3002";
+  var SHOP_CURRENCY = Object.freeze({ id: "ingot", name: "\u6676\u9320", balance: 0 });
   var SHOP_PACKS = Object.freeze([
     Object.freeze({
       id: "pack-fortify",
       productId: "pbm_tier_099",
       goodsId: 910001,
-      name: "新手防線禮包",
-      priceLabel: "以系統顯示為準",
+      name: "\u65B0\u624B\u9632\u7DDA\u79AE\u5305",
+      priceLabel: "\u4EE5\u7CFB\u7D71\u986F\u793A\u70BA\u6E96",
       art: "shop-pack-fortify",
-      tag: "新手限定 · 一次",
+      tag: "\u65B0\u624B\u9650\u5B9A \xB7 \u4E00\u6B21",
       copies: 2,
       limit: "once",
       promotion: "starter",
       cards: Object.freeze(["watchtower", "catapult", "wall"]),
-      description: "獵脊弩台、琥珀投獸器與裂骨牆各兩張，發放到目前遠征。"
+      description: "\u7375\u810A\u5F29\u53F0\u3001\u7425\u73C0\u6295\u7378\u5668\u8207\u88C2\u9AA8\u7246\u5404\u5169\u5F35\uFF0C\u767C\u653E\u5230\u76EE\u524D\u9060\u5F81\u3002"
     }),
     Object.freeze({
       id: "pack-hire",
       productId: "pbm_tier_199",
       goodsId: 910003,
-      name: "遊獵契約包",
-      priceLabel: "以系統顯示為準",
+      name: "\u904A\u7375\u5951\u7D04\u5305",
+      priceLabel: "\u4EE5\u7CFB\u7D71\u986F\u793A\u70BA\u6E96",
       art: "shop-pack-hire",
-      tag: "傭兵卡包",
+      tag: "\u50AD\u5175\u5361\u5305",
       copies: 3,
       cards: Object.freeze(["hunter", "guard"]),
-      description: "遊獵弓手與骨盾守衛各三張，補強遠征隊伍。"
+      description: "\u904A\u7375\u5F13\u624B\u8207\u9AA8\u76FE\u5B88\u885B\u5404\u4E09\u5F35\uFF0C\u88DC\u5F37\u9060\u5F81\u968A\u4F0D\u3002"
     }),
     Object.freeze({
       id: "pack-scout",
       productId: "pbm_tier_299",
       goodsId: 910004,
-      name: "探索者補給",
-      priceLabel: "以系統顯示為準",
+      name: "\u63A2\u7D22\u8005\u88DC\u7D66",
+      priceLabel: "\u4EE5\u7CFB\u7D71\u986F\u793A\u70BA\u6E96",
       art: "shop-pack-fortify",
-      tag: "攻防混合",
+      tag: "\u653B\u9632\u6DF7\u5408",
       copies: 2,
       cards: Object.freeze(["watchtower", "catapult", "spring", "hunter"]),
-      description: "建造與傭兵混合補給，每種各兩張。"
+      description: "\u5EFA\u9020\u8207\u50AD\u5175\u6DF7\u5408\u88DC\u7D66\uFF0C\u6BCF\u7A2E\u5404\u5169\u5F35\u3002"
     }),
     Object.freeze({
       id: "pack-relic",
       productId: "pbm_tier_499",
       goodsId: 910002,
-      name: "每週荒境禮包",
-      priceLabel: "以系統顯示為準",
+      name: "\u6BCF\u9031\u8352\u5883\u79AE\u5305",
+      priceLabel: "\u4EE5\u7CFB\u7D71\u986F\u793A\u70BA\u6E96",
       art: "shop-pack-relic",
-      tag: "每週限定 · 一次",
+      tag: "\u6BCF\u9031\u9650\u5B9A \xB7 \u4E00\u6B21",
       copies: 3,
       limit: "weekly",
       promotion: "weekly",
       cards: Object.freeze(["watchtower", "catapult", "spring", "hunter"]),
-      description: "建造與僱傭混合卡組，含潮汐泉，每種各三張。"
+      description: "\u5EFA\u9020\u8207\u50F1\u50AD\u6DF7\u5408\u5361\u7D44\uFF0C\u542B\u6F6E\u6C50\u6CC9\uFF0C\u6BCF\u7A2E\u5404\u4E09\u5F35\u3002"
     }),
     Object.freeze({
       id: "pack-titan",
       productId: "pbm_tier_999",
       goodsId: 910005,
-      name: "泰坦遠征箱",
-      priceLabel: "以系統顯示為準",
+      name: "\u6CF0\u5766\u9060\u5F81\u7BB1",
+      priceLabel: "\u4EE5\u7CFB\u7D71\u986F\u793A\u70BA\u6E96",
       art: "shop-pack-relic",
-      tag: "大型遠征補給",
+      tag: "\u5927\u578B\u9060\u5F81\u88DC\u7D66",
       copies: 5,
       cards: Object.freeze(["watchtower", "catapult", "wall", "spring", "hunter", "guard"]),
-      description: "六種核心建造與傭兵卡各五張，適合長線遠征。"
+      description: "\u516D\u7A2E\u6838\u5FC3\u5EFA\u9020\u8207\u50AD\u5175\u5361\u5404\u4E94\u5F35\uFF0C\u9069\u5408\u9577\u7DDA\u9060\u5F81\u3002"
     })
   ]);
   function offerWeekKey(time = Date.now()) {
@@ -3687,28 +3720,28 @@
     return pack || null;
   }
   function offerContents(offer) {
-    return offer.cards.map((id) => `${DEPLOY_CARDS[id]?.name || id} ×${offer.copies}`).join(" · ");
+    return offer.cards.map((id) => `${DEPLOY_CARDS[id]?.name || id} \xD7${offer.copies}`).join(" \xB7 ");
   }
   function offerRewardChips(offer) {
-    return offer.cards.map((id) => `<span>${DEPLOY_CARDS[id]?.name || id}<b>×${offer.copies}</b></span>`).join("");
+    return offer.cards.map((id) => `<span>${DEPLOY_CARDS[id]?.name || id}<b>\xD7${offer.copies}</b></span>`).join("");
   }
   var shopCrest = () => `<svg class="shop-crest" viewBox="0 0 72 72" aria-hidden="true"><path d="M36 4 55 14l9 20-9 24-19 10-19-10L8 34l9-20Z"/><path d="m36 14 7 14 14 7-14 7-7 16-7-16-14-7 14-7Z"/><circle cx="36" cy="35" r="5"/></svg>`;
   function shopCatalogHTML(artFor, transactions = []) {
-    return `<section class="shop-store" aria-label="卡包支付">
+    return `<section class="shop-store" aria-label="\u5361\u5305\u652F\u4ED8">
     <header class="shop-pay-head">
       <span class="shop-brand-seal">${shopCrest()}</span>
-      <div class="shop-head-copy"><small>原始文明：聖獸覺醒</small><b>荒境遠征補給站</b><p>挑選需要的卡牌補給，再由 App Store 顯示本地價格。</p></div>
-      <div class="shop-wallet"><span>安全付款</span><b></b><small>App Store</small></div>
+      <div class="shop-head-copy"><small>\u539F\u59CB\u6587\u660E\uFF1A\u8056\u7378\u89BA\u9192</small><b>\u8352\u5883\u9060\u5F81\u88DC\u7D66\u7AD9</b><p>\u6311\u9078\u9700\u8981\u7684\u5361\u724C\u88DC\u7D66\uFF0C\u518D\u7531 App Store \u986F\u793A\u672C\u5730\u50F9\u683C\u3002</p></div>
+      <div class="shop-wallet"><span>\u5B89\u5168\u4ED8\u6B3E</span><b>\uF8FF</b><small>App Store</small></div>
     </header>
-    <div class="shop-guard"><span aria-hidden="true">◆</span><p><b>補給只在伺服器驗證付款後發放</b><small>取消、待確認或驗證失敗都不會扣除卡牌額度。</small></p></div>
-    <div class="shop-grid" aria-label="遠征補給商品">${SHOP_PACKS.map((offer, index) => {
+    <div class="shop-guard"><span aria-hidden="true">\u25C6</span><p><b>\u88DC\u7D66\u53EA\u5728\u4F3A\u670D\u5668\u9A57\u8B49\u4ED8\u6B3E\u5F8C\u767C\u653E</b><small>\u53D6\u6D88\u3001\u5F85\u78BA\u8A8D\u6216\u9A57\u8B49\u5931\u6557\u90FD\u4E0D\u6703\u6263\u9664\u5361\u724C\u984D\u5EA6\u3002</small></p></div>
+    <div class="shop-grid" aria-label="\u9060\u5F81\u88DC\u7D66\u5546\u54C1">${SHOP_PACKS.map((offer, index) => {
       const available = offerAvailable(offer, transactions);
       return `<article class="shop-pack tier-${index + 1}${available ? "" : " sold"}" data-product-id="${offer.productId}">
       <span class="shop-ribbon">${offer.tag}</span>
-      <div class="shop-pack-art-wrap">${artFor(offer)}<span class="shop-price-tag">${index === 0 ? "推薦" : offer.limit === "weekly" ? "每週" : "補給"}</span></div>
-      <div class="shop-pack-copy"><small>遠征物資箱 · ${String(index + 1).padStart(2, "0")}</small><h3>${offer.name}</h3><p>${offer.description}</p></div>
-      <div class="shop-reward-chips" aria-label="禮包內容">${offerRewardChips(offer)}</div>
-      <button type="button" class="shop-pay-btn" data-shop-offer="${offer.id}" ${available ? "" : "disabled"}><span><i>${available ? "APP STORE" : "LIMIT REACHED"}</i><b>${available ? "查看價格並購買" : offer.limit === "weekly" ? "本週已購買" : "新手禮包已購買"}</b></span><em aria-hidden="true">›</em></button>
+      <div class="shop-pack-art-wrap">${artFor(offer)}<span class="shop-price-tag">${index === 0 ? "\u63A8\u85A6" : offer.limit === "weekly" ? "\u6BCF\u9031" : "\u88DC\u7D66"}</span></div>
+      <div class="shop-pack-copy"><small>\u9060\u5F81\u7269\u8CC7\u7BB1 \xB7 ${String(index + 1).padStart(2, "0")}</small><h3>${offer.name}</h3><p>${offer.description}</p></div>
+      <div class="shop-reward-chips" aria-label="\u79AE\u5305\u5167\u5BB9">${offerRewardChips(offer)}</div>
+      <button type="button" class="shop-pay-btn" data-shop-offer="${offer.id}" ${available ? "" : "disabled"}><span><i>${available ? "APP STORE" : "LIMIT REACHED"}</i><b>${available ? "\u67E5\u770B\u50F9\u683C\u4E26\u8CFC\u8CB7" : offer.limit === "weekly" ? "\u672C\u9031\u5DF2\u8CFC\u8CB7" : "\u65B0\u624B\u79AE\u5305\u5DF2\u8CFC\u8CB7"}</b></span><em aria-hidden="true">\u203A</em></button>
     </article>`;
     }).join("")}</div>
     <p class="shop-disclaimer">${SHOP_PAYMENT_COPY}</p>
@@ -3717,20 +3750,20 @@
   function shopCheckoutHTML(offer, phase = "confirm", orderId = "", art = "", detail = "") {
     if (!offer) return "";
     const pending = phase === "pending", done = phase === "done", failed = phase === "error";
-    const title = done ? "發放完成" : failed ? "未完成付款" : pending ? "正在等待 App Store" : "確認支付";
-    const copy = detail || (done ? "付款已由伺服器驗證，卡牌已存入目前遠征。" : failed ? "沒有發放卡牌；如已收到扣款通知，請勿重複購買。" : pending ? "請在系統付款頁完成操作，不要重複點擊。" : `將購買「${offer.name}」，實際金額以 App Store 顯示為準。`);
-    const actions = done || failed ? '<button type="button" class="shop-pay-btn" data-action="shop-done">完成 · 返回商店</button>' : `<button type="button" class="shop-pay-btn" data-action="shop-confirm" ${pending ? "disabled" : ""}>${pending ? "等待 App Store…" : "使用 App Store 付款"}</button><button type="button" class="secondary" data-action="shop-cancel" ${pending ? "disabled" : ""}>取消</button>`;
+    const title = done ? "\u767C\u653E\u5B8C\u6210" : failed ? "\u672A\u5B8C\u6210\u4ED8\u6B3E" : pending ? "\u6B63\u5728\u7B49\u5F85 App Store" : "\u78BA\u8A8D\u652F\u4ED8";
+    const copy = detail || (done ? "\u4ED8\u6B3E\u5DF2\u7531\u4F3A\u670D\u5668\u9A57\u8B49\uFF0C\u5361\u724C\u5DF2\u5B58\u5165\u76EE\u524D\u9060\u5F81\u3002" : failed ? "\u6C92\u6709\u767C\u653E\u5361\u724C\uFF1B\u5982\u5DF2\u6536\u5230\u6263\u6B3E\u901A\u77E5\uFF0C\u8ACB\u52FF\u91CD\u8907\u8CFC\u8CB7\u3002" : pending ? "\u8ACB\u5728\u7CFB\u7D71\u4ED8\u6B3E\u9801\u5B8C\u6210\u64CD\u4F5C\uFF0C\u4E0D\u8981\u91CD\u8907\u9EDE\u64CA\u3002" : `\u5C07\u8CFC\u8CB7\u300C${offer.name}\u300D\uFF0C\u5BE6\u969B\u91D1\u984D\u4EE5 App Store \u986F\u793A\u70BA\u6E96\u3002`);
+    const actions = done || failed ? '<button type="button" class="shop-pay-btn" data-action="shop-done">\u5B8C\u6210 \xB7 \u8FD4\u56DE\u5546\u5E97</button>' : `<button type="button" class="shop-pay-btn" data-action="shop-confirm" ${pending ? "disabled" : ""}>${pending ? "\u7B49\u5F85 App Store\u2026" : "\u4F7F\u7528 App Store \u4ED8\u6B3E"}</button><button type="button" class="secondary" data-action="shop-cancel" ${pending ? "disabled" : ""}>\u53D6\u6D88</button>`;
     return `<div class="shop-sheet" id="shop-sheet" role="dialog" aria-modal="true" aria-labelledby="shop-checkout-title">
     <article class="shop-checkout ${phase}">
-      <header class="shop-checkout-head"><span class="shop-brand-seal">${shopCrest()}</span><div><small>SECURE APP STORE CHECKOUT</small><b>荒境補給確認</b></div></header>
-      <div class="shop-checkout-hero"><div class="shop-checkout-art">${art}</div><div><small>遠征物資箱</small><h3>${offer.name}</h3><p>${offer.description}</p></div></div>
-      <div class="shop-state"><i aria-hidden="true">${done ? "✓" : failed ? "!" : pending ? "•••" : "◆"}</i><div><small>付款狀態</small><h3 id="shop-checkout-title">${title}</h3><p>${copy}</p></div></div>
-      <div class="shop-total"><small>App Store 本地價格</small><b>${offer.priceLabel}</b></div>
+      <header class="shop-checkout-head"><span class="shop-brand-seal">${shopCrest()}</span><div><small>SECURE APP STORE CHECKOUT</small><b>\u8352\u5883\u88DC\u7D66\u78BA\u8A8D</b></div></header>
+      <div class="shop-checkout-hero"><div class="shop-checkout-art">${art}</div><div><small>\u9060\u5F81\u7269\u8CC7\u7BB1</small><h3>${offer.name}</h3><p>${offer.description}</p></div></div>
+      <div class="shop-state"><i aria-hidden="true">${done ? "\u2713" : failed ? "!" : pending ? "\u2022\u2022\u2022" : "\u25C6"}</i><div><small>\u4ED8\u6B3E\u72C0\u614B</small><h3 id="shop-checkout-title">${title}</h3><p>${copy}</p></div></div>
+      <div class="shop-total"><small>App Store \u672C\u5730\u50F9\u683C</small><b>${offer.priceLabel}</b></div>
       <ul class="shop-receipt">
-        <li><span>商品</span><b>${offer.name}</b></li>
-        <li><span>內容</span><b>${offerContents(offer)}</b></li>
-        <li><span>支付方式</span><b>Apple App Store</b></li>
-        <li><span>訂單狀態</span><b>${orderId ? "已建立" : "確認後建立"}</b></li>
+        <li><span>\u5546\u54C1</span><b>${offer.name}</b></li>
+        <li><span>\u5167\u5BB9</span><b>${offerContents(offer)}</b></li>
+        <li><span>\u652F\u4ED8\u65B9\u5F0F</span><b>Apple App Store</b></li>
+        <li><span>\u8A02\u55AE\u72C0\u614B</span><b>${orderId ? "\u5DF2\u5EFA\u7ACB" : "\u78BA\u8A8D\u5F8C\u5EFA\u7ACB"}</b></li>
       </ul>
       <p class="shop-disclaimer">${SHOP_PAYMENT_COPY}</p>
       <div class="shop-checkout-actions">${actions}</div>
@@ -3741,43 +3774,41 @@
     return "";
   }
   function grantOffer(snapshot, offer) {
-    if (!snapshot?.inventory || !SHOP_PACKS.includes(offer)) throw new Error("商品或遠征存檔無效");
+    if (!snapshot?.inventory || !SHOP_PACKS.includes(offer)) throw new Error("\u5546\u54C1\u6216\u9060\u5F81\u5B58\u6A94\u7121\u6548");
     const next = structuredClone(snapshot);
     for (const id of offer.cards) next.inventory[id] = Math.min(99, (next.inventory[id] || 0) + offer.copies);
     return next;
   }
 
-  // prototypes/emberwild/merchant-ui.mjs
-  var priceText = (p) => [p.wood ? `木材 ${p.wood}` : "", p.bone ? `獸骨 ${p.bone}` : "", p.amber ? `琥珀 ${p.amber}` : ""].filter(Boolean).join(" · ");
+  var priceText = (p) => [p.wood ? `\u6728\u6750 ${p.wood}` : "", p.bone ? `\u7378\u9AA8 ${p.bone}` : "", p.amber ? `\u7425\u73C0 ${p.amber}` : ""].filter(Boolean).join(" \xB7 ");
   var shopArt = (offer) => spriteIcon(offer.art, "shop-pack-art") || `<div class="shop-pack-fallback" aria-hidden="true">${offer.cards.map((id) => icon(id, "shop-mini")).join("")}</div>`;
   function marketContent(g, tab, message = "", transactions = []) {
     const training = UPGRADES.filter((u) => !u.weapon && g.upgradeFitsLoadout(u)), forge = UPGRADES.filter((u) => u.weapon && g.upgradeFitsLoadout(u));
     const catalog = tab === "hire" ? HIRES : g.loadout?.legacy ? BUILD_CARDS : CARDS;
     const upgrades = tab === "forge" ? forge : training;
     const goods = ["training", "forge"].includes(tab) ? upgrades.map((u) => ({ ...u, id: `skill-${u.id}`, description: u.desc })) : Object.entries(catalog).filter(([id]) => g.carriesCard(id)).map(([id, c]) => ({ id, ...c }));
-    const tabs = [["build", "建造卡"], ["hire", "雇佣卡"], ["forge", "武器鍛造"], ["training", "技能成長"], ["shop", "App Store"]];
-    const skillPaths = tab === "training" ? `<section class="skill-paths" aria-label="主動技能成長路線">${Object.entries(ACTIVE_SKILLS).filter(([id]) => g.carriesSkill(id)).map(([id, skill]) => {
+    const tabs = [["build", "\u5EFA\u9020\u5361"], ["hire", "\u96C7\u4F63\u5361"], ["forge", "\u6B66\u5668\u935B\u9020"], ["training", "\u6280\u80FD\u6210\u9577"], ["shop", "App Store"]];
+    const skillPaths = tab === "training" ? `<section class="skill-paths" aria-label="\u4E3B\u52D5\u6280\u80FD\u6210\u9577\u8DEF\u7DDA">${Object.entries(ACTIVE_SKILLS).filter(([id]) => g.carriesSkill(id)).map(([id, skill]) => {
       const learned = UPGRADES.filter((u) => u.branch === id && g.selectedUpgrades.includes(u.id)).length, level = 1 + learned, next = UPGRADES.find((u) => u.branch === id && !g.selectedUpgrades.includes(u.id));
-      return `<div class="skill-path ${id}"><span>${id === "volley" ? "➶" : "✹"}</span><div><small>本次攜帶 · Lv.${level} / 3</small><b>${skill.name}</b><p>${next ? `下一階：${next.name}` : "成長路線已完成"}</p></div></div>`;
+      return `<div class="skill-path ${id}"><span>${id === "volley" ? "\u27B6" : "\u2739"}</span><div><small>\u672C\u6B21\u651C\u5E36 \xB7 Lv.${level} / 3</small><b>${skill.name}</b><p>${next ? `\u4E0B\u4E00\u968E\uFF1A${next.name}` : "\u6210\u9577\u8DEF\u7DDA\u5DF2\u5B8C\u6210"}</p></div></div>`;
     }).join("")}</section>` : "";
     const forgedWeapon = g.loadout?.weapons[0] || g.hero.weapon, weapon = WEAPONS[forgedWeapon];
-    const forgePath = tab === "forge" && weapon ? `<section class="forge-path" aria-label="攜帶武器鍛造"><div class="forge-weapon-art">${spriteIcon(forgedWeapon, "forge-weapon-icon") || `<span>${weapon.symbol}</span>`}</div><div><small>本次攜帶 · ${weapon.short}</small><b>${weapon.name}</b><p>${weapon.description}</p></div><em>${g.selectedUpgrades.includes(forgedWeapon) ? "鍛造完成" : "可改造攻擊方式"}</em></section>` : "";
+    const forgePath = tab === "forge" && weapon ? `<section class="forge-path" aria-label="\u651C\u5E36\u6B66\u5668\u935B\u9020"><div class="forge-weapon-art">${spriteIcon(forgedWeapon, "forge-weapon-icon") || `<span>${weapon.symbol}</span>`}</div><div><small>\u672C\u6B21\u651C\u5E36 \xB7 ${weapon.short}</small><b>${weapon.name}</b><p>${weapon.description}</p></div><em>${g.selectedUpgrades.includes(forgedWeapon) ? "\u935B\u9020\u5B8C\u6210" : "\u53EF\u6539\u9020\u653B\u64CA\u65B9\u5F0F"}</em></section>` : "";
     const shop = tab === "shop" ? shopCatalogHTML(shopArt, transactions) : "";
-    const payStrip = tab === "shop" ? "" : `<button type="button" class="shop-launch" data-market-tab="shop">${spriteIcon("shop-amber-ingot", "shop-launch-ingot")}<div><small>APP STORE</small><b>五款遠征補給</b><p>含新手一次與每週限購禮包；實際金額以系統為準。</p></div><em>打開商店</em></button>`;
+    const payStrip = tab === "shop" ? "" : `<button type="button" class="shop-launch" data-market-tab="shop">${spriteIcon("shop-amber-ingot", "shop-launch-ingot")}<div><small>APP STORE</small><b>\u4E94\u6B3E\u9060\u5F81\u88DC\u7D66</b><p>\u542B\u65B0\u624B\u4E00\u6B21\u8207\u6BCF\u9031\u9650\u8CFC\u79AE\u5305\uFF1B\u5BE6\u969B\u91D1\u984D\u4EE5\u7CFB\u7D71\u70BA\u6E96\u3002</p></div><em>\u6253\u958B\u5546\u5E97</em></button>`;
     const grid = tab === "shop" ? "" : `<div class="market-grid">${goods.map((d) => {
       const plan = g.purchasePlan(d.id), upgrade = ["training", "forge"].includes(tab), learned = upgrade && g.selectedUpgrades.includes(d.id.slice(6)), prerequisite = upgrade && d.requires && !g.selectedUpgrades.includes(d.requires), growth = tab === "training" && d.branch, pay = upgrade ? "" : cardPayButton(d.id);
-      return `<article class="market-card${growth ? ` skill-growth ${d.branch}` : ""}${tab === "forge" ? " weapon-forge-card" : ""}"><div class="market-card-art">${d.symbol ? `<span>${d.symbol}</span>` : icon(d.id)}</div><div class="market-card-copy"><small>${tab === "forge" ? `${WEAPONS[d.weapon].name} · 攻擊方式改造` : growth ? `${ACTIVE_SKILLS[d.branch].name} · 成長 ${d.rank} / ${d.maxRank}` : tab === "training" ? "本局一次性強化" : tab === "hire" ? "雇佣契約 · 部署後跟隨" : "建造藍圖 · 同類可升級"}</small><h3>${d.name}</h3><p>${d.description}</p><b class="market-price">${priceText(g.price(d.id))}</b><span class="market-owned">${upgrade ? learned ? "本次遠征已完成" : prerequisite ? "需先完成前一階" : tab === "forge" ? "鍛造後立即改變普通攻擊" : growth ? "購買後主動技能立即成長" : "購買後立即生效" : `背包持有 ${g.inventory[d.id]} 張`}</span></div><div class="market-card-actions"><button data-buy="${d.id}" class="primary" ${plan.ok ? "" : "disabled"}>${learned ? tab === "forge" ? "已鍛造" : "已學會" : prerequisite ? "先購買前一階" : plan.ok ? tab === "forge" ? "鍛造招式" : growth ? "購買技能成長" : "購買" : g.inventory?.[d.id] >= 99 ? "庫存已滿" : "材料不足"}</button>${pay}</div></article>`;
+      return `<article class="market-card${growth ? ` skill-growth ${d.branch}` : ""}${tab === "forge" ? " weapon-forge-card" : ""}"><div class="market-card-art">${d.symbol ? `<span>${d.symbol}</span>` : icon(d.id)}</div><div class="market-card-copy"><small>${tab === "forge" ? `${WEAPONS[d.weapon].name} \xB7 \u653B\u64CA\u65B9\u5F0F\u6539\u9020` : growth ? `${ACTIVE_SKILLS[d.branch].name} \xB7 \u6210\u9577 ${d.rank} / ${d.maxRank}` : tab === "training" ? "\u672C\u5C40\u4E00\u6B21\u6027\u5F37\u5316" : tab === "hire" ? "\u96C7\u4F63\u5951\u7D04 \xB7 \u90E8\u7F72\u5F8C\u8DDF\u96A8" : "\u5EFA\u9020\u85CD\u5716 \xB7 \u540C\u985E\u53EF\u5347\u7D1A"}</small><h3>${d.name}</h3><p>${d.description}</p><b class="market-price">${priceText(g.price(d.id))}</b><span class="market-owned">${upgrade ? learned ? "\u672C\u6B21\u9060\u5F81\u5DF2\u5B8C\u6210" : prerequisite ? "\u9700\u5148\u5B8C\u6210\u524D\u4E00\u968E" : tab === "forge" ? "\u935B\u9020\u5F8C\u7ACB\u5373\u6539\u8B8A\u666E\u901A\u653B\u64CA" : growth ? "\u8CFC\u8CB7\u5F8C\u4E3B\u52D5\u6280\u80FD\u7ACB\u5373\u6210\u9577" : "\u8CFC\u8CB7\u5F8C\u7ACB\u5373\u751F\u6548" : `\u80CC\u5305\u6301\u6709 ${g.inventory[d.id]} \u5F35`}</span></div><div class="market-card-actions"><button data-buy="${d.id}" class="primary" ${plan.ok ? "" : "disabled"}>${learned ? tab === "forge" ? "\u5DF2\u935B\u9020" : "\u5DF2\u5B78\u6703" : prerequisite ? "\u5148\u8CFC\u8CB7\u524D\u4E00\u968E" : plan.ok ? tab === "forge" ? "\u935B\u9020\u62DB\u5F0F" : growth ? "\u8CFC\u8CB7\u6280\u80FD\u6210\u9577" : "\u8CFC\u8CB7" : g.inventory?.[d.id] >= 99 ? "\u5EAB\u5B58\u5DF2\u6EFF" : "\u6750\u6599\u4E0D\u8DB3"}</button>${pay}</div></article>`;
     }).join("")}</div>`;
-    return `<div class="merchant-banner${tab === "shop" ? " shop-banner" : ""}"><div class="merchant-portrait" aria-hidden="true">${tab === "shop" ? spriteIcon("shop-amber-ingot", "merchant-art") : spriteIcon("merchant", "merchant-art")}<i>${tab === "shop" ? "App Store" : "荒境行商"}</i></div><div><b>${tab === "shop" ? "五款固定內容的遠征補給。" : "材料換好牌，搭配由你決定。"}</b><p>${tab === "shop" ? "新手禮包一次、每週禮包每週一次；支付成功且伺服器驗證後才會發放。" : "固定貨架，不抽卡、不刷新。買幾張，就能部署幾次。也可以改用 App Store 購買補給包。"}</p></div></div>
-  ${tab === "shop" ? "" : `<div class="material-wallet"><span>▰ 木材 <b>${g.materials.wood}</b></span><span>✧ 獸骨 <b>${g.materials.bone}</b></span><span>◆ 琥珀 <b>${g.amber}</b></span></div>`}
+    return `<div class="merchant-banner${tab === "shop" ? " shop-banner" : ""}"><div class="merchant-portrait" aria-hidden="true">${tab === "shop" ? spriteIcon("shop-amber-ingot", "merchant-art") : spriteIcon("merchant", "merchant-art")}<i>${tab === "shop" ? "App Store" : "\u8352\u5883\u884C\u5546"}</i></div><div><b>${tab === "shop" ? "\u4E94\u6B3E\u56FA\u5B9A\u5167\u5BB9\u7684\u9060\u5F81\u88DC\u7D66\u3002" : "\u6750\u6599\u63DB\u597D\u724C\uFF0C\u642D\u914D\u7531\u4F60\u6C7A\u5B9A\u3002"}</b><p>${tab === "shop" ? "\u65B0\u624B\u79AE\u5305\u4E00\u6B21\u3001\u6BCF\u9031\u79AE\u5305\u6BCF\u9031\u4E00\u6B21\uFF1B\u652F\u4ED8\u6210\u529F\u4E14\u4F3A\u670D\u5668\u9A57\u8B49\u5F8C\u624D\u6703\u767C\u653E\u3002" : "\u56FA\u5B9A\u8CA8\u67B6\uFF0C\u4E0D\u62BD\u5361\u3001\u4E0D\u5237\u65B0\u3002\u8CB7\u5E7E\u5F35\uFF0C\u5C31\u80FD\u90E8\u7F72\u5E7E\u6B21\u3002\u4E5F\u53EF\u4EE5\u6539\u7528 App Store \u8CFC\u8CB7\u88DC\u7D66\u5305\u3002"}</p></div></div>
+  ${tab === "shop" ? "" : `<div class="material-wallet"><span>\u25B0 \u6728\u6750 <b>${g.materials.wood}</b></span><span>\u2727 \u7378\u9AA8 <b>${g.materials.bone}</b></span><span>\u25C6 \u7425\u73C0 <b>${g.amber}</b></span></div>`}
   ${payStrip}
-  <div class="market-tabs" role="group" aria-label="商品分類">${tabs.map(([id, label]) => `<button data-market-tab="${id}" class="${id === "shop" ? "pay-tab" : ""}" aria-pressed="${id === tab}">${label}</button>`).join("")}</div>
-  <p id="market-message" class="market-message" role="status">${message || (tab === "shop" ? "選擇禮包後使用 App Store 付款；未經伺服器驗證不會發放。" : "開局含旅行補給；材料與卡牌保存在這次遠征。結算後營火石留在永久營地。")}</p>
+  <div class="market-tabs" role="group" aria-label="\u5546\u54C1\u5206\u985E">${tabs.map(([id, label]) => `<button data-market-tab="${id}" class="${id === "shop" ? "pay-tab" : ""}" aria-pressed="${id === tab}">${label}</button>`).join("")}</div>
+  <p id="market-message" class="market-message" role="status">${message || (tab === "shop" ? "\u9078\u64C7\u79AE\u5305\u5F8C\u4F7F\u7528 App Store \u4ED8\u6B3E\uFF1B\u672A\u7D93\u4F3A\u670D\u5668\u9A57\u8B49\u4E0D\u6703\u767C\u653E\u3002" : "\u958B\u5C40\u542B\u65C5\u884C\u88DC\u7D66\uFF1B\u6750\u6599\u8207\u5361\u724C\u4FDD\u5B58\u5728\u9019\u6B21\u9060\u5F81\u3002\u7D50\u7B97\u5F8C\u71DF\u706B\u77F3\u7559\u5728\u6C38\u4E45\u71DF\u5730\u3002")}</p>
   ${skillPaths}${forgePath}${shop}${grid}
-  <p class="market-footnote">${tab === "shop" ? "付款期間請勿重複點擊；取消或待確認交易都不會提前發卡。限定禮包由伺服器再次校驗。" : "行商只供應本次出征配置中的卡牌、武器與主動技能成長；部分貨架由永久營地設施等級解鎖。建造、升級與部署只消耗卡牌；固定貨架不抽取，也沒有戰後隨機三選一。"}</p>`;
+  <p class="market-footnote">${tab === "shop" ? "\u4ED8\u6B3E\u671F\u9593\u8ACB\u52FF\u91CD\u8907\u9EDE\u64CA\uFF1B\u53D6\u6D88\u6216\u5F85\u78BA\u8A8D\u4EA4\u6613\u90FD\u4E0D\u6703\u63D0\u524D\u767C\u5361\u3002\u9650\u5B9A\u79AE\u5305\u7531\u4F3A\u670D\u5668\u518D\u6B21\u6821\u9A57\u3002" : "\u884C\u5546\u53EA\u4F9B\u61C9\u672C\u6B21\u51FA\u5F81\u914D\u7F6E\u4E2D\u7684\u5361\u724C\u3001\u6B66\u5668\u8207\u4E3B\u52D5\u6280\u80FD\u6210\u9577\uFF1B\u90E8\u5206\u8CA8\u67B6\u7531\u6C38\u4E45\u71DF\u5730\u8A2D\u65BD\u7B49\u7D1A\u89E3\u9396\u3002\u5EFA\u9020\u3001\u5347\u7D1A\u8207\u90E8\u7F72\u53EA\u6D88\u8017\u5361\u724C\uFF1B\u56FA\u5B9A\u8CA8\u67B6\u4E0D\u62BD\u53D6\uFF0C\u4E5F\u6C92\u6709\u6230\u5F8C\u96A8\u6A5F\u4E09\u9078\u4E00\u3002"}</p>`;
   }
 
-  // prototypes/emberwild/storekit-shop.mjs
   var resultObject = (value) => {
     if (value && typeof value === "object") return value;
     try {
@@ -3817,20 +3848,20 @@
       };
     }
     available() {
-      return typeof this.host.android?.miniPurchase === "function";
+      return typeof this.host.pbmNative?.miniPurchase === "function";
     }
     purchase(offer) {
-      if (this.pending) throw new StoreKitShopError("PAYMENT_IN_PROGRESS", "已有一筆付款正在處理，請勿重複點擊");
-      if (!offer?.id || !offer?.productId || !Number.isInteger(offer.goodsId)) throw new StoreKitShopError("INVALID_OFFER", "商品設定不完整");
-      if (!this.available()) throw new StoreKitShopError("IOS_APP_REQUIRED", "請在 iOS App 內使用 App Store 付款");
+      if (this.pending) throw new StoreKitShopError("PAYMENT_IN_PROGRESS", "\u5DF2\u6709\u4E00\u7B46\u4ED8\u6B3E\u6B63\u5728\u8655\u7406\uFF0C\u8ACB\u52FF\u91CD\u8907\u9EDE\u64CA");
+      if (!offer?.id || !offer?.productId || !Number.isInteger(offer.goodsId)) throw new StoreKitShopError("INVALID_OFFER", "\u5546\u54C1\u8A2D\u5B9A\u4E0D\u5B8C\u6574");
+      if (!this.available()) throw new StoreKitShopError("IOS_APP_REQUIRED", "\u8ACB\u5728 iOS App \u5167\u4F7F\u7528 App Store \u4ED8\u6B3E");
       const clientRequestId = requestId(this.host);
       return new Promise((resolve, reject) => {
         this.pending = { clientRequestId, offerId: offer.id, resolve, reject };
         try {
-          this.host.android.miniPurchase(JSON.stringify({ offerId: offer.id, clientRequestId }));
+          this.host.pbmNative.miniPurchase(JSON.stringify({ offerId: offer.id, clientRequestId }));
         } catch (error) {
           this.pending = null;
-          reject(new StoreKitShopError("NATIVE_BRIDGE_FAILED", error?.message || "無法連接 App Store"));
+          reject(new StoreKitShopError("NATIVE_BRIDGE_FAILED", error?.message || "\u7121\u6CD5\u9023\u63A5 App Store"));
         }
       });
     }
@@ -3847,28 +3878,27 @@
       }
       if (["onPayFail", "onPayCancel", "onPayPending"].includes(payload.func)) {
         finish();
-        pending.reject(new StoreKitShopError(String(payload.code || "PAYMENT_NOT_COMPLETED"), String(payload.message || "付款未完成")));
+        pending.reject(new StoreKitShopError(String(payload.code || "PAYMENT_NOT_COMPLETED"), String(payload.message || "\u4ED8\u6B3E\u672A\u5B8C\u6210")));
         return true;
       }
       return false;
     }
   };
 
-  // prototypes/emberwild/camp.mjs
   var CAMP_PRODUCTION = Object.freeze({
-    tent: Object.freeze({ resource: "wood", name: "木材", icon: "▰", per: "每完成 2 關" }),
-    forge: Object.freeze({ resource: "bone", name: "獸骨", icon: "✧", per: "每完成 3 關" }),
-    cache: Object.freeze({ resource: "amber", name: "琥珀", icon: "◆", per: "每完成 4 關" }),
-    nursery: Object.freeze({ resource: "warmth", name: "孵化熱度", icon: "♨", per: "每完成 3 關" })
+    tent: Object.freeze({ resource: "wood", name: "\u6728\u6750", icon: "\u25B0", per: "\u6BCF\u5B8C\u6210 2 \u95DC" }),
+    forge: Object.freeze({ resource: "bone", name: "\u7378\u9AA8", icon: "\u2727", per: "\u6BCF\u5B8C\u6210 3 \u95DC" }),
+    cache: Object.freeze({ resource: "amber", name: "\u7425\u73C0", icon: "\u25C6", per: "\u6BCF\u5B8C\u6210 4 \u95DC" }),
+    nursery: Object.freeze({ resource: "warmth", name: "\u5B75\u5316\u71B1\u5EA6", icon: "\u2668", per: "\u6BCF\u5B8C\u6210 3 \u95DC" })
   });
   var CAMP_TASKS = Object.freeze({
-    porter: Object.freeze({ name: "搬運工阿拓", title: "營地整備", detail: "建造或升級 1 次永久設施。", reward: Object.freeze({ wood: 3, amber: 1, stones: 1 }) }),
-    hunter: Object.freeze({ name: "巡林獵人瑟雅", title: "獸群懸賞", detail: "在遠征中累計擊敗指定數量的敵人。", reward: Object.freeze({ bone: 4, amber: 2, stones: 1 }) })
+    porter: Object.freeze({ name: "\u642C\u904B\u5DE5\u963F\u62D3", title: "\u71DF\u5730\u6574\u5099", detail: "\u5EFA\u9020\u6216\u5347\u7D1A 1 \u6B21\u6C38\u4E45\u8A2D\u65BD\u3002", reward: Object.freeze({ wood: 3, amber: 1, stones: 1 }) }),
+    hunter: Object.freeze({ name: "\u5DE1\u6797\u7375\u4EBA\u745F\u96C5", title: "\u7378\u7FA4\u61F8\u8CDE", detail: "\u5728\u9060\u5F81\u4E2D\u7D2F\u8A08\u64CA\u6557\u6307\u5B9A\u6578\u91CF\u7684\u6575\u4EBA\u3002", reward: Object.freeze({ bone: 4, amber: 2, stones: 1 }) })
   });
   var HATCH_REQUIREMENTS = Object.freeze({
-    emberclaw: Object.freeze({ nursery: 0, warmth: 0, label: "初始聖獸卵" }),
-    tideroot: Object.freeze({ nursery: 1, warmth: 3, label: "需要 1 級獸卵溫室" }),
-    stoneback: Object.freeze({ nursery: 2, warmth: 5, label: "需要 2 級獸卵溫室" })
+    emberclaw: Object.freeze({ nursery: 0, warmth: 0, label: "\u521D\u59CB\u8056\u7378\u5375" }),
+    tideroot: Object.freeze({ nursery: 1, warmth: 3, label: "\u9700\u8981 1 \u7D1A\u7378\u5375\u6EAB\u5BA4" }),
+    stoneback: Object.freeze({ nursery: 2, warmth: 5, label: "\u9700\u8981 2 \u7D1A\u7378\u5375\u6EAB\u5BA4" })
   });
   var lockedGoods = Object.freeze({ bow: ["forge", 1], blades: ["forge", 2], hammer: ["forge", 3], armor: ["tent", 1], heart: ["tent", 2], dash: ["tent", 3], builder: ["cache", 1], loot: ["cache", 2], repair: ["cache", 3] });
   var facilityLevel = (camp, type) => camp.buildings.find((building) => building.type === type)?.level || 0;
@@ -3891,26 +3921,26 @@
   function hatchPlan(state, type) {
     ensureCampProgress(state.camp);
     const requirement = HATCH_REQUIREMENTS[type];
-    if (!requirement) return { ok: false, reason: "找不到這枚聖獸卵" };
+    if (!requirement) return { ok: false, reason: "\u627E\u4E0D\u5230\u9019\u679A\u8056\u7378\u5375" };
     const nursery = facilityLevel(state.camp, "nursery"), warmth = state.camp.stockpile.warmth;
-    if (nursery < requirement.nursery) return { ok: false, reason: `${requirement.label}才能孵化` };
-    if (warmth < requirement.warmth) return { ok: false, reason: `還需要 ${requirement.warmth - warmth} 點孵化熱度` };
+    if (nursery < requirement.nursery) return { ok: false, reason: `${requirement.label}\u624D\u80FD\u5B75\u5316` };
+    if (warmth < requirement.warmth) return { ok: false, reason: `\u9084\u9700\u8981 ${requirement.warmth - warmth} \u9EDE\u5B75\u5316\u71B1\u5EA6` };
     return { ok: true, cost: requirement.warmth, nursery };
   }
   function collectCampProduction(state, type) {
     const camp = ensureCampProgress(state.camp), building = camp.buildings.find((entry) => entry.type === type), def = CAMP_PRODUCTION[type], amount = camp.production[type] || 0;
-    if (!building || !def) return { ok: false, reason: "這座生產設施尚未建造" };
-    if (amount <= 0) return { ok: false, reason: "完成遠征關卡後才會產出" };
+    if (!building || !def) return { ok: false, reason: "\u9019\u5EA7\u751F\u7522\u8A2D\u65BD\u5C1A\u672A\u5EFA\u9020" };
+    if (amount <= 0) return { ok: false, reason: "\u5B8C\u6210\u9060\u5F81\u95DC\u5361\u5F8C\u624D\u6703\u7522\u51FA" };
     const claimed = Math.min(amount, 999 - camp.stockpile[def.resource]);
-    if (claimed <= 0) return { ok: false, reason: `${def.name}倉儲已滿，先帶入遠征再領取` };
+    if (claimed <= 0) return { ok: false, reason: `${def.name}\u5009\u5132\u5DF2\u6EFF\uFF0C\u5148\u5E36\u5165\u9060\u5F81\u518D\u9818\u53D6` };
     camp.production[type] -= claimed;
     camp.stockpile[def.resource] += claimed;
     return { ok: true, amount: claimed, remaining: camp.production[type], resource: def.resource, name: def.name };
   }
   function claimCampTask(state, npc) {
     const camp = ensureCampProgress(state.camp), task = camp.tasks[npc], def = CAMP_TASKS[npc];
-    if (!task || !def) return { ok: false, reason: "找不到這項營地委託" };
-    if (!task.ready) return { ok: false, reason: "委託尚未完成" };
+    if (!task || !def) return { ok: false, reason: "\u627E\u4E0D\u5230\u9019\u9805\u71DF\u5730\u59D4\u8A17" };
+    if (!task.ready) return { ok: false, reason: "\u59D4\u8A17\u5C1A\u672A\u5B8C\u6210" };
     for (const resource of ["wood", "bone", "amber"]) camp.stockpile[resource] = Math.min(999, camp.stockpile[resource] + (def.reward[resource] || 0));
     camp.stones = Math.min(1e8, camp.stones + (def.reward.stones || 0));
     task.cycles++;
@@ -3936,20 +3966,20 @@
     return camp;
   }
   var FACILITIES = Object.freeze({
-    tent: { name: "獵人帳篷", costs: [3, 5, 8], tag: "體魄", desc: "提高出征生命並生產木材；等級依次解鎖護甲、巨獸之心與踏風步。", benefit: (l) => `生命 +${l * 10} · 木材 ×${l}` },
-    forge: { name: "骨器工坊", costs: [4, 6, 9], tag: "武技", desc: "強化所有主武器並生產獸骨；一至三級依次解鎖獵骨弓、裂牙雙刃和震骨重錘。", benefit: (l) => `武器 +${l * 5}% · 獸骨 ×${l}` },
-    cache: { name: "補給倉庫", costs: [3, 5, 8], tag: "籌備", desc: "增加出征琥珀並持續生產琥珀；等級解鎖工匠、拾荒和守巢商品。", benefit: (l) => `出征琥珀 +${l * 2} · 產出 ×${l}` },
-    nursery: { name: "獸卵溫室", costs: [3, 5, 8], tag: "守護", desc: "提高聖獸卵耐久並生產孵化熱度；升級後可以孵化更多伙伴。", benefit: (l) => `獸卵 +${l * 15} · 熱度 ×${l}` }
+    tent: { name: "\u7375\u4EBA\u5E33\u7BF7", costs: [3, 5, 8], tag: "\u9AD4\u9B44", desc: "\u63D0\u9AD8\u51FA\u5F81\u751F\u547D\u4E26\u751F\u7522\u6728\u6750\uFF1B\u7B49\u7D1A\u4F9D\u6B21\u89E3\u9396\u8B77\u7532\u3001\u5DE8\u7378\u4E4B\u5FC3\u8207\u8E0F\u98A8\u6B65\u3002", benefit: (l) => `\u751F\u547D +${l * 10} \xB7 \u6728\u6750 \xD7${l}` },
+    forge: { name: "\u9AA8\u5668\u5DE5\u574A", costs: [4, 6, 9], tag: "\u6B66\u6280", desc: "\u5F37\u5316\u6240\u6709\u4E3B\u6B66\u5668\u4E26\u751F\u7522\u7378\u9AA8\uFF1B\u4E00\u81F3\u4E09\u7D1A\u4F9D\u6B21\u89E3\u9396\u7375\u9AA8\u5F13\u3001\u88C2\u7259\u96D9\u5203\u548C\u9707\u9AA8\u91CD\u9318\u3002", benefit: (l) => `\u6B66\u5668 +${l * 5}% \xB7 \u7378\u9AA8 \xD7${l}` },
+    cache: { name: "\u88DC\u7D66\u5009\u5EAB", costs: [3, 5, 8], tag: "\u7C4C\u5099", desc: "\u589E\u52A0\u51FA\u5F81\u7425\u73C0\u4E26\u6301\u7E8C\u751F\u7522\u7425\u73C0\uFF1B\u7B49\u7D1A\u89E3\u9396\u5DE5\u5320\u3001\u62FE\u8352\u548C\u5B88\u5DE2\u5546\u54C1\u3002", benefit: (l) => `\u51FA\u5F81\u7425\u73C0 +${l * 2} \xB7 \u7522\u51FA \xD7${l}` },
+    nursery: { name: "\u7378\u5375\u6EAB\u5BA4", costs: [3, 5, 8], tag: "\u5B88\u8B77", desc: "\u63D0\u9AD8\u8056\u7378\u5375\u8010\u4E45\u4E26\u751F\u7522\u5B75\u5316\u71B1\u5EA6\uFF1B\u5347\u7D1A\u5F8C\u53EF\u4EE5\u5B75\u5316\u66F4\u591A\u4F19\u4F34\u3002", benefit: (l) => `\u7378\u5375 +${l * 15} \xB7 \u71B1\u5EA6 \xD7${l}` }
   });
   function campPlan(state, type, slot) {
-    if (!Object.hasOwn(FACILITIES, type) || !Number.isInteger(slot) || slot < 0 || slot >= 6) return { ok: false, reason: "請選擇營地中的建築地塊" };
+    if (!Object.hasOwn(FACILITIES, type) || !Number.isInteger(slot) || slot < 0 || slot >= 6) return { ok: false, reason: "\u8ACB\u9078\u64C7\u71DF\u5730\u4E2D\u7684\u5EFA\u7BC9\u5730\u584A" };
     const here = state.camp.buildings.find((b) => b.slot === slot), existing = state.camp.buildings.find((b) => b.type === type), def = FACILITIES[type];
-    if (here && here.type !== type) return { ok: false, reason: "地塊已被其他建築使用" };
-    if (existing && existing !== here) return { ok: false, reason: "同類建築只能一座；拖到原建築可升級" };
+    if (here && here.type !== type) return { ok: false, reason: "\u5730\u584A\u5DF2\u88AB\u5176\u4ED6\u5EFA\u7BC9\u4F7F\u7528" };
+    if (existing && existing !== here) return { ok: false, reason: "\u540C\u985E\u5EFA\u7BC9\u53EA\u80FD\u4E00\u5EA7\uFF1B\u62D6\u5230\u539F\u5EFA\u7BC9\u53EF\u5347\u7D1A" };
     const level = here?.level || 0;
-    if (level >= 3) return { ok: false, reason: "已達最高三級" };
+    if (level >= 3) return { ok: false, reason: "\u5DF2\u9054\u6700\u9AD8\u4E09\u7D1A" };
     const cost = def.costs[level];
-    if (state.camp.stones < cost) return { ok: false, reason: `需要 ${cost} 營火石，完成遠征波次後結算取得` };
+    if (state.camp.stones < cost) return { ok: false, reason: `\u9700\u8981 ${cost} \u71DF\u706B\u77F3\uFF0C\u5B8C\u6210\u9060\u5F81\u6CE2\u6B21\u5F8C\u7D50\u7B97\u53D6\u5F97` };
     return { ok: true, type, slot, cost, level: level + 1, upgrade: !!here };
   }
   function buildCamp(state, type, slot) {
@@ -3967,11 +3997,11 @@
     return p;
   }
   function moveCamp(state, from, to) {
-    if (!Number.isInteger(to) || to < 0 || to >= 6) throw new Error("請移到營地內的空地塊");
+    if (!Number.isInteger(to) || to < 0 || to >= 6) throw new Error("\u8ACB\u79FB\u5230\u71DF\u5730\u5167\u7684\u7A7A\u5730\u584A");
     const b = state.camp.buildings.find((b2) => b2.slot === from);
-    if (!b) throw new Error("找不到這座建築");
+    if (!b) throw new Error("\u627E\u4E0D\u5230\u9019\u5EA7\u5EFA\u7BC9");
     if (from === to) return false;
-    if (state.camp.buildings.some((b2) => b2.slot === to)) throw new Error("目標地塊已被使用");
+    if (state.camp.buildings.some((b2) => b2.slot === to)) throw new Error("\u76EE\u6A19\u5730\u584A\u5DF2\u88AB\u4F7F\u7528");
     b.slot = to;
     return true;
   }
@@ -4002,11 +4032,10 @@
     return g;
   }
   function rewardFor(snapshot) {
-    if (!["win", "lose"].includes(snapshot.phase)) throw new Error("遠征尚未結束，不能結算");
+    if (!["win", "lose"].includes(snapshot.phase)) throw new Error("\u9060\u5F81\u5C1A\u672A\u7D50\u675F\uFF0C\u4E0D\u80FD\u7D50\u7B97");
     return Math.max(0, Math.min(MAX_WAVES, snapshot.stats.waves)) * 2 + (snapshot.phase === "win" ? 8 : 0);
   }
 
-  // prototypes/emberwild/save.mjs
   var SAVE_KEY = "emberwild_save_v2";
   var BACKUP_KEY = "emberwild_save_v2_backup";
   var LEGACY_KEY = "emberwild_prototype_v1";
@@ -4014,7 +4043,7 @@
   var clone = (value) => JSON.parse(JSON.stringify(value));
   var num = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
   var need = (ok) => {
-    if (!ok) throw new Error("營地存檔格式損壞或版本不相容");
+    if (!ok) throw new Error("\u71DF\u5730\u5B58\u6A94\u683C\u5F0F\u640D\u58DE\u6216\u7248\u672C\u4E0D\u76F8\u5BB9");
   };
   function freshCompanionState() {
     return { selected: null, roster: Object.fromEntries(Object.keys(COMPANIONS).map((type) => [type, { unlocked: false, level: 1, xp: 0 }])) };
@@ -4076,7 +4105,7 @@
     }
     if (state.profile.purchaseTransactions !== void 0) {
       need(Array.isArray(state.profile.purchaseTransactions) && state.profile.purchaseTransactions.length <= 200);
-      const ids = /* @__PURE__ */ new Set();
+      const ids = new Set();
       for (const item of state.profile.purchaseTransactions) {
         need(item && /^\d{1,40}$/.test(item.transactionId) && /^[a-z0-9-]{1,40}$/.test(item.offerId) && num(item.deliveredAt, 0, Number.MAX_SAFE_INTEGER) && !ids.has(item.transactionId));
         ids.add(item.transactionId);
@@ -4106,7 +4135,7 @@
       const p = state.camp.position;
       need(p && Number.isFinite(p.x) && p.x >= 80 && p.x <= 1920 && Number.isFinite(p.y) && p.y >= 80 && p.y <= 1620 && Number.isFinite(p.angle) && Math.abs(p.angle) <= Math.PI * 2);
     }
-    const slots = /* @__PURE__ */ new Set(), types = /* @__PURE__ */ new Set();
+    const slots = new Set(), types = new Set();
     for (const b of state.camp.buildings) {
       need(b && Object.hasOwn(FACILITIES, b.type) && num(b.slot, 0, 5) && num(b.level, 1, 3) && !slots.has(b.slot) && !types.has(b.type));
       slots.add(b.slot);
@@ -4138,9 +4167,9 @@
     return JSON.stringify({ ...payload, checksum: digest(JSON.stringify(payload)) });
   }
   function decode(raw) {
-    if (typeof raw !== "string" || raw.length > 5e5) throw new Error("存檔為空或超過大小限制");
+    if (typeof raw !== "string" || raw.length > 5e5) throw new Error("\u5B58\u6A94\u70BA\u7A7A\u6216\u8D85\u904E\u5927\u5C0F\u9650\u5236");
     const e = JSON.parse(raw);
-    if (![2, 3, 4, 5, 6, 7, 8, 9, 10].includes(e?.version)) throw new Error("存檔版本不相容，請保留備份");
+    if (![2, 3, 4, 5, 6, 7, 8, 9, 10].includes(e?.version)) throw new Error("\u5B58\u6A94\u7248\u672C\u4E0D\u76F8\u5BB9\uFF0C\u8ACB\u4FDD\u7559\u5099\u4EFD");
     need(num(e.revision, 0, Number.MAX_SAFE_INTEGER) && num(e.updatedAt, 0, Number.MAX_SAFE_INTEGER));
     need(e.checksum === digest(JSON.stringify({ version: e.version, revision: e.revision, updatedAt: e.updatedAt, state: e.state })));
     validateState(e.state);
@@ -4179,21 +4208,21 @@
         }
         if (future) {
           this.blocked = true;
-          this.warning = "這份存檔來自較新版本，已停止寫入。請先匯出備份。";
+          this.warning = "\u9019\u4EFD\u5B58\u6A94\u4F86\u81EA\u8F03\u65B0\u7248\u672C\uFF0C\u5DF2\u505C\u6B62\u5BEB\u5165\u3002\u8ACB\u5148\u532F\u51FA\u5099\u4EFD\u3002";
           return;
         }
         if (backup) {
           try {
             const e = decode(backup);
             this.accept(e, backup);
-            this.warning = "主存檔異常，已恢復上一份備份。";
+            this.warning = "\u4E3B\u5B58\u6A94\u7570\u5E38\uFF0C\u5DF2\u6062\u5FA9\u4E0A\u4E00\u4EFD\u5099\u4EFD\u3002";
             return;
           } catch {
           }
         }
         if (this.raw || backup) {
           this.blocked = true;
-          this.warning = "存檔無法讀取，已保留原資料並停止寫入。可先匯出備份。";
+          this.warning = "\u5B58\u6A94\u7121\u6CD5\u8B80\u53D6\uFF0C\u5DF2\u4FDD\u7559\u539F\u8CC7\u6599\u4E26\u505C\u6B62\u5BEB\u5165\u3002\u53EF\u5148\u532F\u51FA\u5099\u4EFD\u3002";
           return;
         }
         let legacy = {};
@@ -4204,7 +4233,7 @@
         this.state = freshState(legacy);
       } catch {
         this.blocked = true;
-        this.warning = "瀏覽器不允許本機儲存；請允許儲存後再開始遠征。";
+        this.warning = "\u700F\u89BD\u5668\u4E0D\u5141\u8A31\u672C\u6A5F\u5132\u5B58\uFF1B\u8ACB\u5141\u8A31\u5132\u5B58\u5F8C\u518D\u958B\u59CB\u9060\u5F81\u3002";
       }
     }
     accept(e, raw) {
@@ -4218,9 +4247,9 @@
       this.validRaw = raw;
     }
     commit(fn) {
-      if (this.blocked) throw new Error(this.warning || "存檔暫不可寫入");
+      if (this.blocked) throw new Error(this.warning || "\u5B58\u6A94\u66AB\u4E0D\u53EF\u5BEB\u5165");
       if (this.storage.getItem(SAVE_KEY) !== this.raw) {
-        const e = new Error("另一個頁面已更新存檔，請載入最新進度");
+        const e = new Error("\u53E6\u4E00\u500B\u9801\u9762\u5DF2\u66F4\u65B0\u5B58\u6A94\uFF0C\u8ACB\u8F09\u5165\u6700\u65B0\u9032\u5EA6");
         e.code = "CONFLICT";
         throw e;
       }
@@ -4241,7 +4270,7 @@
       try {
         this.storage.setItem(SAVE_KEY, raw);
       } catch {
-        throw new Error("存檔失敗：儲存空間不足或被禁止，進度尚未寫入");
+        throw new Error("\u5B58\u6A94\u5931\u6557\uFF1A\u5132\u5B58\u7A7A\u9593\u4E0D\u8DB3\u6216\u88AB\u7981\u6B62\uFF0C\u9032\u5EA6\u5C1A\u672A\u5BEB\u5165");
       }
       this.raw = raw;
       this.accept(decode(raw), raw);
@@ -4261,7 +4290,7 @@
     putRun(state, source) {
       const snapshot = typeof source === "function" ? source() : source;
       validateSnapshot(snapshot);
-      if (state.run?.runId !== snapshot.runId) throw new Error("遠征存檔已變更，請重新載入");
+      if (state.run?.runId !== snapshot.runId) throw new Error("\u9060\u5F81\u5B58\u6A94\u5DF2\u8B8A\u66F4\uFF0C\u8ACB\u91CD\u65B0\u8F09\u5165");
       state.run = clone(snapshot);
       syncCompanionProgress(state, snapshot);
     }
@@ -4274,11 +4303,11 @@
     begin(snapshot, replace = false) {
       validateSnapshot(snapshot);
       return this.mutate((s) => {
-        if (s.run?.tutorial?.mandatory && s.run.tutorial.status === "active") throw new Error("請先完成新手訓練，不可替換教學遠征");
-        if (s.run && !replace) throw new Error("已有未完成遠征，請先繼續或確認放棄");
+        if (s.run?.tutorial?.mandatory && s.run.tutorial.status === "active") throw new Error("\u8ACB\u5148\u5B8C\u6210\u65B0\u624B\u8A13\u7DF4\uFF0C\u4E0D\u53EF\u66FF\u63DB\u6559\u5B78\u9060\u5F81");
+        if (s.run && !replace) throw new Error("\u5DF2\u6709\u672A\u5B8C\u6210\u9060\u5F81\uFF0C\u8ACB\u5148\u7E7C\u7E8C\u6216\u78BA\u8A8D\u653E\u68C4");
         const camp = ensureCampProgress(s.camp), bonus = snapshot.campSupplyBonus || { wood: 0, bone: 0, amber: 0 };
         for (const resource of ["wood", "bone", "amber"]) {
-          if (camp.stockpile[resource] < bonus[resource]) throw new Error("營地補給已被另一個頁面使用，請重新載入");
+          if (camp.stockpile[resource] < bonus[resource]) throw new Error("\u71DF\u5730\u88DC\u7D66\u5DF2\u88AB\u53E6\u4E00\u500B\u9801\u9762\u4F7F\u7528\uFF0C\u8ACB\u91CD\u65B0\u8F09\u5165");
           camp.stockpile[resource] -= bonus[resource];
         }
         s.profile.runs = Math.min(1e6, s.profile.runs + 1);
@@ -4290,7 +4319,7 @@
       validateSnapshot(snapshot);
       return this.mutate((s) => {
         if (s.lastResult?.id === snapshot.runId) return s.lastResult;
-        if (s.run?.runId !== snapshot.runId) throw new Error("這場遠征已結算或不是目前存檔");
+        if (s.run?.runId !== snapshot.runId) throw new Error("\u9019\u5834\u9060\u5F81\u5DF2\u7D50\u7B97\u6216\u4E0D\u662F\u76EE\u524D\u5B58\u6A94");
         const stones = rewardFor(snapshot), won = snapshot.phase === "win";
         syncCompanionProgress(s, snapshot);
         recordCampExpedition(s, snapshot);
@@ -4314,11 +4343,11 @@
     }
     recordStoreKitDelivery(snapshot, { transactionId, offerId, deliveredAt = Date.now() }) {
       validateSnapshot(snapshot);
-      if (!/^\d{1,40}$/.test(String(transactionId || "")) || !/^[a-z0-9-]{1,40}$/.test(String(offerId || ""))) throw new Error("付款回傳資料不完整");
+      if (!/^\d{1,40}$/.test(String(transactionId || "")) || !/^[a-z0-9-]{1,40}$/.test(String(offerId || ""))) throw new Error("\u4ED8\u6B3E\u56DE\u50B3\u8CC7\u6599\u4E0D\u5B8C\u6574");
       return this.mutate((s) => {
         const ledger = s.profile.purchaseTransactions || (s.profile.purchaseTransactions = []);
         if (ledger.some((item) => item.transactionId === String(transactionId))) return false;
-        if (s.run?.runId !== snapshot.runId) throw new Error("付款已驗證，但目前遠征已變更；請勿重複購買");
+        if (s.run?.runId !== snapshot.runId) throw new Error("\u4ED8\u6B3E\u5DF2\u9A57\u8B49\uFF0C\u4F46\u76EE\u524D\u9060\u5F81\u5DF2\u8B8A\u66F4\uFF1B\u8ACB\u52FF\u91CD\u8907\u8CFC\u8CB7");
         s.run = clone(snapshot);
         ledger.push({ transactionId: String(transactionId), offerId: String(offerId), deliveredAt });
         if (ledger.length > 200) ledger.splice(0, ledger.length - 200);
@@ -4334,13 +4363,13 @@
         for (const kind of kinds) {
           if (kind === "starter") prompts.starterShown = true;
           else if (kind === "weekly") prompts.weeklyShownWeek = week;
-          else throw new Error("禮包提示類型無效");
+          else throw new Error("\u79AE\u5305\u63D0\u793A\u985E\u578B\u7121\u6548");
         }
       });
     }
     abandon() {
       return this.mutate((s) => {
-        if (s.run?.tutorial?.mandatory && s.run.tutorial.status === "active") throw new Error("請先完成新手訓練，不可放棄教學");
+        if (s.run?.tutorial?.mandatory && s.run.tutorial.status === "active") throw new Error("\u8ACB\u5148\u5B8C\u6210\u65B0\u624B\u8A13\u7DF4\uFF0C\u4E0D\u53EF\u653E\u68C4\u6559\u5B78");
         s.run = null;
       });
     }
@@ -4348,12 +4377,12 @@
       const task = async () => {
         const transaction = () => {
           if (this.storage.getItem(SAVE_KEY) !== this.raw) {
-            const e = new Error("另一個頁面已更新存檔，請重新載入後再刪除");
+            const e = new Error("\u53E6\u4E00\u500B\u9801\u9762\u5DF2\u66F4\u65B0\u5B58\u6A94\uFF0C\u8ACB\u91CD\u65B0\u8F09\u5165\u5F8C\u518D\u522A\u9664");
             e.code = "CONFLICT";
             throw e;
           }
           for (const key of [BACKUP_KEY, LEGACY_KEY, SAVE_KEY]) this.storage.removeItem(key);
-          if (PROGRESS_KEYS.some((key) => this.storage.getItem(key) !== null)) throw new Error("存檔刪除未完成，請關閉其他遊戲頁後重試。");
+          if (PROGRESS_KEYS.some((key) => this.storage.getItem(key) !== null)) throw new Error("\u5B58\u6A94\u522A\u9664\u672A\u5B8C\u6210\uFF0C\u8ACB\u95DC\u9589\u5176\u4ED6\u904A\u6232\u9801\u5F8C\u91CD\u8A66\u3002");
           this.reload();
           return true;
         };
@@ -4381,18 +4410,17 @@
     }
   };
 
-  // prototypes/emberwild/camp-world.mjs
   var CAMP_WORLD = Object.freeze({ width: 2e3, height: 1700, start: { x: 980, y: 960 }, speed: 185, sprint: 280, reach: 135, radius: 18 });
   var CAMP_SITES = Object.freeze([
-    { id: "plot-0", kind: "plot", slot: 0, x: 630, y: 690, label: "西林地塊" },
-    { id: "plot-1", kind: "plot", slot: 1, x: 630, y: 1160, label: "溪畔地塊" },
-    { id: "fire", kind: "fire", x: 960, y: 800, label: "營火" },
-    { id: "merchant", kind: "merchant", x: 1260, y: 760, label: "荒境行商" },
-    { id: "plot-2", kind: "plot", slot: 2, x: 1530, y: 760, label: "東林地塊" },
-    { id: "plot-3", kind: "plot", slot: 3, x: 1490, y: 1200, label: "石階地塊" },
-    { id: "plot-4", kind: "plot", slot: 4, x: 1030, y: 1370, label: "南林地塊" },
-    { id: "plot-5", kind: "plot", slot: 5, x: 390, y: 940, label: "蕨叢地塊" },
-    { id: "gate", kind: "gate", x: 1730, y: 400, label: "遠征山口" }
+    { id: "plot-0", kind: "plot", slot: 0, x: 630, y: 690, label: "\u897F\u6797\u5730\u584A" },
+    { id: "plot-1", kind: "plot", slot: 1, x: 630, y: 1160, label: "\u6EAA\u7554\u5730\u584A" },
+    { id: "fire", kind: "fire", x: 960, y: 800, label: "\u71DF\u706B" },
+    { id: "merchant", kind: "merchant", x: 1260, y: 760, label: "\u8352\u5883\u884C\u5546" },
+    { id: "plot-2", kind: "plot", slot: 2, x: 1530, y: 760, label: "\u6771\u6797\u5730\u584A" },
+    { id: "plot-3", kind: "plot", slot: 3, x: 1490, y: 1200, label: "\u77F3\u968E\u5730\u584A" },
+    { id: "plot-4", kind: "plot", slot: 4, x: 1030, y: 1370, label: "\u5357\u6797\u5730\u584A" },
+    { id: "plot-5", kind: "plot", slot: 5, x: 390, y: 940, label: "\u8568\u53E2\u5730\u584A" },
+    { id: "gate", kind: "gate", x: 1730, y: 400, label: "\u9060\u5F81\u5C71\u53E3" }
   ]);
   var dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   function campObstacles(state) {
@@ -4463,7 +4491,7 @@
         return false;
       }
       const start = { ...anchors[0], g: dist(this, anchors[0]), parent: null };
-      const open = [start], best = /* @__PURE__ */ new Map([[key(start.x, start.y), 0]]), closed = /* @__PURE__ */ new Set();
+      const open = [start], best = new Map([[key(start.x, start.y), 0]]), closed = new Set();
       let found = null;
       for (let i = 0; open.length && i < 3e3; i++) {
         open.sort((a, b) => a.g + dist(a, goal) - (b.g + dist(b, goal)));
@@ -4531,7 +4559,6 @@
     }
   };
 
-  // prototypes/emberwild/camp-residents.mjs
   var distance2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   var routes = {
     porter: [{ x: 780, y: 1030, wait: 3.1 }, { x: 1380, y: 1050, wait: 4.2 }, { x: 1350, y: 890, wait: 3.3 }, { x: 750, y: 810, wait: 2.8 }],
@@ -4619,7 +4646,6 @@
     }
   };
 
-  // prototypes/emberwild/camp-renderer.mjs
   var oval = (c, x, y, rx, ry, color) => {
     c.beginPath();
     c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
@@ -4740,7 +4766,7 @@
       } else objects.push({ y: 1060, draw: () => {
         oval(c, 860, 1068, 45, 16, "#173a2b55");
         drawSprite(c, "sacred-egg", 860, 1080, { height: 118 });
-        text2(c, "等待孵化的聖獸卵", 860, 1098, 12);
+        text2(c, "\u7B49\u5F85\u5B75\u5316\u7684\u8056\u7378\u5375", 860, 1098, 12);
       } });
       for (let i = 0; i < 10; i++) {
         const x = 250 + i * 283 % 1500, y = 250 + i * 397 % 1250;
@@ -4825,9 +4851,9 @@
             line2(c, [[x, y], [x, y - 19]], "#967c50", 5);
             poly(c, [[x, y - 19], [x + 17, y - 14], [x, y - 6]], "#c6cc91");
           }
-          text2(c, "＋", 0, 15, 29, "#ecdfab");
+          text2(c, "\uFF0B", 0, 15, 29, "#ecdfab");
         }
-        text2(c, b ? `${FACILITIES[b.type].name} ${"◆".repeat(b.level)}` : s.label, 0, b ? -208 : -65, 13);
+        text2(c, b ? `${FACILITIES[b.type].name} ${"\u25C6".repeat(b.level)}` : s.label, 0, b ? -208 : -65, 13);
       } else if (s.kind === "fire") {
         if (drawSprite(c, "campfire", 0, 24, { height: 128, width: 137 })) {
           const glow2 = c.createRadialGradient(0, -14, 2, 0, -14, 76);
@@ -4836,7 +4862,7 @@
           c.fillStyle = glow2;
           c.fillRect(-80, -94, 160, 160);
           for (let i = 0; i < 5; i++) oval(c, Math.sin(t * 2 + i) * 17, -27 - (t * 27 + i * 13) % 56, 1.5, 2, "#ffe4a4b3");
-          text2(c, "營火 · 休整", 0, 63, 14);
+          text2(c, "\u71DF\u706B \xB7 \u4F11\u6574", 0, 63, 14);
           c.restore();
           return;
         }
@@ -4853,12 +4879,12 @@
         c.fillRect(-140, -155, 280, 280);
         poly(c, [[-21, 0], [-28, -27], [-12, -48], [-6, -30], [3, -72 - Math.sin(t * 8) * 6], [25, -29], [17, 4]], "#f1aa52");
         poly(c, [[-9, 0], [0, -32], [11, -11], [6, 3]], "#fff0b4");
-        text2(c, "營火 · 休整", 0, 63, 14);
+        text2(c, "\u71DF\u706B \xB7 \u4F11\u6574", 0, 63, 14);
       } else if (s.kind === "merchant") {
         if (drawSprite(c, "merchant-stall", 0, 40, { height: 205, width: 229 })) {
           drawSprite(c, "merchant", 65, 56, { height: 77 });
-          text2(c, "荒境行商", 0, -190, 18);
-          text2(c, "建造 · 雇佣 · 武技", 0, 83, 12);
+          text2(c, "\u8352\u5883\u884C\u5546", 0, -190, 18);
+          text2(c, "\u5EFA\u9020 \xB7 \u96C7\u4F63 \xB7 \u6B66\u6280", 0, 83, 12);
           c.restore();
           return;
         }
@@ -4871,21 +4897,21 @@
         line2(c, [[-68, 7], [68, 7]], "#d2b577", 3);
         for (let i = 0; i < 4; i++) poly(c, [[-56 + i * 28, -10], [-51 + i * 28, -35], [-33 + i * 28, -32], [-31 + i * 28, -10]], ["#d6c292", "#8bae97", "#d1d8a9", "#9f9564"][i]);
         poly(c, [[87, 0], [119, -7], [119, 30], [87, 38]], "#b19460", "#d1bb84");
-        text2(c, "荒境行商", 0, -170, 18);
-        text2(c, "建造 · 雇佣 · 武技", 0, 72, 12);
+        text2(c, "\u8352\u5883\u884C\u5546", 0, -170, 18);
+        text2(c, "\u5EFA\u9020 \xB7 \u96C7\u4F63 \xB7 \u6B66\u6280", 0, 72, 12);
       } else if (s.kind === "gate") {
         if (drawSprite(c, "gate", 0, 35, { height: 220, width: 221 })) {
-          text2(c, "遠征山口", 0, -208, 18);
-          text2(c, state.run ? "繼續已保存的遠征" : "出發 · 蕨谷", 0, 69, 13);
+          text2(c, "\u9060\u5F81\u5C71\u53E3", 0, -208, 18);
+          text2(c, state.run ? "\u7E7C\u7E8C\u5DF2\u4FDD\u5B58\u7684\u9060\u5F81" : "\u51FA\u767C \xB7 \u8568\u8C37", 0, 69, 13);
           c.restore();
           return;
         }
         for (const x of [-70, 70]) poly(c, [[x - 12, 30], [x - 14, -97], [x + 4, -125], [x + 19, -94], [x + 18, 30]], "#7a896c", "#c0c5a0");
         line2(c, [[-80, -101], [90, -111]], "#c2b48b", 12);
         poly(c, [[-34, -105], [42, -109], [39, -58], [5, -44], [-35, -63]], "#538b7c", "#a0c4a3");
-        text2(c, "↗", 3, -72, 30);
-        text2(c, "遠征山口", 0, -150, 18);
-        text2(c, state.run ? "繼續已保存的遠征" : "出發 · 蕨谷", 0, 65, 13);
+        text2(c, "\u2197", 3, -72, 30);
+        text2(c, "\u9060\u5F81\u5C71\u53E3", 0, -150, 18);
+        text2(c, state.run ? "\u7E7C\u7E8C\u5DF2\u4FDD\u5B58\u7684\u9060\u5F81" : "\u51FA\u767C \xB7 \u8568\u8C37", 0, 65, 13);
       }
       c.restore();
     }
@@ -4932,7 +4958,6 @@
     }
   };
 
-  // prototypes/emberwild/camp-ui.mjs
   var $ = (id) => document.getElementById(id);
   var pictures = {
     tent: '<path d="M10 76L53 18l42 58z" fill="#467c69" stroke="#203f32" stroke-width="3"/><path d="M53 18l14 58H10z" fill="#c3ae79"/><path d="M53 40l-14 36h28z" fill="#293d29"/><path d="M49 14l48 65M54 14L8 80" stroke="#dec790" stroke-width="4"/><path d="M27 72l13-21" stroke="#ead9aa" stroke-width="2"/>',
@@ -4949,7 +4974,7 @@
       this.isPaused = isPaused;
       this.walk = new CampWalk(store.state.camp.position);
       this.painter = new CampRenderer($("camp-world"));
-      this.keys = /* @__PURE__ */ new Set();
+      this.keys = new Set();
       this.stick = { x: 0, y: 0 };
       this.pointer = null;
       this.sprint = false;
@@ -4971,7 +4996,7 @@
           if (k === "escape") {
             this.movingFrom = null;
             this.clear();
-            this.message("已取消行走或搬遷。");
+            this.message("\u5DF2\u53D6\u6D88\u884C\u8D70\u6216\u642C\u9077\u3002");
             return;
           }
           this.keys.add(k);
@@ -4984,7 +5009,7 @@
         $("camp-world").focus({ preventScroll: true });
         const p = this.painter.point(e.clientX, e.clientY), site = CAMP_SITES.find((s) => Math.hypot(s.x - p.x, s.y - p.y) < 85);
         if (site) this.travel(site.id);
-        else if (!this.walk.goTo(p.x, p.y, campObstacles(this.store.state))) this.message("這裡無法通行，請點建築前方的空地。");
+        else if (!this.walk.goTo(p.x, p.y, campObstacles(this.store.state))) this.message("\u9019\u88E1\u7121\u6CD5\u901A\u884C\uFF0C\u8ACB\u9EDE\u5EFA\u7BC9\u524D\u65B9\u7684\u7A7A\u5730\u3002");
       });
       for (const event of ["contextmenu", "selectstart"]) $("camp").addEventListener(event, (e) => e.preventDefault());
       $("camp-waypoints-toggle").addEventListener("click", () => this.setWaypoints(!$("camp-waypoints").classList.contains("open")));
@@ -4996,7 +5021,7 @@
       $("camp-cancel-move").addEventListener("click", () => {
         this.movingFrom = null;
         this.clear();
-        this.message("已取消搬遷，原建築保持不變。");
+        this.message("\u5DF2\u53D6\u6D88\u642C\u9077\uFF0C\u539F\u5EFA\u7BC9\u4FDD\u6301\u4E0D\u8B8A\u3002");
       });
       $("camp-joystick").addEventListener("pointerdown", (e) => {
         if (!this.active || this.paused || this.pointer !== null) return;
@@ -5038,12 +5063,12 @@
       this.lastFrame = performance.now();
       this.lastSave = this.lastFrame;
       this.movingFrom = null;
-      this.message(this.store.warning || "自由走動，走近行商購買卡牌；空地可建設，山口可出征。");
+      this.message(this.store.warning || "\u81EA\u7531\u8D70\u52D5\uFF0C\u8D70\u8FD1\u884C\u5546\u8CFC\u8CB7\u5361\u724C\uFF1B\u7A7A\u5730\u53EF\u5EFA\u8A2D\uFF0C\u5C71\u53E3\u53EF\u51FA\u5F81\u3002");
     }
     setWaypoints(open) {
       $("camp-waypoints").classList.toggle("open", open);
       $("camp-waypoints-toggle").setAttribute("aria-expanded", String(open));
-      $("camp-waypoints-toggle").textContent = open ? "收起" : "路標";
+      $("camp-waypoints-toggle").textContent = open ? "\u6536\u8D77" : "\u8DEF\u6A19";
     }
     ensureFree() {
       if (this.walk.free(this.walk, campObstacles(this.store.state))) return;
@@ -5081,14 +5106,14 @@
       const s = CAMP_SITES.find((s2) => s2.id === id);
       if (!s) return;
       this.clear();
-      if (this.walk.goTo(s.x, s.y + 110, campObstacles(this.store.state))) this.message(`正在走向${s.label}，抵達後按「互動」。`);
-      else this.message("這條路暫時無法通行，請從另一側靠近。");
+      if (this.walk.goTo(s.x, s.y + 110, campObstacles(this.store.state))) this.message(`\u6B63\u5728\u8D70\u5411${s.label}\uFF0C\u62B5\u9054\u5F8C\u6309\u300C\u4E92\u52D5\u300D\u3002`);
+      else this.message("\u9019\u689D\u8DEF\u66AB\u6642\u7121\u6CD5\u901A\u884C\uFF0C\u8ACB\u5F9E\u53E6\u4E00\u5074\u9760\u8FD1\u3002");
     }
     interact() {
       if (!this.active || this.paused) return;
-      const resident = this.nearbyResident(), site = this.walk.nearest(), siteDistance = site ? Math.hypot(site.x - this.walk.x, site.y - this.walk.y) : Infinity, s = resident && resident.distance < siteDistance ? { id: `npc-${resident.type}`, kind: "npc", npc: resident.type, label: resident.type === "porter" ? "搬運工阿拓" : "巡林獵人瑟雅" } : site;
+      const resident = this.nearbyResident(), site = this.walk.nearest(), siteDistance = site ? Math.hypot(site.x - this.walk.x, site.y - this.walk.y) : Infinity, s = resident && resident.distance < siteDistance ? { id: `npc-${resident.type}`, kind: "npc", npc: resident.type, label: resident.type === "porter" ? "\u642C\u904B\u5DE5\u963F\u62D3" : "\u5DE1\u6797\u7375\u4EBA\u745F\u96C5" } : site;
       if (!s) {
-        this.message("再靠近一點，就能與設施或居民互動。");
+        this.message("\u518D\u9760\u8FD1\u4E00\u9EDE\uFF0C\u5C31\u80FD\u8207\u8A2D\u65BD\u6216\u5C45\u6C11\u4E92\u52D5\u3002");
         return;
       }
       experience.haptic("selection");
@@ -5097,7 +5122,7 @@
     }
     render() {
       $("camp-stones").textContent = this.store.state.camp.stones;
-      $("camp-save-status").textContent = this.store.warning || (this.store.savedAt ? `✓ 本機已存檔 · ${new Date(this.store.savedAt).toLocaleTimeString("zh-TW", { hour12: false })}` : "移動、建設與交易自動存檔");
+      $("camp-save-status").textContent = this.store.warning || (this.store.savedAt ? `\u2713 \u672C\u6A5F\u5DF2\u5B58\u6A94 \xB7 ${new Date(this.store.savedAt).toLocaleTimeString("zh-TW", { hour12: false })}` : "\u79FB\u52D5\u3001\u5EFA\u8A2D\u8207\u4EA4\u6613\u81EA\u52D5\u5B58\u6A94");
     }
     frame(t) {
       if (!this.active) {
@@ -5111,10 +5136,10 @@
       const has = (k) => this.keys.has(k) ? 1 : 0;
       this.walk.tick(dt, { x: this.stick.x + has("d") + has("arrowright") - has("a") - has("arrowleft"), y: this.stick.y + has("s") + has("arrowdown") - has("w") - has("arrowup"), sprint: this.sprint || !!has("shift"), paused: this.paused }, campObstacles(this.store.state));
       this.painter.draw(this.walk, this.store.state, dt);
-      const site = this.walk.nearest(), resident = this.nearbyResident(), siteDistance = site ? Math.hypot(site.x - this.walk.x, site.y - this.walk.y) : Infinity, s = resident && resident.distance < siteDistance ? { kind: "npc", npc: resident.type, label: resident.type === "porter" ? "搬運工阿拓" : "巡林獵人瑟雅" } : site, b = s?.kind === "plot" && this.store.state.camp.buildings.find((b2) => b2.slot === s.slot);
-      $("camp-nearby").textContent = s ? b ? FACILITIES[b.type].name : s.label : "走近設施或居民互動";
+      const site = this.walk.nearest(), resident = this.nearbyResident(), siteDistance = site ? Math.hypot(site.x - this.walk.x, site.y - this.walk.y) : Infinity, s = resident && resident.distance < siteDistance ? { kind: "npc", npc: resident.type, label: resident.type === "porter" ? "\u642C\u904B\u5DE5\u963F\u62D3" : "\u5DE1\u6797\u7375\u4EBA\u745F\u96C5" } : site, b = s?.kind === "plot" && this.store.state.camp.buildings.find((b2) => b2.slot === s.slot);
+      $("camp-nearby").textContent = s ? b ? FACILITIES[b.type].name : s.label : "\u8D70\u8FD1\u8A2D\u65BD\u6216\u5C45\u6C11\u4E92\u52D5";
       $("camp-interact").disabled = !s || this.paused;
-      const label = controlLabel(s?.kind === "npc" ? "交談 / 委託" : s?.kind === "merchant" ? "交談 / 購物" : s?.kind === "gate" ? "準備出征" : s?.kind === "plot" ? b ? "查看 / 生產 / 升級" : this.movingFrom !== null ? "搬遷到此處" : "建設地塊" : "互動", "E");
+      const label = controlLabel(s?.kind === "npc" ? "\u4EA4\u8AC7 / \u59D4\u8A17" : s?.kind === "merchant" ? "\u4EA4\u8AC7 / \u8CFC\u7269" : s?.kind === "gate" ? "\u6E96\u5099\u51FA\u5F81" : s?.kind === "plot" ? b ? "\u67E5\u770B / \u751F\u7522 / \u5347\u7D1A" : this.movingFrom !== null ? "\u642C\u9077\u5230\u6B64\u8655" : "\u5EFA\u8A2D\u5730\u584A" : "\u4E92\u52D5", "E");
       if ($("camp-interact").textContent !== label) $("camp-interact").textContent = label;
       $("camp-cancel-move").hidden = this.movingFrom === null;
       if (t - this.lastSave > 2500 && !this.paused) {
@@ -5179,21 +5204,20 @@
     }
     build(type, slot) {
       if (!this.walk.canInteract("plot-" + slot)) {
-        this.message("請走近這塊地，再建設或升級。");
+        this.message("\u8ACB\u8D70\u8FD1\u9019\u584A\u5730\uFF0C\u518D\u5EFA\u8A2D\u6216\u5347\u7D1A\u3002");
         return false;
       }
-      return this.change((s) => buildCamp(s, type, slot), `${FACILITIES[type].name} 已建設完成，並保存到本機。`);
+      return this.change((s) => buildCamp(s, type, slot), `${FACILITIES[type].name} \u5DF2\u5EFA\u8A2D\u5B8C\u6210\uFF0C\u4E26\u4FDD\u5B58\u5230\u672C\u6A5F\u3002`);
     }
     moveBuilding(from, to) {
       if (!this.walk.canInteract("plot-" + to)) {
-        this.message("請走近目的地塊，再放置建築。");
+        this.message("\u8ACB\u8D70\u8FD1\u76EE\u7684\u5730\u584A\uFF0C\u518D\u653E\u7F6E\u5EFA\u7BC9\u3002");
         return false;
       }
-      return this.change((s) => moveCamp(s, from, to), "建築已搬遷並保存，沒有消耗營火石。");
+      return this.change((s) => moveCamp(s, from, to), "\u5EFA\u7BC9\u5DF2\u642C\u9077\u4E26\u4FDD\u5B58\uFF0C\u6C92\u6709\u6D88\u8017\u71DF\u706B\u77F3\u3002");
     }
   };
 
-  // prototypes/emberwild/background-music.mjs
   var AMBIENT_TRACK = new URL("./assets/audio/warmth-of-a-primeval-dawn.mp3", document.baseURI).href;
   var BATTLE_TRACK = new URL("./assets/audio/hold-the-ridge.mp3", document.baseURI).href;
   var TRACKS = Object.freeze({ ambient: AMBIENT_TRACK, battle: BATTLE_TRACK });
@@ -5215,7 +5239,7 @@
       this.document = doc;
       this.createAudio = createAudio;
       this.media = null;
-      this.players = /* @__PURE__ */ new Map();
+      this.players = new Map();
       this.track = null;
       this.volume = 0;
       this.unlocked = false;
@@ -5259,6 +5283,10 @@
       });
       listen(win, "emberwild-shell-active", (event) => {
         this.shellActive = Boolean(event.detail?.active);
+        this.sync();
+      });
+      listen(win, "emberwild-shell-resume", () => {
+        this.shellActive = true;
         this.sync();
       });
     }
@@ -5335,9 +5363,8 @@
     }
   };
 
-  // prototypes/emberwild/tutorial-ui.mjs
   var $2 = (id) => document.getElementById(id);
-  var names = ["移動", "攻擊", "技能", "建造", "獎勵"];
+  var names = ["\u79FB\u52D5", "\u653B\u64CA", "\u6280\u80FD", "\u5EFA\u9020", "\u734E\u52F5"];
   var center = (el) => {
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
@@ -5408,38 +5435,38 @@
         if (visible) {
           const index = TUTORIAL_STEPS.indexOf(step), success = !!t.awaiting;
           const copy = {
-            move: ["走進金色光圈", "按住左下搖桿向右拖動，帶獵人走進光圈。電腦按 D／→。"],
-            attack: ["不用點，獵人會自動攻擊", "放開操作，看獵人擊中眼前的練習獸。平時只需移動到武器射程內。"],
-            skill: ["點一下發光的技能", skill === "shock" ? "點右下「震擊」（K），擊退身邊的敵人。" : "點右下「齊射」（J），向眼前的敵人射出骨矛。"],
-            build: ["按住卡牌，拖到金圈放開", "沿手勢拖動發光卡牌，預覽進入金圈後放開。也可點卡，再點金圈。"],
-            reward: pending ? ["守護成功！收下戰利品", "木材 +" + t.reward.wood + "　獸骨 +" + t.reward.bone + "　琥珀 +" + t.reward.amber] : ["實戰：守住聖獸卵", "自由移動、使用技能和建造。擊退剩餘獸群後，回來領取獎勵。"]
+            move: ["\u8D70\u9032\u91D1\u8272\u5149\u5708", "\u6309\u4F4F\u5DE6\u4E0B\u6416\u687F\u5411\u53F3\u62D6\u52D5\uFF0C\u5E36\u7375\u4EBA\u8D70\u9032\u5149\u5708\u3002\u96FB\u8166\u6309 D\uFF0F\u2192\u3002"],
+            attack: ["\u4E0D\u7528\u9EDE\uFF0C\u7375\u4EBA\u6703\u81EA\u52D5\u653B\u64CA", "\u653E\u958B\u64CD\u4F5C\uFF0C\u770B\u7375\u4EBA\u64CA\u4E2D\u773C\u524D\u7684\u7DF4\u7FD2\u7378\u3002\u5E73\u6642\u53EA\u9700\u79FB\u52D5\u5230\u6B66\u5668\u5C04\u7A0B\u5167\u3002"],
+            skill: ["\u9EDE\u4E00\u4E0B\u767C\u5149\u7684\u6280\u80FD", skill === "shock" ? "\u9EDE\u53F3\u4E0B\u300C\u9707\u64CA\u300D\uFF08K\uFF09\uFF0C\u64CA\u9000\u8EAB\u908A\u7684\u6575\u4EBA\u3002" : "\u9EDE\u53F3\u4E0B\u300C\u9F4A\u5C04\u300D\uFF08J\uFF09\uFF0C\u5411\u773C\u524D\u7684\u6575\u4EBA\u5C04\u51FA\u9AA8\u77DB\u3002"],
+            build: ["\u6309\u4F4F\u5361\u724C\uFF0C\u62D6\u5230\u91D1\u5708\u653E\u958B", "\u6CBF\u624B\u52E2\u62D6\u52D5\u767C\u5149\u5361\u724C\uFF0C\u9810\u89BD\u9032\u5165\u91D1\u5708\u5F8C\u653E\u958B\u3002\u4E5F\u53EF\u9EDE\u5361\uFF0C\u518D\u9EDE\u91D1\u5708\u3002"],
+            reward: pending ? ["\u5B88\u8B77\u6210\u529F\uFF01\u6536\u4E0B\u6230\u5229\u54C1", "\u6728\u6750 +" + t.reward.wood + "\u3000\u7378\u9AA8 +" + t.reward.bone + "\u3000\u7425\u73C0 +" + t.reward.amber] : ["\u5BE6\u6230\uFF1A\u5B88\u4F4F\u8056\u7378\u5375", "\u81EA\u7531\u79FB\u52D5\u3001\u4F7F\u7528\u6280\u80FD\u548C\u5EFA\u9020\u3002\u64CA\u9000\u5269\u9918\u7378\u7FA4\u5F8C\uFF0C\u56DE\u4F86\u9818\u53D6\u734E\u52F5\u3002"]
           };
           if (t.version !== 2) {
-            copy.move = ["先走動看看", "拖動左下搖桿，或用 WASD／方向鍵走一小段。"];
-            copy.build = ["把一張卡拖進戰場", "拖下方建造卡到空地放開；也可點卡再點空地。"];
+            copy.move = ["\u5148\u8D70\u52D5\u770B\u770B", "\u62D6\u52D5\u5DE6\u4E0B\u6416\u687F\uFF0C\u6216\u7528 WASD\uFF0F\u65B9\u5411\u9375\u8D70\u4E00\u5C0F\u6BB5\u3002"];
+            copy.build = ["\u628A\u4E00\u5F35\u5361\u62D6\u9032\u6230\u5834", "\u62D6\u4E0B\u65B9\u5EFA\u9020\u5361\u5230\u7A7A\u5730\u653E\u958B\uFF1B\u4E5F\u53EF\u9EDE\u5361\u518D\u9EDE\u7A7A\u5730\u3002"];
           }
           if (forced) {
-            copy.move = ["只向右，走進金色光圈", "按住搖桿向右拖，或按 D／→。這一步只開放向右移動。"];
-            if (!pending) copy.reward = ["觀察防線自動作戰", "先不用操作。獵人和剛建的弩台會消滅練習獸，結束後再領取獎勵。"];
+            copy.move = ["\u53EA\u5411\u53F3\uFF0C\u8D70\u9032\u91D1\u8272\u5149\u5708", "\u6309\u4F4F\u6416\u687F\u5411\u53F3\u62D6\uFF0C\u6216\u6309 D\uFF0F\u2192\u3002\u9019\u4E00\u6B65\u53EA\u958B\u653E\u5411\u53F3\u79FB\u52D5\u3002"];
+            if (!pending) copy.reward = ["\u89C0\u5BDF\u9632\u7DDA\u81EA\u52D5\u4F5C\u6230", "\u5148\u4E0D\u7528\u64CD\u4F5C\u3002\u7375\u4EBA\u548C\u525B\u5EFA\u7684\u5F29\u53F0\u6703\u6D88\u6EC5\u7DF4\u7FD2\u7378\uFF0C\u7D50\u675F\u5F8C\u518D\u9818\u53D6\u734E\u52F5\u3002"];
           }
           if (touch) {
-            copy.move[1] = forced ? "按住左下搖桿向右拖，走進金色光圈。這一步只開放向右移動。" : "按住左下搖桿拖動，帶獵人走進光圈。";
-            copy.skill[1] = skill === "shock" ? "點右下「震擊」，擊退身邊的敵人。" : "點右下「齊射」，向眼前的敵人射出骨矛。";
+            copy.move[1] = forced ? "\u6309\u4F4F\u5DE6\u4E0B\u6416\u687F\u5411\u53F3\u62D6\uFF0C\u8D70\u9032\u91D1\u8272\u5149\u5708\u3002\u9019\u4E00\u6B65\u53EA\u958B\u653E\u5411\u53F3\u79FB\u52D5\u3002" : "\u6309\u4F4F\u5DE6\u4E0B\u6416\u687F\u62D6\u52D5\uFF0C\u5E36\u7375\u4EBA\u8D70\u9032\u5149\u5708\u3002";
+            copy.skill[1] = skill === "shock" ? "\u9EDE\u53F3\u4E0B\u300C\u9707\u64CA\u300D\uFF0C\u64CA\u9000\u8EAB\u908A\u7684\u6575\u4EBA\u3002" : "\u9EDE\u53F3\u4E0B\u300C\u9F4A\u5C04\u300D\uFF0C\u5411\u773C\u524D\u7684\u6575\u4EBA\u5C04\u51FA\u9AA8\u77DB\u3002";
           }
-          const done = { move: ["移動完成！", "走位能追擊、採礦，也能避開敵人的攻擊。"], attack: ["看到了嗎？攻擊自動完成", "你只管移動和選位置，普通攻擊不需要一直點。"], skill: ["技能釋放成功！", "技能用完會冷卻；冷卻結束後，就能再次使用。"], build: ["建造成功！", "卡牌已消耗 1 張，建築會自動作戰。接下來守住聖獸卵！"] };
+          const done = { move: ["\u79FB\u52D5\u5B8C\u6210\uFF01", "\u8D70\u4F4D\u80FD\u8FFD\u64CA\u3001\u63A1\u7926\uFF0C\u4E5F\u80FD\u907F\u958B\u6575\u4EBA\u7684\u653B\u64CA\u3002"], attack: ["\u770B\u5230\u4E86\u55CE\uFF1F\u653B\u64CA\u81EA\u52D5\u5B8C\u6210", "\u4F60\u53EA\u7BA1\u79FB\u52D5\u548C\u9078\u4F4D\u7F6E\uFF0C\u666E\u901A\u653B\u64CA\u4E0D\u9700\u8981\u4E00\u76F4\u9EDE\u3002"], skill: ["\u6280\u80FD\u91CB\u653E\u6210\u529F\uFF01", "\u6280\u80FD\u7528\u5B8C\u6703\u51B7\u537B\uFF1B\u51B7\u537B\u7D50\u675F\u5F8C\uFF0C\u5C31\u80FD\u518D\u6B21\u4F7F\u7528\u3002"], build: ["\u5EFA\u9020\u6210\u529F\uFF01", "\u5361\u724C\u5DF2\u6D88\u8017 1 \u5F35\uFF0C\u5EFA\u7BC9\u6703\u81EA\u52D5\u4F5C\u6230\u3002\u63A5\u4E0B\u4F86\u5B88\u4F4F\u8056\u7378\u5375\uFF01"] };
           const practice = g.runId.startsWith("practice-");
-          if (forced) done.build = ["建造成功！", "現在觀察防線消滅練習獸。完成最後領獎步驟，才會解鎖自由操作。"];
-          const text3 = intro ? ["跟著我，學會守護荒境", forced ? "這是必修訓練。現在只能跟著發光提示操作；完成五步並領獎，才會解鎖營地。" : practice ? "跟著發光的位置完成 5 個練習。試煉不改動原遠征、營地或資源。" : "一次只學一件事。發光的位置就是下一步；完成後點「繼續」。"] : success ? done[step] : copy[step];
-          $2("tutorial-count").textContent = intro ? "獵人訓練 · 5 個小練習" : (success ? "✓ 已學會" : "正在練習") + " " + (index + 1) + " / 5";
+          if (forced) done.build = ["\u5EFA\u9020\u6210\u529F\uFF01", "\u73FE\u5728\u89C0\u5BDF\u9632\u7DDA\u6D88\u6EC5\u7DF4\u7FD2\u7378\u3002\u5B8C\u6210\u6700\u5F8C\u9818\u734E\u6B65\u9A5F\uFF0C\u624D\u6703\u89E3\u9396\u81EA\u7531\u64CD\u4F5C\u3002"];
+          const text3 = intro ? ["\u8DDF\u8457\u6211\uFF0C\u5B78\u6703\u5B88\u8B77\u8352\u5883", forced ? "\u9019\u662F\u5FC5\u4FEE\u8A13\u7DF4\u3002\u73FE\u5728\u53EA\u80FD\u8DDF\u8457\u767C\u5149\u63D0\u793A\u64CD\u4F5C\uFF1B\u5B8C\u6210\u4E94\u6B65\u4E26\u9818\u734E\uFF0C\u624D\u6703\u89E3\u9396\u71DF\u5730\u3002" : practice ? "\u8DDF\u8457\u767C\u5149\u7684\u4F4D\u7F6E\u5B8C\u6210 5 \u500B\u7DF4\u7FD2\u3002\u8A66\u7149\u4E0D\u6539\u52D5\u539F\u9060\u5F81\u3001\u71DF\u5730\u6216\u8CC7\u6E90\u3002" : "\u4E00\u6B21\u53EA\u5B78\u4E00\u4EF6\u4E8B\u3002\u767C\u5149\u7684\u4F4D\u7F6E\u5C31\u662F\u4E0B\u4E00\u6B65\uFF1B\u5B8C\u6210\u5F8C\u9EDE\u300C\u7E7C\u7E8C\u300D\u3002"] : success ? done[step] : copy[step];
+          $2("tutorial-count").textContent = intro ? "\u7375\u4EBA\u8A13\u7DF4 \xB7 5 \u500B\u5C0F\u7DF4\u7FD2" : (success ? "\u2713 \u5DF2\u5B78\u6703" : "\u6B63\u5728\u7DF4\u7FD2") + " " + (index + 1) + " / 5";
           $2("tutorial-title").textContent = text3[0];
           $2("tutorial-copy").textContent = text3[1];
-          $2("tutorial-progress").innerHTML = names.map((name, i) => '<span class="' + (i < index || i === index && success ? "complete" : i === index ? "current" : "") + '" ' + (i === index ? 'aria-current="step"' : "") + ">" + (i < index || i === index && success ? "✓" : i + 1) + " " + name + "</span>").join("");
-          $2("tutorial-protection").textContent = forced ? "必修訓練 · 不可跳過 · 進度自動保存" : training ? "練習保護中 · 不會受傷 · 可隨時暫停" : "教學保護已解除 · 留意獵人與聖獸卵血量";
+          $2("tutorial-progress").innerHTML = names.map((name, i) => '<span class="' + (i < index || i === index && success ? "complete" : i === index ? "current" : "") + '" ' + (i === index ? 'aria-current="step"' : "") + ">" + (i < index || i === index && success ? "\u2713" : i + 1) + " " + name + "</span>").join("");
+          $2("tutorial-protection").textContent = forced ? "\u5FC5\u4FEE\u8A13\u7DF4 \xB7 \u4E0D\u53EF\u8DF3\u904E \xB7 \u9032\u5EA6\u81EA\u52D5\u4FDD\u5B58" : training ? "\u7DF4\u7FD2\u4FDD\u8B77\u4E2D \xB7 \u4E0D\u6703\u53D7\u50B7 \xB7 \u53EF\u96A8\u6642\u66AB\u505C" : "\u6559\u5B78\u4FDD\u8B77\u5DF2\u89E3\u9664 \xB7 \u7559\u610F\u7375\u4EBA\u8207\u8056\u7378\u5375\u8840\u91CF";
           $2("tutorial-next").hidden = pending || !(waiting || intro);
-          $2("tutorial-next").textContent = intro ? "準備好了，開始移動 →" : step === "build" ? forced ? "繼續，觀察防線作戰 →" : "我準備好了，開始實戰 →" : "記住了，繼續 →";
+          $2("tutorial-next").textContent = intro ? "\u6E96\u5099\u597D\u4E86\uFF0C\u958B\u59CB\u79FB\u52D5 \u2192" : step === "build" ? forced ? "\u7E7C\u7E8C\uFF0C\u89C0\u5BDF\u9632\u7DDA\u4F5C\u6230 \u2192" : "\u6211\u6E96\u5099\u597D\u4E86\uFF0C\u958B\u59CB\u5BE6\u6230 \u2192" : "\u8A18\u4F4F\u4E86\uFF0C\u7E7C\u7E8C \u2192";
           $2("tutorial-claim").hidden = !pending;
           $2("tutorial-skip").hidden = pending || forced;
-          $2("tutorial-claim").textContent = forced ? "領取獎勵 · 解鎖營地與自由操作 ✓" : practice ? "領取練習獎勵 · 返回營地 ✓" : "領取獎勵 · 完成教學 ✓";
+          $2("tutorial-claim").textContent = forced ? "\u9818\u53D6\u734E\u52F5 \xB7 \u89E3\u9396\u71DF\u5730\u8207\u81EA\u7531\u64CD\u4F5C \u2713" : practice ? "\u9818\u53D6\u7DF4\u7FD2\u734E\u52F5 \xB7 \u8FD4\u56DE\u71DF\u5730 \u2713" : "\u9818\u53D6\u734E\u52F5 \xB7 \u5B8C\u6210\u6559\u5B78 \u2713";
           this.panel.classList.toggle("tutorial-success", success || pending);
           this.panel.classList.toggle("tutorial-combat", step === "reward" && !pending && !forced);
           this.panel.dataset.step = step;
@@ -5448,7 +5475,7 @@
       }
       if (!training || !painter) return;
       if (step === "attack" && t.version === 2 && !waiting) {
-        const progress = "已命中 " + t.attackHits + " / 2 · 放開操作，看看自動攻擊";
+        const progress = "\u5DF2\u547D\u4E2D " + t.attackHits + " / 2 \xB7 \u653E\u958B\u64CD\u4F5C\uFF0C\u770B\u770B\u81EA\u52D5\u653B\u64CA";
         if ($2("tutorial-protection").textContent !== progress) $2("tutorial-protection").textContent = progress;
       }
       const target = pending ? $2("tutorial-claim") : waiting || intro ? $2("tutorial-next") : { move: $2("joystick"), attack: document.querySelector(".auto-attack-status"), skill: $2("skill-" + skill), build: document.querySelector('#hand [data-slot="' + (t.slot ?? 0) + '"]') }[step];
@@ -5478,7 +5505,7 @@
           marker.style.left = spot.x + "px";
           marker.style.top = spot.y + "px";
           marker.style.width = marker.style.height = r * 2 + "px";
-          marker.firstElementChild.textContent = step === "move" ? "走到這裡" : "預覽放進圈內";
+          marker.firstElementChild.textContent = step === "move" ? "\u8D70\u5230\u9019\u88E1" : "\u9810\u89BD\u653E\u9032\u5708\u5167";
           circle(spot, r + 10);
           if (step === "move") {
             const d = Math.hypot(spot.x - hero.x, spot.y - hero.y) || 1;
@@ -5506,7 +5533,6 @@
     }
   };
 
-  // prototypes/emberwild/acceptance-reset.mjs
   var ACCEPTANCE_ORIGIN = "http://127.0.0.1:4174";
   var RESET_MARKER = "emberwild_acceptance_reset_v1";
   var PROGRESS_KEYS2 = Object.freeze(["emberwild_save_v2", "emberwild_save_v2_backup", "emberwild_prototype_v1"]);
@@ -5518,14 +5544,14 @@
     if (!storage2.getItem(key)) {
       const raw = JSON.stringify({ id: request.id, origin, createdAt: now, records });
       storage2.setItem(key, raw);
-      if (storage2.getItem(key) !== raw) throw new Error("清檔前備份未能寫入，原進度未清除。");
+      if (storage2.getItem(key) !== raw) throw new Error("\u6E05\u6A94\u524D\u5099\u4EFD\u672A\u80FD\u5BEB\u5165\uFF0C\u539F\u9032\u5EA6\u672A\u6E05\u9664\u3002");
     } else {
       const old = JSON.parse(storage2.getItem(key));
-      if (old.id !== request.id || old.origin !== origin || !old.records || !PROGRESS_KEYS2.every((k) => old.records[k] === null || typeof old.records[k] === "string")) throw new Error("清檔備份無法驗證，已保留現有資料。");
+      if (old.id !== request.id || old.origin !== origin || !old.records || !PROGRESS_KEYS2.every((k) => old.records[k] === null || typeof old.records[k] === "string")) throw new Error("\u6E05\u6A94\u5099\u4EFD\u7121\u6CD5\u9A57\u8B49\uFF0C\u5DF2\u4FDD\u7559\u73FE\u6709\u8CC7\u6599\u3002");
     }
-    if (PROGRESS_KEYS2.some((k) => storage2.getItem(k) !== records[k])) throw new Error("另一個頁面剛更新了進度，請關閉其他遊戲頁後重試清檔。");
+    if (PROGRESS_KEYS2.some((k) => storage2.getItem(k) !== records[k])) throw new Error("\u53E6\u4E00\u500B\u9801\u9762\u525B\u66F4\u65B0\u4E86\u9032\u5EA6\uFF0C\u8ACB\u95DC\u9589\u5176\u4ED6\u904A\u6232\u9801\u5F8C\u91CD\u8A66\u6E05\u6A94\u3002");
     for (const k of [...PROGRESS_KEYS2.slice(1), PROGRESS_KEYS2[0]]) storage2.removeItem(k);
-    if (PROGRESS_KEYS2.some((k) => storage2.getItem(k) !== null)) throw new Error("清檔尚未完成；清檔前資料仍保存在獨立備份中。");
+    if (PROGRESS_KEYS2.some((k) => storage2.getItem(k) !== null)) throw new Error("\u6E05\u6A94\u5C1A\u672A\u5B8C\u6210\uFF1B\u6E05\u6A94\u524D\u8CC7\u6599\u4ECD\u4FDD\u5B58\u5728\u7368\u7ACB\u5099\u4EFD\u4E2D\u3002");
     storage2.setItem(RESET_MARKER, request.id);
     return true;
   }
@@ -5533,23 +5559,31 @@
     if (location2.origin !== ACCEPTANCE_ORIGIN || new URLSearchParams(location2.search).has("qa")) return false;
     const response = await fetch("./acceptance-reset.json", { cache: "no-store", signal: AbortSignal.timeout(2e3) });
     if (response.status === 404) return false;
-    if (!response.ok) throw new Error("無法檢查本地清檔指令，請重新整理。");
+    if (!response.ok) throw new Error("\u7121\u6CD5\u6AA2\u67E5\u672C\u5730\u6E05\u6A94\u6307\u4EE4\uFF0C\u8ACB\u91CD\u65B0\u6574\u7406\u3002");
     const request = await response.json(), apply2 = () => applyAcceptanceReset(storage2, request, location2.origin);
     return locks ? locks.request("emberwild-save-v2", apply2) : apply2();
   }
 
-  // prototypes/emberwild/legal-links.mjs
-  var LEGAL_URLS = Object.freeze({
-    terms: "https://d1udhm4c9vjzph.cloudfront.net/ios-legal/terms-of-service.html",
-    privacy: "https://d1udhm4c9vjzph.cloudfront.net/ios-legal/privacy-policy.html",
-    deletion: "https://d1udhm4c9vjzph.cloudfront.net/ios-legal/account-deletion.html"
+  var ENCODED = Object.freeze({
+    terms: "aHR0cHM6Ly9kMXVkaG00Yzl2anpwaC5jbG91ZGZyb250Lm5ldC9pb3MtbGVnYWwvdGVybXMtb2Ytc2VydmljZS5odG1s",
+    privacy: "aHR0cHM6Ly9kMXVkaG00Yzl2anpwaC5jbG91ZGZyb250Lm5ldC9pb3MtbGVnYWwvcHJpdmFjeS1wb2xpY3kuaHRtbA==",
+    deletion: "aHR0cHM6Ly9kMXVkaG00Yzl2anpwaC5jbG91ZGZyb250Lm5ldC9pb3MtbGVnYWwvYWNjb3VudC1kZWxldGlvbi5odG1s"
   });
-  var allowed = new Set(Object.values(LEGAL_URLS));
-  function openLegalURL(url, host = globalThis.window) {
-    if (!allowed.has(url) || !host) return false;
-    const bridge = host.android;
-    if (bridge && typeof bridge.sdkToBrowser === "function") bridge.sdkToBrowser(url);
-    else if (typeof host.open === "function") host.open(url, "_blank", "noopener,noreferrer");
+  var decode2 = (key) => {
+    const encoded = ENCODED[key];
+    if (!encoded) return "";
+    try {
+      return decodeURIComponent(Array.from(atob(encoded), (character) => `%${character.charCodeAt(0).toString(16).padStart(2, "0")}`).join(""));
+    } catch {
+      return "";
+    }
+  };
+  var LEGAL_KEYS = Object.freeze(Object.keys(ENCODED));
+  function openLegalURL(key, host = globalThis.window) {
+    if (!LEGAL_KEYS.includes(key) || !host) return false;
+    const bridge = host.pbmNative;
+    if (bridge && typeof bridge.sdkToBrowser === "function") bridge.sdkToBrowser(`pbm-legal:${key}`);
+    else if (typeof host.open === "function") host.open(decode2(key), "_blank", "noopener,noreferrer");
     else return false;
     return true;
   }
@@ -5557,21 +5591,20 @@
     if (!root?.addEventListener) return () => {
     };
     const onClick = (event) => {
-      const link = event.target?.closest?.("[data-legal-url]");
+      const link = event.target?.closest?.("[data-legal]");
       if (!link || !root.contains(link)) return;
       event.preventDefault();
-      openLegalURL(link.dataset.legalUrl, host);
+      openLegalURL(link.dataset.legal, host);
     };
     root.addEventListener("click", onClick);
     return () => root.removeEventListener("click", onClick);
   }
 
-  // prototypes/emberwild/account-session.mjs
   var ACCOUNT_SESSION_KEY = "emberwild_account_session_v1";
   var clean = (value) => String(value || "").normalize("NFKC").replace(/[\u0000-\u001f\u007f<>"'`]/g, "").trim();
   function accountDisplayName({ nickname = "", account = "" } = {}) {
     const accountName = clean(account).split("@")[0];
-    return (clean(nickname) || accountName || "荒境獵人").slice(0, 20);
+    return (clean(nickname) || accountName || "\u8352\u5883\u7375\u4EBA").slice(0, 20);
   }
   function parse(raw) {
     if (!raw) return null;
@@ -5598,16 +5631,16 @@
       return this.current;
     }
     accept(value) {
-      if (!value?.authenticated) throw new Error("登入狀態無效，請重新登入。");
+      if (!value?.authenticated) throw new Error("\u767B\u5165\u72C0\u614B\u7121\u6548\uFF0C\u8ACB\u91CD\u65B0\u767B\u5165\u3002");
       const playerId = clean(value.playerId).slice(0, 128), label = accountDisplayName({ nickname: value.displayName });
       const authenticatedAt = Number(value.authenticatedAt) * 1e3, accessExpiresAt = Number(value.accessExpiresAt) * 1e3;
-      if (!playerId || !Number.isFinite(authenticatedAt) || !Number.isFinite(accessExpiresAt) || accessExpiresAt <= authenticatedAt) throw new Error("帳號服務回傳的登入狀態不完整。");
+      if (!playerId || !Number.isFinite(authenticatedAt) || !Number.isFinite(accessExpiresAt) || accessExpiresAt <= authenticatedAt) throw new Error("\u5E33\u865F\u670D\u52D9\u56DE\u50B3\u7684\u767B\u5165\u72C0\u614B\u4E0D\u5B8C\u6574\u3002");
       const session = { version: 2, playerId, label, authenticatedAt, accessExpiresAt }, raw = JSON.stringify(session);
       try {
         this.storage?.setItem?.(ACCOUNT_SESSION_KEY, raw);
-        if (this.storage?.getItem?.(ACCOUNT_SESSION_KEY) !== raw) throw new Error("登入狀態未能寫入");
+        if (this.storage?.getItem?.(ACCOUNT_SESSION_KEY) !== raw) throw new Error("\u767B\u5165\u72C0\u614B\u672A\u80FD\u5BEB\u5165");
       } catch {
-        throw new Error("無法保存帳號顯示狀態，請確認裝置儲存空間。");
+        throw new Error("\u7121\u6CD5\u4FDD\u5B58\u5E33\u865F\u986F\u793A\u72C0\u614B\uFF0C\u8ACB\u78BA\u8A8D\u88DD\u7F6E\u5132\u5B58\u7A7A\u9593\u3002");
       }
       this.current = Object.freeze(session);
       return this.current;
@@ -5615,16 +5648,44 @@
     clear() {
       try {
         this.storage?.removeItem?.(ACCOUNT_SESSION_KEY);
-        if (this.storage?.getItem?.(ACCOUNT_SESSION_KEY) !== null) throw new Error("登入狀態未能清除");
+        if (this.storage?.getItem?.(ACCOUNT_SESSION_KEY) !== null) throw new Error("\u767B\u5165\u72C0\u614B\u672A\u80FD\u6E05\u9664");
       } catch {
-        throw new Error("無法清除帳號顯示狀態，請稍後再試。");
+        throw new Error("\u7121\u6CD5\u6E05\u9664\u5E33\u865F\u986F\u793A\u72C0\u614B\uFF0C\u8ACB\u7A0D\u5F8C\u518D\u8A66\u3002");
       }
       this.current = null;
       return true;
     }
   };
 
-  // prototypes/emberwild/native-auth.mjs
+  var GUEST_SESSION_KEY = "emberwild_guest_session_v1";
+  var GuestSession = class {
+    constructor(storage2) {
+      this.storage = storage2;
+    }
+    active() {
+      try {
+        return this.storage?.getItem?.(GUEST_SESSION_KEY) === "1";
+      } catch {
+        return false;
+      }
+    }
+    start() {
+      try {
+        this.storage?.setItem?.(GUEST_SESSION_KEY, "1");
+        if (this.storage?.getItem?.(GUEST_SESSION_KEY) !== "1") throw new Error("guest state unavailable");
+        return true;
+      } catch {
+        throw new Error("\u7121\u6CD5\u4FDD\u5B58\u8A2A\u5BA2\u72C0\u614B\uFF0C\u8ACB\u78BA\u8A8D\u88DD\u7F6E\u5132\u5B58\u7A7A\u9593\u5F8C\u91CD\u8A66\u3002");
+      }
+    }
+    clear() {
+      try {
+        this.storage?.removeItem?.(GUEST_SESSION_KEY);
+      } catch {
+      }
+    }
+  };
+
   var resultObject2 = (value) => {
     if (value && typeof value === "object") return value;
     try {
@@ -5666,12 +5727,12 @@
       };
     }
     available() {
-      return typeof this.host.android?.miniAuth === "function";
+      return typeof this.host.pbmNative?.miniAuth === "function";
     }
     request(action, fields = {}) {
-      if (this.pending) throw new NativeAuthError("AUTH_IN_PROGRESS", "另一項帳號操作正在處理，請稍候");
-      if (!["status", "login", "register", "recover", "logout", "delete"].includes(action)) throw new NativeAuthError("INVALID_AUTH_ACTION", "不支援的帳號操作");
-      if (!this.available()) throw new NativeAuthError("IOS_APP_REQUIRED", "請在 iOS App 內使用真實帳號服務");
+      if (this.pending) throw new NativeAuthError("AUTH_IN_PROGRESS", "\u53E6\u4E00\u9805\u5E33\u865F\u64CD\u4F5C\u6B63\u5728\u8655\u7406\uFF0C\u8ACB\u7A0D\u5019");
+      if (!["status", "login", "register", "recover", "logout", "delete", "completeDelete"].includes(action)) throw new NativeAuthError("INVALID_AUTH_ACTION", "\u4E0D\u652F\u63F4\u7684\u5E33\u865F\u64CD\u4F5C");
+      if (!this.available()) throw new NativeAuthError("IOS_APP_REQUIRED", "\u8ACB\u5728 iOS App \u5167\u4F7F\u7528\u771F\u5BE6\u5E33\u865F\u670D\u52D9");
       const id = requestId2(this.host), payload = { action, requestId: id, ...fields };
       return new Promise((resolve, reject) => {
         const pending = { requestId: id, action, resolve, reject };
@@ -5679,14 +5740,14 @@
         pending.timer = setTimeout(() => {
           if (this.pending !== pending) return;
           this.pending = null;
-          reject(new NativeAuthError("AUTH_TIMEOUT", action === "register" ? "註冊回應逾時，請稍後先使用此帳號登入，確認是否已建立。" : "帳號服務回應逾時，請稍後重試。"));
+          reject(new NativeAuthError("AUTH_TIMEOUT", action === "register" ? "\u8A3B\u518A\u56DE\u61C9\u903E\u6642\uFF0C\u8ACB\u7A0D\u5F8C\u5148\u4F7F\u7528\u6B64\u5E33\u865F\u767B\u5165\uFF0C\u78BA\u8A8D\u662F\u5426\u5DF2\u5EFA\u7ACB\u3002" : "\u5E33\u865F\u670D\u52D9\u56DE\u61C9\u903E\u6642\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002"));
         }, action === "status" ? this.statusTimeoutMs : this.requestTimeoutMs);
         try {
-          this.host.android.miniAuth(JSON.stringify(payload));
+          this.host.pbmNative.miniAuth(JSON.stringify(payload));
         } catch (error) {
           clearTimeout(pending.timer);
           this.pending = null;
-          reject(new NativeAuthError("NATIVE_BRIDGE_FAILED", error?.message || "無法連接帳號服務"));
+          reject(new NativeAuthError("NATIVE_BRIDGE_FAILED", error?.message || "\u7121\u6CD5\u9023\u63A5\u5E33\u865F\u670D\u52D9"));
         }
       });
     }
@@ -5708,6 +5769,9 @@
     deleteAccount() {
       return this.request("delete");
     }
+    completeDeletionCleanup() {
+      return this.request("completeDelete");
+    }
     handle(value) {
       const payload = resultObject2(value), pending = this.pending;
       if (!pending || payload.requestId !== pending.requestId || payload.action !== pending.action) return false;
@@ -5718,15 +5782,60 @@
         return true;
       }
       if (payload.func === "onMiniAuthFail") {
-        pending.reject(new NativeAuthError(String(payload.code || "AUTH_FAILED"), String(payload.message || "帳號服務未能完成請求")));
+        pending.reject(new NativeAuthError(String(payload.code || "AUTH_FAILED"), String(payload.message || "\u5E33\u865F\u670D\u52D9\u672A\u80FD\u5B8C\u6210\u8ACB\u6C42")));
         return true;
       }
-      pending.reject(new NativeAuthError("INVALID_AUTH_RESPONSE", "帳號服務回應格式不正確"));
+      pending.reject(new NativeAuthError("INVALID_AUTH_RESPONSE", "\u5E33\u865F\u670D\u52D9\u56DE\u61C9\u683C\u5F0F\u4E0D\u6B63\u78BA"));
       return true;
     }
   };
 
-  // prototypes/emberwild/sound-effects.mjs
+  var AccountDeletion = class {
+    constructor({ auth, session, store, onConfirmed = () => {
+    } }) {
+      Object.assign(this, { auth, session, store, onConfirmed });
+      this.confirmed = false;
+      this.pending = null;
+    }
+    run({ confirmed = false } = {}) {
+      if (this.pending) return this.pending;
+      this.pending = this.perform(confirmed).finally(() => {
+        this.pending = null;
+      });
+      return this.pending;
+    }
+    async perform(confirmed) {
+      if (confirmed) this.confirmed = true;
+      if (!this.confirmed) {
+        try {
+          const result = await this.auth.deleteAccount();
+          if (result?.accountDeleted !== true || result?.authenticated !== false) throw new Error("\u4F3A\u670D\u5668\u5C1A\u672A\u78BA\u8A8D\u522A\u9664\u5E33\u865F\uFF0C\u8ACB\u91CD\u8A66\u3002");
+          this.confirmed = true;
+        } catch (error) {
+          if (error?.code !== "ACCOUNT_DELETED_CLEANUP_REQUIRED") throw error;
+          this.confirmed = true;
+        }
+      }
+      try {
+        await this.onConfirmed();
+        await this.store.queue;
+        this.store.reload();
+        await this.store.clearProgress();
+        this.session.clear();
+        const completed = await this.auth.completeDeletionCleanup();
+        if (completed?.authenticated !== false || completed?.cleanupRequired === true)
+          throw new Error("\u672C\u6A5F\u6E05\u7406\u5C1A\u672A\u78BA\u8A8D\u5B8C\u6210");
+        return { accountDeleted: true, localDataCleared: true };
+      } catch (cause) {
+        const error = new Error("\u5E33\u865F\u5DF2\u522A\u9664\uFF1B\u6B64\u88DD\u7F6E\u4ECD\u6709\u8CC7\u6599\u5C1A\u672A\u6E05\u9664\uFF0C\u8ACB\u9EDE\u64CA\u300C\u7E7C\u7E8C\u6E05\u7406\u300D\u3002");
+        error.code = "ACCOUNT_CLEANUP_REQUIRED";
+        error.accountDeleted = true;
+        error.cause = cause;
+        throw error;
+      }
+    }
+  };
+
   var asset = (name) => new URL(`./assets/audio/sfx/${name}`, document.baseURI).href;
   var SOUND_ASSETS = Object.freeze({
     attack: { files: ["attack-slice-1.m4a", "attack-slice-2.m4a"], gain: 0.36, interval: 0.11, channels: 2 },
@@ -5754,9 +5863,9 @@
     constructor({ createAudio = (source) => new Audio(source), now = clock } = {}) {
       this.createAudio = createAudio;
       this.now = now;
-      this.players = /* @__PURE__ */ new Map();
-      this.cursor = /* @__PURE__ */ new Map();
-      this.lastPlayed = /* @__PURE__ */ new Map();
+      this.players = new Map();
+      this.cursor = new Map();
+      this.lastPlayed = new Map();
       for (const [kind, definition] of Object.entries(SOUND_ASSETS)) {
         const channels = Math.max(1, definition.channels || 1), pool = [];
         for (const file of definition.files) for (let channel = 0; channel < channels; channel++) {
@@ -5799,7 +5908,6 @@
     }
   };
 
-  // prototypes/emberwild/app.mjs
   async function bootGame() {
     const $3 = (id) => document.getElementById(id);
     const syncControlMode = () => document.documentElement.dataset.touchControls = String(touchControls());
@@ -5808,20 +5916,38 @@
     installLegalLinks(document, window);
     const qaMode = ["127.0.0.1", "localhost"].includes(location.hostname) ? new URLSearchParams(location.search).get("qa") : null;
     const STAGES = Object.freeze([
-      { name: "蕨谷入口", region: "FERN VALLEY", hint: "守護聖獸卵", rule: "熟悉移動、自動攻擊與卡牌建造", tactic: "迅猛獸從林緣來襲 · 守住聖獸卵" },
-      { name: "巨蕨巢道", region: "GIANT FERN HOLLOW", hint: "護送採集師", rule: "靠近採集師才能引導他穿越巢道", tactic: "貼近採集師帶路 · 擋住左右兩翼追兵" },
-      { name: "潮汐濕地", region: "TIDAL MARSH", hint: "摧毀三座獸巢", rule: "母獸會召喚巢群；破壞暴露的孵化囊可阻止終末召喚", tactic: "避開毒沼預警 · 集火綠色孵化囊" },
-      { name: "古獸石陣", region: "BEAST-STONE RUINS", hint: "50 秒限時採礦", rule: "在倒數結束前擊碎三處標記熔晶", tactic: "移動到金色標記晶礦 · 同時牽制重甲獸" },
-      { name: "琥珀山脊", region: "AMBER RIDGE", hint: "營救受困弓手", rule: "清開牢籠周圍並守住救援圈四秒", tactic: "先擊退牢籠附近獸群 · 靠近完成救援" },
-      { name: "熔灰林", region: "ASHEN CANOPY", hint: "灼熱伏擊", rule: "衝角獸分階段加速並召喚夾擊；衝鋒後肩甲短暫暴露", tactic: "離開橙色衝鋒線 · 回身擊破裂角肩甲" },
-      { name: "月骨峽谷", region: "MOONBONE RAVINE", hint: "守住三處據點", rule: "獸群分路攻擊三座月骨據點", tactic: "巡防三線 · 任一據點被摧毀都會失敗" },
-      { name: "泰坦聖所", region: "TITAN SANCTUARY", hint: "最終試煉", rule: "泰坦三階段召喚守衛；聚能時核心暴露，終階震地分內外雙環", tactic: "躲開震地圓環 · 攻擊琥珀核心可打斷蓄力" }
+      { name: "\u8568\u8C37\u5165\u53E3", region: "FERN VALLEY", hint: "\u5B88\u8B77\u8056\u7378\u5375", rule: "\u719F\u6089\u79FB\u52D5\u3001\u81EA\u52D5\u653B\u64CA\u8207\u5361\u724C\u5EFA\u9020", tactic: "\u8FC5\u731B\u7378\u5F9E\u6797\u7DE3\u4F86\u8972 \xB7 \u5B88\u4F4F\u8056\u7378\u5375" },
+      { name: "\u5DE8\u8568\u5DE2\u9053", region: "GIANT FERN HOLLOW", hint: "\u8B77\u9001\u63A1\u96C6\u5E2B", rule: "\u9760\u8FD1\u63A1\u96C6\u5E2B\u624D\u80FD\u5F15\u5C0E\u4ED6\u7A7F\u8D8A\u5DE2\u9053", tactic: "\u8CBC\u8FD1\u63A1\u96C6\u5E2B\u5E36\u8DEF \xB7 \u64CB\u4F4F\u5DE6\u53F3\u5169\u7FFC\u8FFD\u5175" },
+      { name: "\u6F6E\u6C50\u6FD5\u5730", region: "TIDAL MARSH", hint: "\u6467\u6BC0\u4E09\u5EA7\u7378\u5DE2", rule: "\u6BCD\u7378\u6703\u53EC\u559A\u5DE2\u7FA4\uFF1B\u7834\u58DE\u66B4\u9732\u7684\u5B75\u5316\u56CA\u53EF\u963B\u6B62\u7D42\u672B\u53EC\u559A", tactic: "\u907F\u958B\u6BD2\u6CBC\u9810\u8B66 \xB7 \u96C6\u706B\u7DA0\u8272\u5B75\u5316\u56CA" },
+      { name: "\u53E4\u7378\u77F3\u9663", region: "BEAST-STONE RUINS", hint: "50 \u79D2\u9650\u6642\u63A1\u7926", rule: "\u5728\u5012\u6578\u7D50\u675F\u524D\u64CA\u788E\u4E09\u8655\u6A19\u8A18\u7194\u6676", tactic: "\u79FB\u52D5\u5230\u91D1\u8272\u6A19\u8A18\u6676\u7926 \xB7 \u540C\u6642\u727D\u5236\u91CD\u7532\u7378" },
+      { name: "\u7425\u73C0\u5C71\u810A", region: "AMBER RIDGE", hint: "\u71DF\u6551\u53D7\u56F0\u5F13\u624B", rule: "\u6E05\u958B\u7262\u7C60\u5468\u570D\u4E26\u5B88\u4F4F\u6551\u63F4\u5708\u56DB\u79D2", tactic: "\u5148\u64CA\u9000\u7262\u7C60\u9644\u8FD1\u7378\u7FA4 \xB7 \u9760\u8FD1\u5B8C\u6210\u6551\u63F4" },
+      { name: "\u7194\u7070\u6797", region: "ASHEN CANOPY", hint: "\u707C\u71B1\u4F0F\u64CA", rule: "\u885D\u89D2\u7378\u5206\u968E\u6BB5\u52A0\u901F\u4E26\u53EC\u559A\u593E\u64CA\uFF1B\u885D\u92D2\u5F8C\u80A9\u7532\u77ED\u66AB\u66B4\u9732", tactic: "\u96E2\u958B\u6A59\u8272\u885D\u92D2\u7DDA \xB7 \u56DE\u8EAB\u64CA\u7834\u88C2\u89D2\u80A9\u7532" },
+      { name: "\u6708\u9AA8\u5CFD\u8C37", region: "MOONBONE RAVINE", hint: "\u5B88\u4F4F\u4E09\u8655\u64DA\u9EDE", rule: "\u7378\u7FA4\u5206\u8DEF\u653B\u64CA\u4E09\u5EA7\u6708\u9AA8\u64DA\u9EDE", tactic: "\u5DE1\u9632\u4E09\u7DDA \xB7 \u4EFB\u4E00\u64DA\u9EDE\u88AB\u6467\u6BC0\u90FD\u6703\u5931\u6557" },
+      { name: "\u6CF0\u5766\u8056\u6240", region: "TITAN SANCTUARY", hint: "\u6700\u7D42\u8A66\u7149", rule: "\u6CF0\u5766\u4E09\u968E\u6BB5\u53EC\u559A\u5B88\u885B\uFF1B\u805A\u80FD\u6642\u6838\u5FC3\u66B4\u9732\uFF0C\u7D42\u968E\u9707\u5730\u5206\u5167\u5916\u96D9\u74B0", tactic: "\u8EB2\u958B\u9707\u5730\u5713\u74B0 \xB7 \u653B\u64CA\u7425\u73C0\u6838\u5FC3\u53EF\u6253\u65B7\u84C4\u529B" }
     ]);
     let g = null, painter = null, drag = null, selected = null, lastHand = "", modalKind = "", toastUntil = 0, lastTime = 0;
     let stickPointer = null, stickX = 0, stickY = 0, soundEnabled = experience.settings.volume > 0, fallbackAudio = null, lastSound = 0, lastAudibleVolume = experience.settings.volume || 0.65;
     let settingsResumeGame = false, settingsReturnToPause = false, lastRenderedFrame = 0, lastHUDFrame = 0, lastGuideFrame = 0;
+    let stageStartedAt = 0;
+    function emitGameTelemetry(event, fields = {}) {
+      const bridge = globalThis.pbmNative;
+      if (typeof bridge?.gameTelemetry !== "function") return;
+      try {
+        bridge.gameTelemetry(JSON.stringify({ event, ...fields }));
+      } catch {
+      }
+    }
+    function trackStageStart(stage) {
+      stageStartedAt = performance.now();
+      emitGameTelemetry("stage_start", { stage_id: String(stage) });
+    }
+    function trackStageEnd(stage, result) {
+      const duration = stageStartedAt ? Math.max(0, Math.round((performance.now() - stageStartedAt) / 1e3)) : 0;
+      emitGameTelemetry("stage_end", { stage_id: String(stage), result, duration_seconds: duration });
+      stageStartedAt = 0;
+    }
     const HUD_FRAME_MS = 100, GUIDE_FRAME_MS = 50;
-    const keys = /* @__PURE__ */ new Set();
+    const keys = new Set();
     let storage2;
     try {
       storage2 = window.localStorage;
@@ -5838,41 +5964,80 @@
     }
     const store = new SaveStore(storage2, navigator.locks || null);
     const accountSession = new AccountSession(storage2);
+    const guestSession = new GuestSession(storage2);
     const tutorialUI = new TutorialUI();
     let campUI, checkpointPending = null, lastAutoSave = 0, working = false, pendingImport = null, saveFailed = false;
     let marketTab = "build", routeOrigin = "camp", companionResumeGame = false, loadoutDraft = null, shopCheckout = null;
     let currentPromotion = "", promotionTimer = 0, promotionEpoch = 0;
     let tutorialSaving = false, tutorialSaveView = null;
     let routeNoticeTimer = 0;
-    let shellContentMode = "mini_only", shellSwitching = false, contentSwitchReturn = "", shellAppActive = true;
+    let shellAppActive = true;
     const backgroundMusic = new BackgroundMusic();
     const soundEffects = new SoundEffects();
     const nativeStoreKit = new NativeStoreKitShop(window);
     const nativeAuth = new NativeAccountAuth(window);
-    const normalizeContentMode = (value) => {
-      const mode = String(value || "").trim().toLowerCase().replaceAll("-", "_");
-      return ["mini_only", "online_only", "both"].includes(mode) ? mode : "mini_only";
+    let economyPending = null;
+    const nativeEconomy = {
+      available: () => typeof window.pbmNative?.economyAction === "function",
+      balance: () => Math.max(0, Number(window.__pbmEconomy?.balance) || 0),
+      pendingRun: () => String(window.__pbmEconomy?.pendingReviveRunId || ""),
+      openShop: () => window.pbmNative?.openGameShop?.(),
+      request(action, runId, amount) {
+        if (economyPending) return Promise.reject(Object.assign(new Error("復活請求正在處理"), { code: "ECONOMY_IN_PROGRESS" }));
+        if (!this.available()) return Promise.reject(Object.assign(new Error("請在 iOS App 內使用原始珍珠"), { code: "IOS_APP_REQUIRED" }));
+        const requestId2 = crypto.randomUUID();
+        return new Promise((resolve, reject) => {
+          economyPending = { requestId: requestId2, resolve, reject };
+          window.pbmNative.economyAction(JSON.stringify({ requestId: requestId2, action, runId, amount }));
+        });
+      },
+      revive: (runId) => nativeEconomy.request("reviveOnDefeat", runId, 20),
+      completeRevive: (runId) => nativeEconomy.request("completeRevive", runId, 0)
     };
-    function sdkContentMode() {
+    window.onNativeEconomyResult = (value) => {
+      let result;
       try {
-        return normalizeContentMode(JSON.parse(window.android?.getSdkStatus?.() || "{}").contentMode);
+        result = typeof value === "string" ? JSON.parse(value) : value;
       } catch {
-        return "mini_only";
+        return;
       }
-    }
-    function updateContentSwitchUI() {
-      const available = shellContentMode === "both";
-      for (const button of document.querySelectorAll("[data-open-main-game]")) {
-        button.hidden = !available;
-        button.disabled = shellSwitching;
-        button.setAttribute("aria-busy", String(shellSwitching));
-      }
-    }
-    window.setShellContentMode = (value) => {
-      shellContentMode = normalizeContentMode(value);
-      updateContentSwitchUI();
-      if (modalKind === "settings") renderSettings();
+      const pending = economyPending;
+      if (!pending || result?.requestId !== pending.requestId) return;
+      economyPending = null;
+      if (result.success) pending.resolve(result);
+      else pending.reject(Object.assign(new Error("原始珍珠不足"), { code: result?.code || "ECONOMY_FAILED" }));
     };
+    let accountChecking = nativeAuth.available(), accountCleanup = false;
+    const accountDeletion = new AccountDeletion({ auth: nativeAuth, session: accountSession, store, onConfirmed: async () => {
+      accountCleanup = true;
+      clearInput();
+      if (g) g.paused = true;
+      campUI?.clear();
+      $3("camp").hidden = true;
+      if (checkpointPending) await checkpointPending;
+      g = null;
+    } });
+    document.addEventListener("click", (event) => {
+      if (accountChecking || accountCleanup && !event.target.closest('[data-action="delete-account"]')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, true);
+    async function finishAccountDeletion(confirmed = false) {
+      working = true;
+      try {
+        await accountDeletion.run({ confirmed });
+        location.replace("login-preview.html?status=account-deleted");
+      } catch (error) {
+        if (error.accountDeleted) {
+          openModal("account-cleanup", "\u5E33\u865F\u5DF2\u522A\u9664\uFF0C\u5C1A\u9700\u6E05\u7406\u672C\u6A5F\u8CC7\u6599", error.message, "", '<button class="primary" data-action="delete-account">\u7E7C\u7E8C\u6E05\u7406</button>');
+        } else {
+          openModal("account-error", "\u5C1A\u672A\u6536\u5230\u522A\u9664\u78BA\u8A8D", error.message || "\u8ACB\u6AA2\u67E5\u7DB2\u8DEF\u5F8C\u91CD\u8A66\u3002", "", '<button class="primary" data-action="cancel-account-action" data-return="account">\u8FD4\u56DE\u5E33\u865F\u7BA1\u7406</button>');
+        }
+      } finally {
+        working = false;
+      }
+    }
     function syncBackgroundMusic() {
       const screen = !$3("landing").hidden ? "landing" : !$3("camp").hidden ? "camp" : !$3("route-map").hidden ? "route" : "game";
       backgroundMusic.setState({ track: musicScene({ screen, modal: modalKind, phase: g?.phase, paused: g?.paused }), volume: experience.settings.volume });
@@ -5882,19 +6047,26 @@
     const shoppablePhase = (phase) => ["prep", "wave", "rest"].includes(phase);
     const escapeHTML = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
     function refreshAccountUI() {
-      const session = accountSession.reload(), button = $3("landing-account");
-      button.textContent = session ? session.label : "帳號";
+      const session = accountSession.reload(), guest = !session && guestSession.active(), button = $3("landing-account");
+      button.textContent = session ? session.label : guest ? "\u8A2A\u5BA2" : "\u5E33\u865F";
       button.href = session ? "#account" : "login-preview.html";
-      button.setAttribute("aria-label", session ? `${session.label}，帳號管理` : "帳號登入");
-      button.title = session ? `${session.label} · 帳號管理` : "帳號登入";
+      button.setAttribute("aria-label", session ? `${session.label}\uFF0C\u5E33\u865F\u7BA1\u7406` : guest ? "\u8A2A\u5BA2\u8A66\u73A9\uFF0C\u767B\u5165\u6216\u8A3B\u518A\u6B63\u5F0F\u5E33\u865F" : "\u5E33\u865F\u767B\u5165");
+      button.title = session ? `${session.label} \xB7 \u5E33\u865F\u7BA1\u7406` : guest ? "\u8A2A\u5BA2\u8A66\u73A9 \xB7 \u767B\u5165\u6216\u8A3B\u518A" : "\u5E33\u865F\u767B\u5165";
       button.classList.toggle("signed-in", Boolean(session));
     }
     async function refreshNativeAccount() {
       if (!nativeAuth.available()) return;
       try {
         const status = await nativeAuth.status();
-        if (status.authenticated) accountSession.accept(status);
-        else accountSession.clear();
+        if (status.accountDeleted === true && status.cleanupRequired === true) {
+          accountCleanup = true;
+          location.replace("login-preview.html");
+          return;
+        }
+        if (status.authenticated) {
+          accountSession.accept(status);
+          guestSession.clear();
+        } else accountSession.clear();
         refreshAccountUI();
       } catch (error) {
         if (error?.code === "AUTH_EXPIRED" || error?.code === "HTTP_401") {
@@ -5905,21 +6077,21 @@
     }
     function refreshSaveUI() {
       const onboarding = onboardingRequired(store.state);
-      $3("begin").innerHTML = onboarding ? store.state.run ? "繼續新手訓練 <span>→</span>" : "開始新手訓練 <span>→</span>" : "前往營地 <span>↗</span>";
+      $3("begin").innerHTML = onboarding ? store.state.run ? "\u7E7C\u7E8C\u65B0\u624B\u8A13\u7DF4 <span>\u2192</span>" : "\u958B\u59CB\u65B0\u624B\u8A13\u7DF4 <span>\u2192</span>" : "\u524D\u5F80\u71DF\u5730 <span>\u2197</span>";
       $3("onboarding-gate").hidden = !onboarding;
       $3("tutorial-replay").hidden = onboarding;
       $3("landing-settings").hidden = onboarding;
       $3("continue-run").hidden = !store.state.run || onboarding;
-      $3("continue-run").textContent = store.state.run ? `繼續遠征 · 第 ${store.state.run.wave || 1} 波 ↗` : "繼續遠征 ↗";
-      $3("landing-save-note").textContent = store.warning || "本機自動存檔 · 清除網站資料前請先匯出備份";
+      $3("continue-run").textContent = store.state.run ? `\u7E7C\u7E8C\u9060\u5F81 \xB7 \u7B2C ${store.state.run.wave || 1} \u6CE2 \u2197` : "\u7E7C\u7E8C\u9060\u5F81 \u2197";
+      $3("landing-save-note").textContent = store.warning || "\u672C\u6A5F\u81EA\u52D5\u5B58\u6A94 \xB7 \u6E05\u9664\u7DB2\u7AD9\u8CC7\u6599\u524D\u8ACB\u5148\u532F\u51FA\u5099\u4EFD";
       refreshAccountUI();
       const qaReadonly = readonlyQADemo() || practiceRun();
       $3("save-game").disabled = qaReadonly;
-      $3("save-game").textContent = practiceRun() ? "練" : qaReadonly ? "測" : saveFailed ? "!" : "存";
+      $3("save-game").textContent = practiceRun() ? "\u7DF4" : qaReadonly ? "\u6E2C" : saveFailed ? "!" : "\u5B58";
       $3("save-game").classList.toggle("save-error", saveFailed && !qaReadonly);
-      $3("return-camp").setAttribute("aria-label", practiceRun() ? "退出試煉，返回營地" : "儲存並返回營地");
+      $3("return-camp").setAttribute("aria-label", practiceRun() ? "\u9000\u51FA\u8A66\u7149\uFF0C\u8FD4\u56DE\u71DF\u5730" : "\u5132\u5B58\u4E26\u8FD4\u56DE\u71DF\u5730");
       $3("return-camp").hidden = mandatoryTutorial(g);
-      $3("save-game").title = qaReadonly ? "試玩不寫入真實存檔" : saveFailed ? "儲存失敗，請重試" : store.savedAt ? `最後儲存 ${new Date(store.savedAt).toLocaleTimeString()}` : "儲存遠征";
+      $3("save-game").title = qaReadonly ? "\u8A66\u73A9\u4E0D\u5BEB\u5165\u771F\u5BE6\u5B58\u6A94" : saveFailed ? "\u5132\u5B58\u5931\u6557\uFF0C\u8ACB\u91CD\u8A66" : store.savedAt ? `\u6700\u5F8C\u5132\u5B58 ${new Date(store.savedAt).toLocaleTimeString()}` : "\u5132\u5B58\u9060\u5F81";
       refreshCampStoreButtons();
       if (!$3("camp").hidden) campUI?.render();
     }
@@ -5930,29 +6102,32 @@
       const available = ["pack-fortify", "pack-relic"].map(shopOffer).filter((offer) => offerAvailable(offer, transactions)).length;
       badge.textContent = available ? String(available) : "";
       $3("camp-gifts").classList.toggle("sold-out", available === 0);
-      $3("camp-gifts").setAttribute("aria-label", available ? `限時禮包，${available} 個可購買` : "限時禮包，目前限定商品已購買");
+      $3("camp-gifts").setAttribute("aria-label", available ? `\u9650\u6642\u79AE\u5305\uFF0C${available} \u500B\u53EF\u8CFC\u8CB7` : "\u9650\u6642\u79AE\u5305\uFF0C\u76EE\u524D\u9650\u5B9A\u5546\u54C1\u5DF2\u8CFC\u8CB7");
     }
     function saveFailure(error) {
       saveFailed = true;
       clearInput();
       if (g) g.paused = true;
       refreshSaveUI();
-      openModal("save-error", "先保護你的進度", error.message, '<p class="howto">未成功保存的操作不會顯示為「已存檔」。載入其他頁面的最新存檔，會放棄本頁未儲存的變更。</p>', error.code === "CONFLICT" ? '<button class="primary" data-action="reload-save">載入最新存檔</button><button class="secondary" data-action="export-save">匯出本機備份</button>' : '<button class="primary" data-action="retry-save">重試儲存</button><button class="secondary" data-action="export-save">匯出本機備份</button>');
+      openModal("save-error", "\u5148\u4FDD\u8B77\u4F60\u7684\u9032\u5EA6", error.message, '<p class="howto">\u672A\u6210\u529F\u4FDD\u5B58\u7684\u64CD\u4F5C\u4E0D\u6703\u986F\u793A\u70BA\u300C\u5DF2\u5B58\u6A94\u300D\u3002\u8F09\u5165\u5176\u4ED6\u9801\u9762\u7684\u6700\u65B0\u5B58\u6A94\uFF0C\u6703\u653E\u68C4\u672C\u9801\u672A\u5132\u5B58\u7684\u8B8A\u66F4\u3002</p>', error.code === "CONFLICT" ? '<button class="primary" data-action="reload-save">\u8F09\u5165\u6700\u65B0\u5B58\u6A94</button><button class="secondary" data-action="export-save">\u532F\u51FA\u672C\u6A5F\u5099\u4EFD</button>' : '<button class="primary" data-action="retry-save">\u91CD\u8A66\u5132\u5B58</button><button class="secondary" data-action="export-save">\u532F\u51FA\u672C\u6A5F\u5099\u4EFD</button>');
     }
-    async function checkpoint(manual = false) {
-      if (tutorialSaving) return false;
+    async function checkpoint(manual = false, allowTerminal = false) {
+      if (tutorialSaving || accountCleanup) return false;
       const game = g;
-      if (!game || ["win", "lose"].includes(game.phase)) return true;
+      if (!game || !allowTerminal && ["win", "lose"].includes(game.phase)) return true;
       if (readonlyQADemo() || practiceRun()) {
-        if (manual) notify("試玩不會改動真實存檔");
+        if (manual) notify("\u8A66\u73A9\u4E0D\u6703\u6539\u52D5\u771F\u5BE6\u5B58\u6A94");
         return true;
       }
-      if (checkpointPending) return checkpointPending;
+      if (checkpointPending) {
+        if (!allowTerminal) return checkpointPending;
+        if (!await checkpointPending) return false;
+      }
       lastAutoSave = performance.now();
       checkpointPending = store.saveRun(() => game.snapshot()).then(() => {
         saveFailed = false;
         refreshSaveUI();
-        if (manual) notify("✓ 遠征已儲存到本機");
+        if (manual) notify("\u2713 \u9060\u5F81\u5DF2\u5132\u5B58\u5230\u672C\u6A5F");
         return true;
       }).catch((error) => {
         saveFailure(error);
@@ -5963,7 +6138,7 @@
       return checkpointPending;
     }
     function flush() {
-      if (tutorialSaving) return;
+      if (tutorialSaving || accountCleanup) return;
       if (readonlyQADemo() || practiceRun()) return;
       if (working && modalKind === "merchant") return;
       if (campUI?.active && !saveFailed) {
@@ -5988,7 +6163,10 @@
       lastSound = sampleTime;
       if (soundEffects.play(kind, volume)) return;
       try {
-        if (!fallbackAudio) fallbackAudio = new (window.AudioContext || window.webkitAudioContext)();
+        if (!fallbackAudio) {
+          fallbackAudio = new (window.AudioContext || window.webkitAudioContext)();
+          window.__pbmFallbackAudio = fallbackAudio;
+        }
         if (fallbackAudio.state === "suspended") fallbackAudio.resume().catch(() => {
         });
         const now = fallbackAudio.currentTime;
@@ -6013,30 +6191,30 @@
       soundEnabled = experience.settings.volume > 0;
       $3("sound").classList.toggle("sound-on", soundEnabled);
       $3("sound").setAttribute("aria-pressed", String(soundEnabled));
-      $3("sound").setAttribute("aria-label", soundEnabled ? "關閉聲音" : "開啟聲音");
+      $3("sound").setAttribute("aria-label", soundEnabled ? "\u95DC\u9589\u8072\u97F3" : "\u958B\u555F\u8072\u97F3");
     }
     function notify(message, duration = 2800) {
       $3("toast").textContent = message;
       $3("toast").classList.add("visible");
       toastUntil = performance.now() + duration;
     }
-    function hideWaveLoot() {
+    function closeWaveLoot() {
       $3("wave-loot").hidden = true;
       $3("arena").classList.remove("showing-loot");
       if ($3("wave-loot").contains(document.activeElement)) $3("next-wave").focus({ preventScroll: true });
     }
     function showWaveLoot(reward) {
-      $3("wave-loot-title").textContent = `${STAGES[g.wave - 1].name} · ${reward.objective || "目標完成"}`;
-      $3("wave-loot-items").innerHTML = [["wood", "木材", "▰"], ["bone", "獸骨", "✧"], ["amber", "琥珀", "◆"]].map(([key, label, symbol]) => `<div class="wave-loot-item ${key}"><i aria-hidden="true">${key === "amber" ? spriteIcon("amber-crystal", "loot-crystal-art") : symbol}</i><span>${label}<b>+${reward[key]}</b></span></div>`).join("");
-      $3("wave-loot-note").textContent = reward.survivors ? `保留 ${reward.survivors} 座建築 · 修復 ${reward.repair}% 耐久` : "防線已清理 · 可重新部署";
+      $3("wave-loot-title").textContent = `${STAGES[g.wave - 1].name} \xB7 ${reward.objective || "\u76EE\u6A19\u5B8C\u6210"}`;
+      $3("wave-loot-items").innerHTML = [["wood", "\u6728\u6750", "\u25B0"], ["bone", "\u7378\u9AA8", "\u2727"], ["amber", "\u7425\u73C0", "\u25C6"]].map(([key, label, symbol]) => `<div class="wave-loot-item ${key}"><i aria-hidden="true">${key === "amber" ? spriteIcon("amber-crystal", "loot-crystal-art") : symbol}</i><span>${label}<b>+${reward[key]}</b></span></div>`).join("");
+      $3("wave-loot-note").textContent = reward.survivors ? `\u4FDD\u7559 ${reward.survivors} \u5EA7\u5EFA\u7BC9 \xB7 \u4FEE\u5FA9 ${reward.repair}% \u8010\u4E45` : "\u9632\u7DDA\u5DF2\u6E05\u7406 \xB7 \u53EF\u91CD\u65B0\u90E8\u7F72";
       $3("toast").classList.remove("visible");
       toastUntil = 0;
       $3("wave-loot").hidden = false;
       $3("arena").classList.add("showing-loot");
     }
-    $3("dismiss-loot").addEventListener("click", hideWaveLoot);
+    $3("dismiss-loot").addEventListener("click", closeWaveLoot);
     $3("loot-merchant").addEventListener("click", () => {
-      hideWaveLoot();
+      closeWaveLoot();
       showMarket();
     });
     function clearInput() {
@@ -6058,7 +6236,7 @@
     function mountRun(game) {
       clearInput();
       closeModal();
-      hideWaveLoot();
+      closeWaveLoot();
       g = game;
       setBattleDeck(false);
       $3("landing").hidden = true;
@@ -6090,7 +6268,7 @@
           handleEvents();
           updateHUD();
           await checkpoint();
-        } else notify("營地加成已套用；拖卡佈防，準備好再召喚獸潮。", 4800);
+        } else notify("\u71DF\u5730\u52A0\u6210\u5DF2\u5957\u7528\uFF1B\u62D6\u5361\u4F48\u9632\uFF0C\u6E96\u5099\u597D\u518D\u53EC\u559A\u7378\u6F6E\u3002", 4800);
         refreshSaveUI();
       } catch (error) {
         saveFailure(error);
@@ -6141,10 +6319,10 @@
       const cards = Object.entries(COMPANIONS).map(([type, d]) => {
         const p = companions.roster[type], active = companions.selected === type, plan = hatchPlan(store.state, type), need2 = companionXPNeeded(p.level), percent = p.level >= COMPANION_MAX_LEVEL ? 100 : Math.min(100, p.xp / need2 * 100);
         const disabled = battleLocked || active || !p.unlocked && !plan.ok;
-        const action = active ? "跟隨中" : p.unlocked ? "切換伙伴" : plan.ok ? plan.cost ? `孵化 · ♨ ${plan.cost}` : "孵化初始聖獸卵" : plan.reason;
-        return `<article class="companion-choice ${active ? "active" : ""} ${p.unlocked ? "unlocked" : "locked"}" style="--companion:${d.color}">${spriteIcon(`companion-${type}`, "companion-portrait")}<header><span>${d.title}</span><b>${d.name}</b><small>${d.short}</small></header><p>${d.ability}</p><div class="companion-progress"><span><b>Lv.${p.level}</b><small>${p.level >= COMPANION_MAX_LEVEL ? "滿級" : `${p.xp} / ${need2} 經驗`}</small></span><i><em style="width:${percent}%"></em></i></div><button class="${active ? "secondary" : "primary"}" data-action="companion-select" data-companion="${type}" ${disabled ? "disabled" : ""}>${battleLocked ? "戰鬥中不可更換" : action}</button></article>`;
+        const action = active ? "\u8DDF\u96A8\u4E2D" : p.unlocked ? "\u5207\u63DB\u4F19\u4F34" : plan.ok ? plan.cost ? `\u5B75\u5316 \xB7 \u2668 ${plan.cost}` : "\u5B75\u5316\u521D\u59CB\u8056\u7378\u5375" : plan.reason;
+        return `<article class="companion-choice ${active ? "active" : ""} ${p.unlocked ? "unlocked" : "locked"}" style="--companion:${d.color}">${spriteIcon(`companion-${type}`, "companion-portrait")}<header><span>${d.title}</span><b>${d.name}</b><small>${d.short}</small></header><p>${d.ability}</p><div class="companion-progress"><span><b>Lv.${p.level}</b><small>${p.level >= COMPANION_MAX_LEVEL ? "\u6EFF\u7D1A" : `${p.xp} / ${need2} \u7D93\u9A57`}</small></span><i><em style="width:${percent}%"></em></i></div><button class="${active ? "secondary" : "primary"}" data-action="companion-select" data-companion="${type}" ${disabled ? "disabled" : ""}>${battleLocked ? "\u6230\u9B25\u4E2D\u4E0D\u53EF\u66F4\u63DB" : action}</button></article>`;
       }).join("");
-      return `${message ? `<p class="companion-message">${message}</p>` : ""}<div class="camp-stockline"><span>溫室孵化熱度</span><b>♨ ${store.state.camp.stockpile.warmth}</b></div><div class="companion-grid">${cards}</div><p class="companion-note">焰脊迅龍來自初始聖獸卵；建造並升級獸卵溫室、完成遠征後領取孵化熱度，可孵化潮汐角龍與岩甲幼龍。伙伴經驗永久保留。</p>`;
+      return `${message ? `<p class="companion-message">${message}</p>` : ""}<div class="camp-stockline"><span>\u6EAB\u5BA4\u5B75\u5316\u71B1\u5EA6</span><b>\u2668 ${store.state.camp.stockpile.warmth}</b></div><div class="companion-grid">${cards}</div><p class="companion-note">\u7130\u810A\u8FC5\u9F8D\u4F86\u81EA\u521D\u59CB\u8056\u7378\u5375\uFF1B\u5EFA\u9020\u4E26\u5347\u7D1A\u7378\u5375\u6EAB\u5BA4\u3001\u5B8C\u6210\u9060\u5F81\u5F8C\u9818\u53D6\u5B75\u5316\u71B1\u5EA6\uFF0C\u53EF\u5B75\u5316\u6F6E\u6C50\u89D2\u9F8D\u8207\u5CA9\u7532\u5E7C\u9F8D\u3002\u4F19\u4F34\u7D93\u9A57\u6C38\u4E45\u4FDD\u7559\u3002</p>`;
     }
     function showCompanions(message = "") {
       if (mandatoryTutorial(g)) return;
@@ -6153,7 +6331,7 @@
         if (companionResumeGame) g.paused = true;
       }
       clearInput();
-      openModal("companion", "聖獸孵化與伙伴", "選擇你的常駐伙伴。每隻聖獸都有獨立等級、戰鬥定位與專屬能力。", companionContent(message), '<button class="secondary" data-action="companion-close">返回</button>');
+      openModal("companion", "\u8056\u7378\u5B75\u5316\u8207\u4F19\u4F34", "\u9078\u64C7\u4F60\u7684\u5E38\u99D0\u4F19\u4F34\u3002\u6BCF\u96BB\u8056\u7378\u90FD\u6709\u7368\u7ACB\u7B49\u7D1A\u3001\u6230\u9B25\u5B9A\u4F4D\u8207\u5C08\u5C6C\u80FD\u529B\u3002", companionContent(message), '<button class="secondary" data-action="companion-close">\u8FD4\u56DE</button>');
     }
     function closeCompanions() {
       closeModal();
@@ -6166,27 +6344,27 @@
     }
     function loadoutContent(message = "") {
       const draft = loadoutDraft, buildCount = draft.cards.filter((id) => CARDS[id]).length, hireCount = draft.cards.filter((id) => HIRES[id]).length;
-      const cardOption = (id, d, kind) => `<button class="loadout-option card-option ${draft.cards.includes(id) ? "selected" : ""}" data-loadout-card="${id}" aria-pressed="${draft.cards.includes(id)}">${icon(id)}<span><small>${kind}</small><b>${d.name}</b><em>${d.short}</em></span><i>${draft.cards.includes(id) ? "已攜帶" : "選擇"}</i></button>`;
-      const choice = (kind, id, name, symbol, selected2, locked = false, lockText = "") => `<button class="loadout-option compact-option ${selected2 ? "selected" : ""} ${locked ? "locked" : ""}" data-loadout-${kind}="${id}" aria-pressed="${selected2}" ${locked ? "disabled" : ""}><span class="loadout-symbol">${symbol}</span><span><b>${name}</b><em>${selected2 ? "本次出征攜帶" : locked ? lockText : "點擊替換"}</em></span><i>${selected2 ? "✓" : locked ? "鎖" : ""}</i></button>`;
+      const cardOption = (id, d, kind) => `<button class="loadout-option card-option ${draft.cards.includes(id) ? "selected" : ""}" data-loadout-card="${id}" aria-pressed="${draft.cards.includes(id)}">${icon(id)}<span><small>${kind}</small><b>${d.name}</b><em>${d.short}</em></span><i>${draft.cards.includes(id) ? "\u5DF2\u651C\u5E36" : "\u9078\u64C7"}</i></button>`;
+      const choice = (kind, id, name, symbol, selected2, locked = false, lockText = "") => `<button class="loadout-option compact-option ${selected2 ? "selected" : ""} ${locked ? "locked" : ""}" data-loadout-${kind}="${id}" aria-pressed="${selected2}" ${locked ? "disabled" : ""}><span class="loadout-symbol">${symbol}</span><span><b>${name}</b><em>${selected2 ? "\u672C\u6B21\u51FA\u5F81\u651C\u5E36" : locked ? lockText : "\u9EDE\u64CA\u66FF\u63DB"}</em></span><i>${selected2 ? "\u2713" : locked ? "\u9396" : ""}</i></button>`;
       const valid = isValidLoadout(draft);
-      return `${message ? `<p class="loadout-message" role="status">${message}</p>` : ""}<div class="loadout-limits"><span class="${buildCount === LOADOUT_RULES.buildCards ? "ready" : ""}">建造卡 <b>${buildCount} / ${LOADOUT_RULES.buildCards}</b></span><span class="${hireCount === LOADOUT_RULES.hireCards ? "ready" : ""}">佣兵卡 <b>${hireCount} / ${LOADOUT_RULES.hireCards}</b></span><span class="ready">武器 <b>1 / 1</b></span><span class="ready">技能 <b>1 / 1</b></span></div>
-  <section class="loadout-section"><header><span>BUILD DECK</span><h3>選擇三張建造卡</h3></header><div class="loadout-grid cards">${Object.entries(CARDS).map(([id, d]) => cardOption(id, d, "建造卡")).join("")}</div></section>
-  <section class="loadout-section"><header><span>MERCENARY</span><h3>選擇一張佣兵卡</h3></header><div class="loadout-grid hires">${Object.entries(HIRES).map(([id, d]) => cardOption(id, d, "佣兵卡")).join("")}</div></section>
-  <div class="loadout-pair"><section class="loadout-section"><header><span>WEAPON</span><h3>主武器</h3></header><div class="loadout-grid compact weapons">${Object.entries(WEAPONS).map(([id, weapon]) => {
+      return `${message ? `<p class="loadout-message" role="status">${message}</p>` : ""}<div class="loadout-limits"><span class="${buildCount === LOADOUT_RULES.buildCards ? "ready" : ""}">\u5EFA\u9020\u5361 <b>${buildCount} / ${LOADOUT_RULES.buildCards}</b></span><span class="${hireCount === LOADOUT_RULES.hireCards ? "ready" : ""}">\u4F63\u5175\u5361 <b>${hireCount} / ${LOADOUT_RULES.hireCards}</b></span><span class="ready">\u6B66\u5668 <b>1 / 1</b></span><span class="ready">\u6280\u80FD <b>1 / 1</b></span></div>
+  <section class="loadout-section"><header><span>BUILD DECK</span><h3>\u9078\u64C7\u4E09\u5F35\u5EFA\u9020\u5361</h3></header><div class="loadout-grid cards">${Object.entries(CARDS).map(([id, d]) => cardOption(id, d, "\u5EFA\u9020\u5361")).join("")}</div></section>
+  <section class="loadout-section"><header><span>MERCENARY</span><h3>\u9078\u64C7\u4E00\u5F35\u4F63\u5175\u5361</h3></header><div class="loadout-grid hires">${Object.entries(HIRES).map(([id, d]) => cardOption(id, d, "\u4F63\u5175\u5361")).join("")}</div></section>
+  <div class="loadout-pair"><section class="loadout-section"><header><span>WEAPON</span><h3>\u4E3B\u6B66\u5668</h3></header><div class="loadout-grid compact weapons">${Object.entries(WEAPONS).map(([id, weapon]) => {
         const selected2 = draft.weapons.includes(id), locked = !selected2 && !campWeaponUnlocked(store.state.camp, id), level = { bow: 1, blades: 2, hammer: 3 }[id];
-        return choice("weapon", id, weapon.name, weapon.symbol, selected2, locked, level ? `骨器工坊 ${level} 級解鎖` : "");
+        return choice("weapon", id, weapon.name, weapon.symbol, selected2, locked, level ? `\u9AA8\u5668\u5DE5\u574A ${level} \u7D1A\u89E3\u9396` : "");
       }).join("")}</div></section>
-  <section class="loadout-section"><header><span>ACTIVE SKILL</span><h3>主動技能</h3></header><div class="loadout-grid compact">${choice("skill", "volley", ACTIVE_SKILLS.volley.name, "➶", draft.skills.includes("volley"))}${choice("skill", "shock", ACTIVE_SKILLS.shock.name, "✹", draft.skills.includes("shock"))}</div></section></div>
-  <p class="loadout-note">配置保存於營地，只會在建立下一次遠征時固化；已在進行中的遠征不會被中途改寫。</p><span data-loadout-valid="${valid}"></span>`;
+  <section class="loadout-section"><header><span>ACTIVE SKILL</span><h3>\u4E3B\u52D5\u6280\u80FD</h3></header><div class="loadout-grid compact">${choice("skill", "volley", ACTIVE_SKILLS.volley.name, "\u27B6", draft.skills.includes("volley"))}${choice("skill", "shock", ACTIVE_SKILLS.shock.name, "\u2739", draft.skills.includes("shock"))}</div></section></div>
+  <p class="loadout-note">\u914D\u7F6E\u4FDD\u5B58\u65BC\u71DF\u5730\uFF0C\u53EA\u6703\u5728\u5EFA\u7ACB\u4E0B\u4E00\u6B21\u9060\u5F81\u6642\u56FA\u5316\uFF1B\u5DF2\u5728\u9032\u884C\u4E2D\u7684\u9060\u5F81\u4E0D\u6703\u88AB\u4E2D\u9014\u6539\u5BEB\u3002</p><span data-loadout-valid="${valid}"></span>`;
     }
     function renderLoadout(message = "") {
       const valid = isValidLoadout(loadoutDraft);
-      openModal("loadout", "卡組與出征配置", "限制攜帶數量，先在營地決定本次遠征的建造、佣兵、武器與主動技能。", loadoutContent(message), `<button class="primary" data-action="loadout-save" ${valid ? "" : "disabled"}>保存配置</button><button class="secondary" data-action="loadout-close">取消</button>`);
+      openModal("loadout", "\u5361\u7D44\u8207\u51FA\u5F81\u914D\u7F6E", "\u9650\u5236\u651C\u5E36\u6578\u91CF\uFF0C\u5148\u5728\u71DF\u5730\u6C7A\u5B9A\u672C\u6B21\u9060\u5F81\u7684\u5EFA\u9020\u3001\u4F63\u5175\u3001\u6B66\u5668\u8207\u4E3B\u52D5\u6280\u80FD\u3002", loadoutContent(message), `<button class="primary" data-action="loadout-save" ${valid ? "" : "disabled"}>\u4FDD\u5B58\u914D\u7F6E</button><button class="secondary" data-action="loadout-close">\u53D6\u6D88</button>`);
     }
     function showLoadout() {
       if (onboardingRequired(store.state)) return;
       loadoutDraft = normalizeLoadout(ensureLoadoutState(store.state.camp));
-      renderLoadout(store.state.run ? "已保存的遠征沿用原配置；本次修改將在重新出發時生效。" : "");
+      renderLoadout(store.state.run ? "\u5DF2\u4FDD\u5B58\u7684\u9060\u5F81\u6CBF\u7528\u539F\u914D\u7F6E\uFF1B\u672C\u6B21\u4FEE\u6539\u5C07\u5728\u91CD\u65B0\u51FA\u767C\u6642\u751F\u6548\u3002" : "");
     }
     async function saveLoadout() {
       if (working || !isValidLoadout(loadoutDraft)) return;
@@ -6199,7 +6377,7 @@
         saveFailed = false;
         refreshSaveUI();
         closeModal();
-        campUI.message(`出征配置已保存 · ${next.cards.map((id) => DEPLOY_CARDS[id].name).join("、")} · ${WEAPONS[next.weapons[0]].name} · ${ACTIVE_SKILLS[next.skills[0]].name}`);
+        campUI.message(`\u51FA\u5F81\u914D\u7F6E\u5DF2\u4FDD\u5B58 \xB7 ${next.cards.map((id) => DEPLOY_CARDS[id].name).join("\u3001")} \xB7 ${WEAPONS[next.weapons[0]].name} \xB7 ${ACTIVE_SKILLS[next.skills[0]].name}`);
       } catch (error) {
         saveFailure(error);
       } finally {
@@ -6210,7 +6388,7 @@
       if (working || !Object.hasOwn(COMPANIONS, type)) return;
       const phase = g?.phase || store.state.run?.phase;
       if (phase === "wave") {
-        showCompanions("獸潮尚未結束，伙伴會堅守到本關結束後再更換。");
+        showCompanions("\u7378\u6F6E\u5C1A\u672A\u7D50\u675F\uFF0C\u4F19\u4F34\u6703\u5805\u5B88\u5230\u672C\u95DC\u7D50\u675F\u5F8C\u518D\u66F4\u63DB\u3002");
         return;
       }
       working = true;
@@ -6241,7 +6419,7 @@
         experience.haptic(hatched ? "success" : "selection");
         sound(hatched ? "combo" : "build");
         working = false;
-        showCompanions(hatched ? `${COMPANIONS[type].name}破殼而出，已加入你的永久伙伴隊伍。` : `已讓${COMPANIONS[type].name}跟隨本次遠征。`);
+        showCompanions(hatched ? `${COMPANIONS[type].name}\u7834\u6BBC\u800C\u51FA\uFF0C\u5DF2\u52A0\u5165\u4F60\u7684\u6C38\u4E45\u4F19\u4F34\u968A\u4F0D\u3002` : `\u5DF2\u8B93${COMPANIONS[type].name}\u8DDF\u96A8\u672C\u6B21\u9060\u5F81\u3002`);
       } catch (error) {
         working = false;
         saveFailure(error);
@@ -6249,7 +6427,7 @@
     }
     async function returnCamp() {
       if (mandatoryTutorial(g)) {
-        notify("完成新手訓練並領取獎勵後，才會開放營地");
+        notify("\u5B8C\u6210\u65B0\u624B\u8A13\u7DF4\u4E26\u9818\u53D6\u734E\u52F5\u5F8C\uFF0C\u624D\u6703\u958B\u653E\u71DF\u5730");
         return;
       }
       if (working || !g) return;
@@ -6285,7 +6463,7 @@
       const run = routeRun(), completed = Math.min(MAX_WAVES, run?.stats?.waves || 0), phase = run?.phase || "prep";
       const current = run ? phase === "wave" ? run.wave : Math.min(MAX_WAVES, run.wave + 1) : 1;
       $3("route-progress").textContent = `${completed} / ${MAX_WAVES}`;
-      $3("route-status").textContent = phase === "wave" ? `${STAGES[current - 1].name}戰鬥尚未結束，點擊返回戰場。` : completed ? `已完成 ${completed} 關；下一站是${STAGES[current - 1].name}。` : "選擇蕨谷入口，開始這次遠征。";
+      $3("route-status").textContent = phase === "wave" ? `${STAGES[current - 1].name}\u6230\u9B25\u5C1A\u672A\u7D50\u675F\uFF0C\u9EDE\u64CA\u8FD4\u56DE\u6230\u5834\u3002` : completed ? `\u5DF2\u5B8C\u6210 ${completed} \u95DC\uFF1B\u4E0B\u4E00\u7AD9\u662F${STAGES[current - 1].name}\u3002` : "\u9078\u64C7\u8568\u8C37\u5165\u53E3\uFF0C\u958B\u59CB\u9019\u6B21\u9060\u5F81\u3002";
       for (const node of document.querySelectorAll(".route-node")) {
         const stage = Number(node.dataset.stage), done = stage <= completed, active = phase === "wave" && stage === current, available = phase !== "wave" && stage === current, locked = !done && !active && !available;
         const mapEvent = run?.eventPlan?.find((event) => event.stage === stage);
@@ -6296,16 +6474,16 @@
             node.append(badge);
           }
           badge.className = `route-event-badge ${mapEvent.status}`;
-          badge.textContent = mapEvent.status === "completed" ? "✓" : mapEvent.status === "missed" ? "×" : MAP_EVENT_DEFS[mapEvent.type].icon;
-          badge.title = `地圖事件：${MAP_EVENT_DEFS[mapEvent.type].name}`;
+          badge.textContent = mapEvent.status === "completed" ? "\u2713" : mapEvent.status === "missed" ? "\xD7" : MAP_EVENT_DEFS[mapEvent.type].icon;
+          badge.title = `\u5730\u5716\u4E8B\u4EF6\uFF1A${MAP_EVENT_DEFS[mapEvent.type].name}`;
         } else badge?.remove();
         node.classList.toggle("completed", done);
         node.classList.toggle("active", active);
         node.classList.toggle("available", available);
         node.classList.toggle("locked", locked);
         node.disabled = done || locked;
-        node.querySelector(".route-marker").textContent = done ? "✓" : active ? "↗" : locked ? "◇" : String(stage);
-        node.setAttribute("aria-label", `${STAGES[stage - 1].name}，${done ? "已完成" : active ? "戰鬥中，返回戰場" : available ? "可挑戰" : "尚未解鎖"}${mapEvent ? `，地圖事件：${MAP_EVENT_DEFS[mapEvent.type].name}` : ""}`);
+        node.querySelector(".route-marker").textContent = done ? "\u2713" : active ? "\u2197" : locked ? "\u25C7" : String(stage);
+        node.setAttribute("aria-label", `${STAGES[stage - 1].name}\uFF0C${done ? "\u5DF2\u5B8C\u6210" : active ? "\u6230\u9B25\u4E2D\uFF0C\u8FD4\u56DE\u6230\u5834" : available ? "\u53EF\u6311\u6230" : "\u5C1A\u672A\u89E3\u9396"}${mapEvent ? `\uFF0C\u5730\u5716\u4E8B\u4EF6\uFF1A${MAP_EVENT_DEFS[mapEvent.type].name}` : ""}`);
       }
     }
     function focusCurrentRouteNode() {
@@ -6318,8 +6496,8 @@
     function showRouteComingSoon(label) {
       const notice = $3("route-coming-toast");
       clearTimeout(routeNoticeTimer);
-      $3("route-status").textContent = `${label}正在製作中，敬請期待。`;
-      notice.textContent = `${label} · 新篇章正在製作中，敬請期待`;
+      $3("route-status").textContent = `${label}\u6B63\u5728\u88FD\u4F5C\u4E2D\uFF0C\u656C\u8ACB\u671F\u5F85\u3002`;
+      notice.textContent = `${label} \xB7 \u65B0\u7BC7\u7AE0\u6B63\u5728\u88FD\u4F5C\u4E2D\uFF0C\u656C\u8ACB\u671F\u5F85`;
       notice.hidden = false;
       sound("ui");
       experience.haptic("selection");
@@ -6335,7 +6513,7 @@
       }
       if (working || saveFailed) return;
       if (g?.tutorial?.reward) {
-        notify("先領取第一關獎勵，再選擇下一關");
+        notify("\u5148\u9818\u53D6\u7B2C\u4E00\u95DC\u734E\u52F5\uFF0C\u518D\u9078\u64C7\u4E0B\u4E00\u95DC");
         return;
       }
       if (campUI.active) await campUI.savePosition();
@@ -6395,8 +6573,9 @@
       }
       if (g.phase !== "prep" || stage !== g.wave + 1) return;
       if (g.startWave()) {
+        trackStageStart(stage);
         updateHUD();
-        notify(`${STAGES[stage - 1].name} · 第 ${stage} 關開始`, 3200);
+        notify(`${STAGES[stage - 1].name} \xB7 \u7B2C ${stage} \u95DC\u958B\u59CB`, 3200);
         await checkpoint();
       }
     }
@@ -6411,7 +6590,7 @@
       const offer = shopOffer(id);
       if (!offer || !["merchant", "promotion"].includes(modalKind)) return;
       if (!offerAvailable(offer, store.state.profile.purchaseTransactions)) {
-        notify(offer.limit === "weekly" ? "本週禮包已購買" : "新手禮包已購買");
+        notify(offer.limit === "weekly" ? "\u672C\u9031\u79AE\u5305\u5DF2\u8CFC\u8CB7" : "\u65B0\u624B\u79AE\u5305\u5DF2\u8CFC\u8CB7");
         return;
       }
       shopCheckout = { offer, phase: "confirm", orderId: "", detail: "" };
@@ -6434,13 +6613,13 @@
       const transactions = store.state.profile.purchaseTransactions;
       return `<div class="gift-center-grid">${["pack-fortify", "pack-relic"].map(shopOffer).map((offer) => {
         const available = offerAvailable(offer, transactions), art = spriteIcon(offer.art, "promotion-pack-art") || spriteIcon("shop-amber-ingot", "promotion-pack-art");
-        return `<article class="gift-center-card ${available ? "" : "sold"}"><div class="promotion-art">${art}<span>${offer.limit === "weekly" ? "每週限購" : "新手限購"}</span></div><small>APP STORE · ${offer.productId}</small><h3>${offer.name}</h3><p>${offer.description}</p><span class="shop-contents">${offerContents(offer)}</span><button type="button" class="shop-pay-btn" data-shop-offer="${offer.id}" ${available ? "" : "disabled"}><i>${available ? "查看商品" : "已購買"}</i><b>${available ? "使用 App Store 付款" : offer.limit === "weekly" ? "本週已購買" : "已購買"}</b></button></article>`;
+        return `<article class="gift-center-card ${available ? "" : "sold"}"><div class="promotion-art">${art}<span>${offer.limit === "weekly" ? "\u6BCF\u9031\u9650\u8CFC" : "\u65B0\u624B\u9650\u8CFC"}</span></div><small>APP STORE \xB7 ${offer.productId}</small><h3>${offer.name}</h3><p>${offer.description}</p><span class="shop-contents">${offerContents(offer)}</span><button type="button" class="shop-pay-btn" data-shop-offer="${offer.id}" ${available ? "" : "disabled"}><i>${available ? "\u67E5\u770B\u5546\u54C1" : "\u5DF2\u8CFC\u8CB7"}</i><b>${available ? "\u4F7F\u7528 App Store \u4ED8\u6B3E" : offer.limit === "weekly" ? "\u672C\u9031\u5DF2\u8CFC\u8CB7" : "\u5DF2\u8CFC\u8CB7"}</b></button></article>`;
       }).join("")}</div>`;
     }
     function showGiftCenter(automatic = false) {
       if (!store.state.run || !shoppablePhase(store.state.run.phase) || saveFailed) return;
       currentPromotion = "gift-center";
-      openModal("promotion", automatic ? "營地補給" : "限時禮包", "禮包為自選付費商品，不購買也能完整遊玩。稍後可從營地「禮包」再次開啟；價格以 App Store 付款頁為準。", giftCenterContent(), `<button class="secondary" data-action="promotion-close">${automatic ? "先去營地 · 不購買" : "返回營地"}</button>`);
+      openModal("promotion", automatic ? "\u71DF\u5730\u88DC\u7D66" : "\u9650\u6642\u79AE\u5305", "\u79AE\u5305\u70BA\u81EA\u9078\u4ED8\u8CBB\u5546\u54C1\uFF0C\u4E0D\u8CFC\u8CB7\u4E5F\u80FD\u5B8C\u6574\u904A\u73A9\u3002\u7A0D\u5F8C\u53EF\u5F9E\u71DF\u5730\u300C\u79AE\u5305\u300D\u518D\u6B21\u958B\u555F\uFF1B\u50F9\u683C\u4EE5 App Store \u4ED8\u6B3E\u9801\u70BA\u6E96\u3002", giftCenterContent(), `<button class="secondary" data-action="promotion-close">${automatic ? "\u5148\u53BB\u71DF\u5730 \xB7 \u4E0D\u8CFC\u8CB7" : "\u8FD4\u56DE\u71DF\u5730"}</button>`);
     }
     function cancelCampPromotions() {
       clearTimeout(promotionTimer);
@@ -6478,29 +6657,29 @@
       if (!shopCheckout || shopCheckout.phase !== "confirm") return;
       const checkout = shopCheckout, runId = g?.runId || store.state.run?.runId, phase = g?.phase || store.state.run?.phase;
       if (!offerAvailable(checkout.offer, store.state.profile.purchaseTransactions)) {
-        shopCheckout = { ...checkout, phase: "error", detail: "此限定禮包已購買，沒有再次發起付款。" };
+        shopCheckout = { ...checkout, phase: "error", detail: "\u6B64\u9650\u5B9A\u79AE\u5305\u5DF2\u8CFC\u8CB7\uFF0C\u6C92\u6709\u518D\u6B21\u767C\u8D77\u4ED8\u6B3E\u3002" };
         renderShopSheet();
         return;
       }
       if (!runId || !shoppablePhase(phase)) {
-        shopCheckout = { ...checkout, phase: "error", detail: "目前遠征無法接收商品，未發起付款。" };
+        shopCheckout = { ...checkout, phase: "error", detail: "\u76EE\u524D\u9060\u5F81\u7121\u6CD5\u63A5\u6536\u5546\u54C1\uFF0C\u672A\u767C\u8D77\u4ED8\u6B3E\u3002" };
         renderShopSheet();
         return;
       }
-      shopCheckout = { ...checkout, phase: "pending", detail: "正在建立專屬訂單，請勿重複點擊。" };
+      shopCheckout = { ...checkout, phase: "pending", detail: "\u6B63\u5728\u5EFA\u7ACB\u5C08\u5C6C\u8A02\u55AE\uFF0C\u8ACB\u52FF\u91CD\u8907\u9EDE\u64CA\u3002" };
       renderShopSheet();
       try {
         const authStatus = await nativeAuth.status();
-        if (!authStatus.authenticated) throw Object.assign(new Error("請先登入正式帳號再購買。"), { code: "LOGIN_REQUIRED" });
+        if (!authStatus.authenticated) throw Object.assign(new Error("\u8ACB\u5148\u767B\u5165\u6B63\u5F0F\u5E33\u865F\u518D\u8CFC\u8CB7\u3002"), { code: "LOGIN_REQUIRED" });
         accountSession.accept(authStatus);
         refreshAccountUI();
         const result = await nativeStoreKit.purchase(checkout.offer);
         const source = g?.runId === runId ? g.snapshot() : store.state.run;
-        if (!source || source.runId !== runId || !shoppablePhase(source.phase)) throw new Error("付款已驗證，但遠征狀態已變更；請勿重複購買");
+        if (!source || source.runId !== runId || !shoppablePhase(source.phase)) throw new Error("\u4ED8\u6B3E\u5DF2\u9A57\u8B49\uFF0C\u4F46\u9060\u5F81\u72C0\u614B\u5DF2\u8B8A\u66F4\uFF1B\u8ACB\u52FF\u91CD\u8907\u8CFC\u8CB7");
         const delivered = grantOffer(source, checkout.offer);
         const fresh = await store.recordStoreKitDelivery(delivered, { transactionId: result.transactionId, offerId: checkout.offer.id });
         if (fresh && g?.runId === runId) g.inventory = { ...delivered.inventory };
-        shopCheckout = { ...checkout, phase: "done", orderId: result.orderId, detail: fresh ? "付款已驗證，卡牌已發放並存檔。" : "這筆交易已發放過，沒有重複增加卡牌。" };
+        shopCheckout = { ...checkout, phase: "done", orderId: result.orderId, detail: fresh ? "\u4ED8\u6B3E\u5DF2\u9A57\u8B49\uFF0C\u5361\u724C\u5DF2\u767C\u653E\u4E26\u5B58\u6A94\u3002" : "\u9019\u7B46\u4EA4\u6613\u5DF2\u767C\u653E\u904E\uFF0C\u6C92\u6709\u91CD\u8907\u589E\u52A0\u5361\u724C\u3002" };
         saveFailed = false;
         refreshSaveUI();
         if (g) {
@@ -6511,7 +6690,7 @@
         if (note) note.textContent = shopCheckout.detail;
       } catch (error) {
         const pending = ["PENDING", "PURCHASE_RECOVERY_REQUIRED"].includes(error?.code);
-        shopCheckout = { ...checkout, phase: "error", orderId: "", detail: pending ? "付款結果仍待伺服器確認，請勿重複購買。" : error?.message || "付款未完成，沒有發放卡牌。" };
+        shopCheckout = { ...checkout, phase: "error", orderId: "", detail: pending ? "\u4ED8\u6B3E\u7D50\u679C\u4ECD\u5F85\u4F3A\u670D\u5668\u78BA\u8A8D\uFF0C\u8ACB\u52FF\u91CD\u8907\u8CFC\u8CB7\u3002" : error?.message || "\u4ED8\u6B3E\u672A\u5B8C\u6210\uFF0C\u6C92\u6709\u767C\u653E\u5361\u724C\u3002" };
         renderShopSheet();
       }
     }
@@ -6519,14 +6698,14 @@
       if (mandatoryTutorial(g)) return;
       if (!g || !shoppablePhase(g.phase) || working) return;
       if (g.tutorial?.reward) {
-        notify("先領取第一關獎勵，再找商人整備");
+        notify("\u5148\u9818\u53D6\u7B2C\u4E00\u95DC\u734E\u52F5\uFF0C\u518D\u627E\u5546\u4EBA\u6574\u5099");
         return;
       }
       if (tab !== "shop") closeShopCheckout();
       marketTab = tab;
       g.paused = true;
       clearInput();
-      openModal("merchant", tab === "shop" ? "荒境補給站" : "荒境行商", tab === "shop" ? "遠征卡牌補給 · 使用 App Store 安全付款" : g.wave ? `第 ${g.wave} 波已完成，先補貨，再出發。` : "本次遠征備貨：建造防線，雇佣伙伴，選擇武技。", marketContent(g, tab, message, store.state.profile.purchaseTransactions), campUI.active ? '<button class="primary" data-action="market-close">收好卡牌，繼續逛營地</button>' : '<button class="primary" data-action="market-close">返回戰場 · 部署卡牌</button><button class="secondary" data-action="save-camp">儲存並回營地</button>');
+      openModal("merchant", tab === "shop" ? "\u8352\u5883\u88DC\u7D66\u7AD9" : "\u8352\u5883\u884C\u5546", tab === "shop" ? "\u9060\u5F81\u5361\u724C\u88DC\u7D66 \xB7 \u4F7F\u7528 App Store \u5B89\u5168\u4ED8\u6B3E" : g.wave ? `\u7B2C ${g.wave} \u6CE2\u5DF2\u5B8C\u6210\uFF0C\u5148\u88DC\u8CA8\uFF0C\u518D\u51FA\u767C\u3002` : "\u672C\u6B21\u9060\u5F81\u5099\u8CA8\uFF1A\u5EFA\u9020\u9632\u7DDA\uFF0C\u96C7\u4F63\u4F19\u4F34\uFF0C\u9078\u64C7\u6B66\u6280\u3002", marketContent(g, tab, message, store.state.profile.purchaseTransactions), campUI.active ? '<button class="primary" data-action="market-close">\u6536\u597D\u5361\u724C\uFF0C\u7E7C\u7E8C\u901B\u71DF\u5730</button>' : '<button class="primary" data-action="market-close">\u8FD4\u56DE\u6230\u5834 \xB7 \u90E8\u7F72\u5361\u724C</button><button class="secondary" data-action="save-camp">\u5132\u5B58\u4E26\u56DE\u71DF\u5730</button>');
       renderShopSheet();
       if (tab === "shop") {
         const panel = $3("modal").querySelector(".modal-panel"), grid = $3("modal").querySelector(".shop-grid");
@@ -6570,7 +6749,7 @@
         showGiftCenter();
       } else {
         g = Expedition.restore(store.state.run);
-        showMarket("shop", "直接選擇需要的遠征補給；實際金額與幣別以 App Store 系統付款頁為準。");
+        showMarket("shop", "\u76F4\u63A5\u9078\u64C7\u9700\u8981\u7684\u9060\u5F81\u88DC\u7D66\uFF1B\u5BE6\u969B\u91D1\u984D\u8207\u5E63\u5225\u4EE5 App Store \u7CFB\u7D71\u4ED8\u6B3E\u9801\u70BA\u6E96\u3002");
       }
     }
     async function visitMerchant() {
@@ -6585,7 +6764,7 @@
         g = Expedition.restore(store.state.run);
         saveFailed = false;
         working = false;
-        showMarket("build", "備貨已建立本次遠征存檔，營地加成已套用。購買後可繼續逛營地，再走到山口出發。");
+        showMarket("build", "\u5099\u8CA8\u5DF2\u5EFA\u7ACB\u672C\u6B21\u9060\u5F81\u5B58\u6A94\uFF0C\u71DF\u5730\u52A0\u6210\u5DF2\u5957\u7528\u3002\u8CFC\u8CB7\u5F8C\u53EF\u7E7C\u7E8C\u901B\u71DF\u5730\uFF0C\u518D\u8D70\u5230\u5C71\u53E3\u51FA\u767C\u3002");
         refreshSaveUI();
       } catch (error) {
         saveFailure(error);
@@ -6597,10 +6776,10 @@
       if (site.kind === "npc" ? !campUI.canInteractResident(site.npc) : !campUI.walk.canInteract(site.id)) return;
       const state = store.state;
       ensureCampProgress(state.camp);
-      const back = '<button class="secondary" data-action="close-camp-site">繼續逛營地</button>';
+      const back = '<button class="secondary" data-action="close-camp-site">\u7E7C\u7E8C\u901B\u71DF\u5730</button>';
       if (site.kind === "npc") {
-        const task = state.camp.tasks[site.npc], def = CAMP_TASKS[site.npc], reward = [def.reward.wood ? `木材 ${def.reward.wood}` : "", def.reward.bone ? `獸骨 ${def.reward.bone}` : "", def.reward.amber ? `琥珀 ${def.reward.amber}` : "", def.reward.stones ? `營火石 ${def.reward.stones}` : ""].filter(Boolean).join(" · ");
-        openModal("camp-site", `${def.name} · ${def.title}`, task.ready ? "委託已完成，和居民交談領取報酬。" : def.detail, `<div class="camp-task-card ${task.ready ? "ready" : ""}"><span>${task.ready ? "!" : "?"}</span><div><small>可重複營地委託</small><b>${task.ready ? "等待交付" : `${task.progress} / ${task.goal}`}</b><i><em style="width:${Math.min(100, task.progress / task.goal * 100)}%"></em></i><p>報酬：${reward}</p></div></div>`, `${task.ready ? `<button class="primary" data-action="camp-task-claim" data-npc="${site.npc}">交付委託 · 領取報酬</button>` : ""}${back}`);
+        const task = state.camp.tasks[site.npc], def = CAMP_TASKS[site.npc], reward = [def.reward.wood ? `\u6728\u6750 ${def.reward.wood}` : "", def.reward.bone ? `\u7378\u9AA8 ${def.reward.bone}` : "", def.reward.amber ? `\u7425\u73C0 ${def.reward.amber}` : "", def.reward.stones ? `\u71DF\u706B\u77F3 ${def.reward.stones}` : ""].filter(Boolean).join(" \xB7 ");
+        openModal("camp-site", `${def.name} \xB7 ${def.title}`, task.ready ? "\u59D4\u8A17\u5DF2\u5B8C\u6210\uFF0C\u548C\u5C45\u6C11\u4EA4\u8AC7\u9818\u53D6\u5831\u916C\u3002" : def.detail, `<div class="camp-task-card ${task.ready ? "ready" : ""}"><span>${task.ready ? "!" : "?"}</span><div><small>\u53EF\u91CD\u8907\u71DF\u5730\u59D4\u8A17</small><b>${task.ready ? "\u7B49\u5F85\u4EA4\u4ED8" : `${task.progress} / ${task.goal}`}</b><i><em style="width:${Math.min(100, task.progress / task.goal * 100)}%"></em></i><p>\u5831\u916C\uFF1A${reward}</p></div></div>`, `${task.ready ? `<button class="primary" data-action="camp-task-claim" data-npc="${site.npc}">\u4EA4\u4ED8\u59D4\u8A17 \xB7 \u9818\u53D6\u5831\u916C</button>` : ""}${back}`);
         return;
       }
       if (site.kind === "merchant") {
@@ -6608,30 +6787,30 @@
         return;
       }
       if (site.kind === "gate") {
-        openModal("camp-site", "遠征山口", state.run ? "你的遠征進度與卡牌仍在，從地圖返回目前關卡。" : "穿過山口，選擇第一站開始遠征。", `<p id="camp-run-summary" class="howto">${state.run ? `已保存：完成 ${state.run.stats?.waves || 0} / ${MAX_WAVES} 關 · ${Math.ceil(state.run.hero.hp)} 生命` : `${MAX_WAVES} 個地區 · 戰勝獲得材料 · 自由購買卡牌`}</p>`, `<button id="camp-start" class="primary" data-action="camp-depart">查看遠征地圖 ↗</button>${state.run ? '<button id="camp-new" class="secondary" data-action="camp-new">放棄這次遠征，重新出發</button>' : ""}${back}`);
+        openModal("camp-site", "\u9060\u5F81\u5C71\u53E3", state.run ? "\u4F60\u7684\u9060\u5F81\u9032\u5EA6\u8207\u5361\u724C\u4ECD\u5728\uFF0C\u5F9E\u5730\u5716\u8FD4\u56DE\u76EE\u524D\u95DC\u5361\u3002" : "\u7A7F\u904E\u5C71\u53E3\uFF0C\u9078\u64C7\u7B2C\u4E00\u7AD9\u958B\u59CB\u9060\u5F81\u3002", `<p id="camp-run-summary" class="howto">${state.run ? `\u5DF2\u4FDD\u5B58\uFF1A\u5B8C\u6210 ${state.run.stats?.waves || 0} / ${MAX_WAVES} \u95DC \xB7 ${Math.ceil(state.run.hero.hp)} \u751F\u547D` : `${MAX_WAVES} \u500B\u5730\u5340 \xB7 \u6230\u52DD\u7372\u5F97\u6750\u6599 \xB7 \u81EA\u7531\u8CFC\u8CB7\u5361\u724C`}</p>`, `<button id="camp-start" class="primary" data-action="camp-depart">\u67E5\u770B\u9060\u5F81\u5730\u5716 \u2197</button>${state.run ? '<button id="camp-new" class="secondary" data-action="camp-new">\u653E\u68C4\u9019\u6B21\u9060\u5F81\uFF0C\u91CD\u65B0\u51FA\u767C</button>' : ""}${back}`);
         return;
       }
       if (site.kind === "fire") {
         const stock = state.camp.stockpile;
-        openModal("camp-site", "火種仍在，歡迎回家", "永久設施按完成關卡生產，走近建築領取；木材、獸骨與琥珀會裝入下一次新遠征。", `<div class="camp-stockline"><span>營地倉儲</span><b>▰ ${stock.wood}　✧ ${stock.bone}　◆ ${stock.amber}　♨ ${stock.warmth}</b></div><div class="camp-bonus-list">${Object.entries(FACILITIES).map(([type, d]) => {
+        openModal("camp-site", "\u706B\u7A2E\u4ECD\u5728\uFF0C\u6B61\u8FCE\u56DE\u5BB6", "\u6C38\u4E45\u8A2D\u65BD\u6309\u5B8C\u6210\u95DC\u5361\u751F\u7522\uFF0C\u8D70\u8FD1\u5EFA\u7BC9\u9818\u53D6\uFF1B\u6728\u6750\u3001\u7378\u9AA8\u8207\u7425\u73C0\u6703\u88DD\u5165\u4E0B\u4E00\u6B21\u65B0\u9060\u5F81\u3002", `<div class="camp-stockline"><span>\u71DF\u5730\u5009\u5132</span><b>\u25B0 ${stock.wood}\u3000\u2727 ${stock.bone}\u3000\u25C6 ${stock.amber}\u3000\u2668 ${stock.warmth}</b></div><div class="camp-bonus-list">${Object.entries(FACILITIES).map(([type, d]) => {
           const b2 = state.camp.buildings.find((b3) => b3.type === type), ready = state.camp.production[type];
-          return `<div><span>${d.name}</span><b>${b2 ? `${d.benefit(b2.level)}${ready ? ` · 待領 ${ready}` : ""}` : "尚未建造"}</b></div>`;
-        }).join("")}</div><p class="howto">遠征 ${state.profile.runs} 次 · 最佳 ${state.profile.best}/${MAX_WAVES} · 通關 ${state.profile.victories} 次<br>${state.lastResult ? `上次帶回 ${state.lastResult.stones} 營火石。` : ""}</p>`, back);
+          return `<div><span>${d.name}</span><b>${b2 ? `${d.benefit(b2.level)}${ready ? ` \xB7 \u5F85\u9818 ${ready}` : ""}` : "\u5C1A\u672A\u5EFA\u9020"}</b></div>`;
+        }).join("")}</div><p class="howto">\u9060\u5F81 ${state.profile.runs} \u6B21 \xB7 \u6700\u4F73 ${state.profile.best}/${MAX_WAVES} \xB7 \u901A\u95DC ${state.profile.victories} \u6B21<br>${state.lastResult ? `\u4E0A\u6B21\u5E36\u56DE ${state.lastResult.stones} \u71DF\u706B\u77F3\u3002` : ""}</p>`, back);
         return;
       }
       const b = state.camp.buildings.find((b2) => b2.slot === site.slot);
       if (!b && campUI.movingFrom !== null) {
-        openModal("camp-site", "把建築安置在這裡？", "免費搬遷，不改變建築等級或營地加成。", "", `<button class="primary" data-action="camp-place-building" data-slot="${site.slot}">確認搬遷</button>${back}`);
+        openModal("camp-site", "\u628A\u5EFA\u7BC9\u5B89\u7F6E\u5728\u9019\u88E1\uFF1F", "\u514D\u8CBB\u642C\u9077\uFF0C\u4E0D\u6539\u8B8A\u5EFA\u7BC9\u7B49\u7D1A\u6216\u71DF\u5730\u52A0\u6210\u3002", "", `<button class="primary" data-action="camp-place-building" data-slot="${site.slot}">\u78BA\u8A8D\u642C\u9077</button>${back}`);
         return;
       }
       if (b) {
         const d = FACILITIES[b.type], production = CAMP_PRODUCTION[b.type], ready = state.camp.production[b.type];
-        openModal("camp-site", `${d.name} · ${b.level} 級`, d.desc, `${facilityIcon(b.type)}<div class="facility-output ${ready ? "ready" : ""}"><span>${production.icon}</span><div><small>${production.per}，產量乘設施等級</small><b>${ready ? `${production.name} ×${ready} 等待領取` : `${production.name}尚在生產`}</b></div></div><p class="howto">目前效果：${d.benefit(b.level)}。<br>選擇搬遷後，走到另一塊空地安置。點「取消搬遷」即可取消。</p>`, `${ready ? `<button class="primary" data-action="facility-collect" data-facility="${b.type}">領取 ${production.icon} ×${ready}</button>` : ""}${b.level < 3 ? `<button class="primary" data-action="facility-upgrade" data-slot="${b.slot}" ${state.camp.stones < d.costs[b.level] ? "disabled" : ""}>升級 · ✦ ${d.costs[b.level]}</button>` : ""}<button class="secondary" data-action="camp-move-building" data-slot="${b.slot}">搬遷建築</button>${back}`);
+        openModal("camp-site", `${d.name} \xB7 ${b.level} \u7D1A`, d.desc, `${facilityIcon(b.type)}<div class="facility-output ${ready ? "ready" : ""}"><span>${production.icon}</span><div><small>${production.per}\uFF0C\u7522\u91CF\u4E58\u8A2D\u65BD\u7B49\u7D1A</small><b>${ready ? `${production.name} \xD7${ready} \u7B49\u5F85\u9818\u53D6` : `${production.name}\u5C1A\u5728\u751F\u7522`}</b></div></div><p class="howto">\u76EE\u524D\u6548\u679C\uFF1A${d.benefit(b.level)}\u3002<br>\u9078\u64C7\u642C\u9077\u5F8C\uFF0C\u8D70\u5230\u53E6\u4E00\u584A\u7A7A\u5730\u5B89\u7F6E\u3002\u9EDE\u300C\u53D6\u6D88\u642C\u9077\u300D\u5373\u53EF\u53D6\u6D88\u3002</p>`, `${ready ? `<button class="primary" data-action="facility-collect" data-facility="${b.type}">\u9818\u53D6 ${production.icon} \xD7${ready}</button>` : ""}${b.level < 3 ? `<button class="primary" data-action="facility-upgrade" data-slot="${b.slot}" ${state.camp.stones < d.costs[b.level] ? "disabled" : ""}>\u5347\u7D1A \xB7 \u2726 ${d.costs[b.level]}</button>` : ""}<button class="secondary" data-action="camp-move-building" data-slot="${b.slot}">\u642C\u9077\u5EFA\u7BC9</button>${back}`);
         return;
       }
-      openModal("camp-site", site.label + " · 建設", "選擇一張永久建築藍圖。每種一座，最高三級；營火石不足時可先遠征。", `<div class="camp-blueprint-options">${Object.entries(FACILITIES).map(([type, d]) => {
+      openModal("camp-site", site.label + " \xB7 \u5EFA\u8A2D", "\u9078\u64C7\u4E00\u5F35\u6C38\u4E45\u5EFA\u7BC9\u85CD\u5716\u3002\u6BCF\u7A2E\u4E00\u5EA7\uFF0C\u6700\u9AD8\u4E09\u7D1A\uFF1B\u71DF\u706B\u77F3\u4E0D\u8DB3\u6642\u53EF\u5148\u9060\u5F81\u3002", `<div class="camp-blueprint-options">${Object.entries(FACILITIES).map(([type, d]) => {
         const owned = state.camp.buildings.some((b2) => b2.type === type), disabled = owned || state.camp.stones < d.costs[0];
-        return `<button data-action="camp-build" data-facility="${type}" data-slot="${site.slot}" ${disabled ? "disabled" : ""}>${facilityIcon(type)}<b>${d.name}</b><small>${d.benefit(1)}</small><small>${owned ? "已建造，走近原建築升級" : `建造 · ✦ ${d.costs[0]}`}</small></button>`;
+        return `<button data-action="camp-build" data-facility="${type}" data-slot="${site.slot}" ${disabled ? "disabled" : ""}>${facilityIcon(type)}<b>${d.name}</b><small>${d.benefit(1)}</small><small>${owned ? "\u5DF2\u5EFA\u9020\uFF0C\u8D70\u8FD1\u539F\u5EFA\u7BC9\u5347\u7D1A" : `\u5EFA\u9020 \xB7 \u2726 ${d.costs[0]}`}</small></button>`;
       }).join("")}</div>`, back);
     }
     async function purchase(id) {
@@ -6655,7 +6834,7 @@
         saveFailed = false;
         refreshSaveUI();
         working = false;
-        showMarket(marketTab, `已購買 ${DEPLOY_CARDS[id]?.name || UPGRADES.find((u) => u.id === id.slice(6)).name}，材料與卡牌已存檔。`);
+        showMarket(marketTab, `\u5DF2\u8CFC\u8CB7 ${DEPLOY_CARDS[id]?.name || UPGRADES.find((u) => u.id === id.slice(6)).name}\uFF0C\u6750\u6599\u8207\u5361\u724C\u5DF2\u5B58\u6A94\u3002`);
         document.querySelector(`[data-buy="${id}"]`)?.focus();
       } catch (error) {
         g = Expedition.restore(before);
@@ -6666,16 +6845,16 @@
     function showResult(result) {
       const waveStones = result.waves * 2, clearStones = Math.max(0, result.stones - waveStones), state = result.won ? "win" : "loss";
       const rank = result.won ? result.combos >= 8 || result.kills >= 45 ? "S" : "A" : result.waves >= 4 ? "B" : "C";
-      const route = STAGES.map((stage, i) => `<div class="result-stage ${i < result.waves ? "cleared" : i === result.waves ? "stopped" : ""}" style="--i:${i}"><i>${i < result.waves ? "✓" : i + 1}</i><span>${stage.name}</span></div>`).join("");
+      const route = STAGES.map((stage, i) => `<div class="result-stage ${i < result.waves ? "cleared" : i === result.waves ? "stopped" : ""}" style="--i:${i}"><i>${i < result.waves ? "\u2713" : i + 1}</i><span>${stage.name}</span></div>`).join("");
       const loot = result.loot || { wood: 0, bone: 0, amber: 0, harvested: 0 };
       const lootItems = [
-        { kind: "stones", icon: "✦", name: "營火石", quantity: `+${result.stones}`, note: "永久營地" },
-        { kind: "wood", icon: "▰", name: "木材", quantity: `×${loot.wood}`, note: "本局結算" },
-        { kind: "bone", icon: "✧", name: "獸骨", quantity: `×${loot.bone}`, note: "本局結算" },
-        { kind: "amber", icon: spriteIcon("amber-crystal", "loot-crystal-art"), name: "琥珀", quantity: `×${loot.amber}`, note: loot.harvested ? `採集 ${loot.harvested} 處晶礦` : "本局結算" }
+        { kind: "stones", icon: "\u2726", name: "\u71DF\u706B\u77F3", quantity: `+${result.stones}`, note: "\u6C38\u4E45\u71DF\u5730" },
+        { kind: "wood", icon: "\u25B0", name: "\u6728\u6750", quantity: `\xD7${loot.wood}`, note: "\u672C\u5C40\u7D50\u7B97" },
+        { kind: "bone", icon: "\u2727", name: "\u7378\u9AA8", quantity: `\xD7${loot.bone}`, note: "\u672C\u5C40\u7D50\u7B97" },
+        { kind: "amber", icon: spriteIcon("amber-crystal", "loot-crystal-art"), name: "\u7425\u73C0", quantity: `\xD7${loot.amber}`, note: loot.harvested ? `\u63A1\u96C6 ${loot.harvested} \u8655\u6676\u7926` : "\u672C\u5C40\u7D50\u7B97" }
       ].map((item) => `<div class="loot-item ${item.kind}"><span class="loot-icon">${item.icon}</span><div><small>${item.name}</small><b>${item.quantity}</b></div><em>${item.note}</em></div>`).join("");
-      const content = `<div class="result-screen ${state}"><div class="result-ribbon"><span>${result.won ? "EXPEDITION CLEARED" : "EXPEDITION ENDED"}</span><b>RANK <em>${rank}</em></b></div><div class="result-route" aria-label="遠征關卡進度">${route}</div><div class="result-hero"><div class="result-emblem-wrap"><img class="result-emblem" src="assets/painted-v1/victory-reward-v1.png" alt="${result.won ? "聖獸卵、骨矛、骨斧與營火石組成的通關徽記" : "本次遠征帶回的營火石"}"></div><div class="reward-total"><small>${result.won ? "守護成功 · 戰利品入庫" : "本次遠征收穫"}</small><div class="reward-payout"><span>◆</span><strong>+${result.stones}</strong><b>營火石</b></div><p>${result.won ? "聖獸卵安然無恙，這片土地的火種得以延續。" : "完成波次的營火石已安全帶回；整備營地後可以再次出發。"}</p><div class="reward-breakdown"><div><span>波次收集</span><b>+${waveStones}</b><small>${result.waves} 關 × 2</small></div><div class="${clearStones ? "bonus" : "locked"}"><span>最終守護</span><b>${clearStones ? `+${clearStones}` : "—"}</b><small>${clearStones ? "擊退琥珀泰坦" : `通過第 ${MAX_WAVES} 關解鎖`}</small></div></div></div></div><section class="loot-section" aria-label="本次獲得物品"><header><h3>本次獲得</h3><span>4 種戰利品</span></header><div class="loot-grid">${lootItems}</div><p>營火石已存入永久營地；木材、獸骨與琥珀顯示遠征結束時的持有量。</p></section><div class="result-stats"><div><i>▰</i><b>${result.waves}/${MAX_WAVES}</b><span>抵達關卡</span></div><div><i>爪</i><b>${result.kills}</b><span>擊敗獸群</span></div><div><i>✦</i><b>${result.combos}</b><span>建築共鳴</span></div></div><p class="reward-note"><span>✓</span> 營火石獎勵已安全寫入永久營地。</p></div>`;
-      openModal("end", result.won ? "遠征結算" : "遠征結算", result.won ? "八處荒境全部平定，獎勵已安全結算。" : `抵達第 ${Math.max(1, result.waves)} 關，已保留本次可結算獎勵。`, content, `<button class="primary" data-action="camp">${result.won ? "收下獎勵 · 返回營地" : "帶回收穫 · 返回營地"} ↗</button><button class="secondary" data-action="restart">再次遠征</button>`);
+      const content = `<div class="result-screen ${state}"><div class="result-ribbon"><span>${result.won ? "EXPEDITION CLEARED" : "EXPEDITION ENDED"}</span><b>RANK <em>${rank}</em></b></div><div class="result-route" aria-label="\u9060\u5F81\u95DC\u5361\u9032\u5EA6">${route}</div><div class="result-hero"><div class="result-emblem-wrap"><img class="result-emblem" src="assets/painted-v1/victory-reward-v1.png" alt="${result.won ? "\u8056\u7378\u5375\u3001\u9AA8\u77DB\u3001\u9AA8\u65A7\u8207\u71DF\u706B\u77F3\u7D44\u6210\u7684\u901A\u95DC\u5FBD\u8A18" : "\u672C\u6B21\u9060\u5F81\u5E36\u56DE\u7684\u71DF\u706B\u77F3"}"></div><div class="reward-total"><small>${result.won ? "\u5B88\u8B77\u6210\u529F \xB7 \u6230\u5229\u54C1\u5165\u5EAB" : "\u672C\u6B21\u9060\u5F81\u6536\u7A6B"}</small><div class="reward-payout"><span>\u25C6</span><strong>+${result.stones}</strong><b>\u71DF\u706B\u77F3</b></div><p>${result.won ? "\u8056\u7378\u5375\u5B89\u7136\u7121\u6059\uFF0C\u9019\u7247\u571F\u5730\u7684\u706B\u7A2E\u5F97\u4EE5\u5EF6\u7E8C\u3002" : "\u5B8C\u6210\u6CE2\u6B21\u7684\u71DF\u706B\u77F3\u5DF2\u5B89\u5168\u5E36\u56DE\uFF1B\u6574\u5099\u71DF\u5730\u5F8C\u53EF\u4EE5\u518D\u6B21\u51FA\u767C\u3002"}</p><div class="reward-breakdown"><div><span>\u6CE2\u6B21\u6536\u96C6</span><b>+${waveStones}</b><small>${result.waves} \u95DC \xD7 2</small></div><div class="${clearStones ? "bonus" : "locked"}"><span>\u6700\u7D42\u5B88\u8B77</span><b>${clearStones ? `+${clearStones}` : "\u2014"}</b><small>${clearStones ? "\u64CA\u9000\u7425\u73C0\u6CF0\u5766" : `\u901A\u904E\u7B2C ${MAX_WAVES} \u95DC\u89E3\u9396`}</small></div></div></div></div><section class="loot-section" aria-label="\u672C\u6B21\u7372\u5F97\u7269\u54C1"><header><h3>\u672C\u6B21\u7372\u5F97</h3><span>4 \u7A2E\u6230\u5229\u54C1</span></header><div class="loot-grid">${lootItems}</div><p>\u71DF\u706B\u77F3\u5DF2\u5B58\u5165\u6C38\u4E45\u71DF\u5730\uFF1B\u6728\u6750\u3001\u7378\u9AA8\u8207\u7425\u73C0\u986F\u793A\u9060\u5F81\u7D50\u675F\u6642\u7684\u6301\u6709\u91CF\u3002</p></section><div class="result-stats"><div><i>\u25B0</i><b>${result.waves}/${MAX_WAVES}</b><span>\u62B5\u9054\u95DC\u5361</span></div><div><i>\u722A</i><b>${result.kills}</b><span>\u64CA\u6557\u7378\u7FA4</span></div><div><i>\u2726</i><b>${result.combos}</b><span>\u5EFA\u7BC9\u5171\u9CF4</span></div></div><p class="reward-note"><span>\u2713</span> \u71DF\u706B\u77F3\u734E\u52F5\u5DF2\u5B89\u5168\u5BEB\u5165\u6C38\u4E45\u71DF\u5730\u3002</p></div>`;
+      openModal("end", result.won ? "\u9060\u5F81\u7D50\u7B97" : "\u9060\u5F81\u7D50\u7B97", result.won ? "\u516B\u8655\u8352\u5883\u5168\u90E8\u5E73\u5B9A\uFF0C\u734E\u52F5\u5DF2\u5B89\u5168\u7D50\u7B97\u3002" : `\u62B5\u9054\u7B2C ${Math.max(1, result.waves)} \u95DC\uFF0C\u5DF2\u4FDD\u7559\u672C\u6B21\u53EF\u7D50\u7B97\u734E\u52F5\u3002`, content, `<button class="primary" data-action="camp">${result.won ? "\u6536\u4E0B\u734E\u52F5 \xB7 \u8FD4\u56DE\u71DF\u5730" : "\u5E36\u56DE\u6536\u7A6B \xB7 \u8FD4\u56DE\u71DF\u5730"} \u2197</button><button class="secondary" data-action="restart">\u518D\u6B21\u9060\u5F81</button>`);
     }
     async function settle() {
       if (practiceRun()) {
@@ -6696,25 +6875,74 @@
         working = false;
       }
     }
+    let defeatReason = "";
+    async function showDefeatChoice(reason = "") {
+      if (!g || g.phase !== "lose") return;
+      if (practiceRun()) {
+        settle();
+        return;
+      }
+      defeatReason = reason || defeatReason || "防線失守";
+      g.paused = true;
+      clearInput();
+      if (nativeEconomy.pendingRun() === g.runId && g.reviveAfterDefeat()) {
+        closeModal();
+        lastTime = performance.now();
+        handleEvents();
+        updateHUD();
+        renderHand();
+        if (await checkpoint()) await nativeEconomy.completeRevive(g.runId).catch(() => {
+        });
+        return;
+      }
+      const balance = nativeEconomy.balance();
+      openModal("defeat", "本關失敗", defeatReason, `<div class="pause-resources">◈ 原始珍珠 ${balance}<br>原地復活會恢復 50% 生命並繼續目前關卡。</div>`, '<button class="primary" data-action="defeat-revive">消耗 20 原始珍珠原地復活</button><button class="secondary" data-action="defeat-shop">打開原始珍珠商店</button><button class="secondary" data-action="defeat-settle">結束遠征並結算</button>');
+      await checkpoint(false, true);
+    }
+    async function reviveFromDefeat() {
+      if (working || !g || g.phase !== "lose") return;
+      working = true;
+      $3("modal").setAttribute("aria-busy", "true");
+      try {
+        await nativeEconomy.revive(g.runId);
+        if (!g.reviveAfterDefeat()) throw new Error("目前狀態無法復活");
+        closeModal();
+        lastTime = performance.now();
+        handleEvents();
+        updateHUD();
+        renderHand();
+        if (await checkpoint()) await nativeEconomy.completeRevive(g.runId);
+      } catch (error) {
+        if (modalKind === "defeat") $3("modal-copy").textContent = error?.code === "INSUFFICIENT_PEARLS" ? "原始珍珠不足；可打開商城補充，或結束遠征。" : error?.message || "暫時無法復活。";
+      } finally {
+        working = false;
+        $3("modal").setAttribute("aria-busy", "false");
+      }
+    }
     function resumeRun() {
       if (working || !store.state.run) return;
       try {
         mountRun(Expedition.restore(store.state.run));
         if (mandatoryTutorial(g)) {
-          openModal("restored", "繼續新手訓練", "已保存你完成的步驟。完成五步訓練並領獎後，才會開放營地與自由遠征。", "", '<button class="primary" data-action="resume">繼續目前教學 →</button>');
+          openModal("restored", "\u7E7C\u7E8C\u65B0\u624B\u8A13\u7DF4", "\u5DF2\u4FDD\u5B58\u4F60\u5B8C\u6210\u7684\u6B65\u9A5F\u3002\u5B8C\u6210\u4E94\u6B65\u8A13\u7DF4\u4E26\u9818\u734E\u5F8C\uFF0C\u624D\u6703\u958B\u653E\u71DF\u5730\u8207\u81EA\u7531\u9060\u5F81\u3002", "", '<button class="primary" data-action="resume">\u7E7C\u7E8C\u76EE\u524D\u6559\u5B78 \u2192</button>');
           return;
         }
-        if (["win", "lose"].includes(g.phase)) settle();
-        else openModal("restored", "歡迎回到營地", `已還原第 ${g.wave || 1} 波、建築、佣兵、材料與卡牌庫存。離線期間沒有推進戰鬥。`, '<p class="howto">目前保持暫停，準備好再繼續。休整時可以找商人自由補貨。</p>', '<button class="primary" data-action="resume">繼續戰鬥</button><button class="secondary" data-action="save-camp">回到營地</button>');
+        if (g.phase === "win") settle();
+        else if (g.phase === "lose") showDefeatChoice();
+        else {
+          if (nativeEconomy.pendingRun() === g.runId) nativeEconomy.completeRevive(g.runId).catch(() => {
+          });
+          openModal("restored", "\u6B61\u8FCE\u56DE\u5230\u71DF\u5730", `\u5DF2\u9084\u539F\u7B2C ${g.wave || 1} \u6CE2\u3001\u5EFA\u7BC9\u3001\u4F63\u5175\u3001\u6750\u6599\u8207\u5361\u724C\u5EAB\u5B58\u3002\u96E2\u7DDA\u671F\u9593\u6C92\u6709\u63A8\u9032\u6230\u9B25\u3002`, '<p class="howto">\u76EE\u524D\u4FDD\u6301\u66AB\u505C\uFF0C\u6E96\u5099\u597D\u518D\u7E7C\u7E8C\u3002\u4F11\u6574\u6642\u53EF\u4EE5\u627E\u5546\u4EBA\u81EA\u7531\u88DC\u8CA8\u3002</p>', '<button class="primary" data-action="resume">\u7E7C\u7E8C\u6230\u9B25</button><button class="secondary" data-action="save-camp">\u56DE\u5230\u71DF\u5730</button>');
+        }
       } catch (error) {
         saveFailure(error);
       }
     }
     function cardHTML(type, slot, ghost = false) {
-      if (!type) return `<button class="build-card" disabled aria-label="空位"><span class="card-icon"></span><b class="card-name">旅伴席位</b><small class="card-desc">隊伍最多 4 名佣兵</small></button>`;
+      if (!type) return `<button class="build-card" disabled aria-label="\u7A7A\u4F4D"><span class="card-icon"></span><b class="card-name">\u65C5\u4F34\u5E2D\u4F4D</b><small class="card-desc">\u968A\u4F0D\u6700\u591A 4 \u540D\u4F63\u5175</small></button>`;
       const c = DEPLOY_CARDS[type], count = g.inventory[type], poor = !count;
-      const role = { watchtower: "速射", catapult: "範圍", wall: "防禦", spring: "支援", hunter: "遠程", guard: "護衛", torch: "共鳴", nest: "召喚" }[type] || "建造";
-      return `<button class="build-card${poor ? " unaffordable" : ""}${selected === slot ? " selected" : ""}" data-slot="${slot}" data-kind="${type}" type="button" aria-label="${c.name}，持有 ${count} 張，${c.description}"${ghost ? ' tabindex="-1"' : ""}><span class="card-hotkey">${slot + 1}</span><span class="card-role">${role}</span><span class="card-cost">× ${count}</span>${icon(type)}<b class="card-name">${c.name}</b><small class="card-desc">${poor ? "待補貨" : c.short}</small><i class="card-glow"></i></button>`;
+      const role = { watchtower: "\u901F\u5C04", catapult: "\u7BC4\u570D", wall: "\u9632\u79A6", spring: "\u652F\u63F4", hunter: "\u9060\u7A0B", guard: "\u8B77\u885B", torch: "\u5171\u9CF4", nest: "\u53EC\u559A" }[type] || "\u5EFA\u9020";
+      return `<button class="build-card${poor ? " unaffordable" : ""}${selected === slot ? " selected" : ""}" data-slot="${slot}" data-kind="${type}" type="button" aria-label="${c.name}\uFF0C\u6301\u6709 ${count} \u5F35\uFF0C${c.description}"${ghost ? ' tabindex="-1"' : ""}><span class="card-hotkey">${slot + 1}</span><span class="card-role">${role}</span><span class="card-cost">\xD7 ${count}</span>${icon(type)}<b class="card-name">${c.name}</b><small class="card-desc">${poor ? "\u5F85\u88DC\u8CA8" : c.short}</small><i class="card-glow"></i></button>`;
     }
     function renderHand() {
       if (!g || drag) return;
@@ -6730,7 +6958,7 @@
       $3("hp").nextElementSibling.textContent = `/${g.hero.maxHp}`;
       $3("nest-hp").textContent = Math.ceil(g.base.hp);
       $3("amber").textContent = g.amber;
-      $3("nest-label").textContent = g.companion ? "聖獸靈巢" : "聖獸卵";
+      $3("nest-label").textContent = g.companion ? "\u8056\u7378\u9748\u5DE2" : "\u8056\u7378\u5375";
       const companion = g.companion, companionButton = $3("companion-button");
       companionButton.classList.toggle("empty", !companion);
       companionButton.classList.toggle("down", Boolean(companion && companion.hp <= 0));
@@ -6738,30 +6966,30 @@
         const d = COMPANIONS[companion.type], need2 = companionXPNeeded(companion.level);
         $3("companion-icon").innerHTML = spriteIcon(`companion-${companion.type}`, "companion-mini-art");
         $3("companion-name").textContent = d.name;
-        $3("companion-level").textContent = companion.hp <= 0 ? "本關休息中" : companion.level >= COMPANION_MAX_LEVEL ? `Lv.${companion.level} · 滿級` : `Lv.${companion.level} · ${companion.xp}/${need2}`;
+        $3("companion-level").textContent = companion.hp <= 0 ? "\u672C\u95DC\u4F11\u606F\u4E2D" : companion.level >= COMPANION_MAX_LEVEL ? `Lv.${companion.level} \xB7 \u6EFF\u7D1A` : `Lv.${companion.level} \xB7 ${companion.xp}/${need2}`;
         companionButton.style.setProperty("--companion", d.color);
-        companionButton.setAttribute("aria-label", `查看伙伴${d.name}，等級 ${companion.level}`);
+        companionButton.setAttribute("aria-label", `\u67E5\u770B\u4F19\u4F34${d.name}\uFF0C\u7B49\u7D1A ${companion.level}`);
       } else {
-        $3("companion-icon").textContent = "卵";
-        $3("companion-name").textContent = "待孵化";
-        $3("companion-level").textContent = "點此選擇";
+        $3("companion-icon").textContent = "\u5375";
+        $3("companion-name").textContent = "\u5F85\u5B75\u5316";
+        $3("companion-level").textContent = "\u9EDE\u6B64\u9078\u64C7";
         companionButton.style.removeProperty("--companion");
-        companionButton.setAttribute("aria-label", "孵化並選擇聖獸伙伴");
+        companionButton.setAttribute("aria-label", "\u5B75\u5316\u4E26\u9078\u64C7\u8056\u7378\u4F19\u4F34");
       }
       $3("hp-fill").style.setProperty("--value", `${Math.max(0, g.hero.hp / g.hero.maxHp) * 100}%`);
       $3("nest-fill").style.setProperty("--value", `${Math.max(0, g.base.hp / g.base.maxHp) * 100}%`);
       $3("wood").textContent = g.materials.wood;
       $3("bone").textContent = g.materials.bone;
       $3("merchant").disabled = !!g.tutorial?.reward;
-      $3("merchant").textContent = g.tutorial?.reward ? "先領取獎勵" : "找商人 ↗";
+      $3("merchant").textContent = g.tutorial?.reward ? "\u5148\u9818\u53D6\u734E\u52F5" : "\u627E\u5546\u4EBA \u2197";
       $3("shop-pay").disabled = !!g.tutorial?.reward;
       $3("shop-pay").hidden = !!g.tutorial?.reward;
       $3("region").textContent = stage.region;
-      $3("wave-title").textContent = g.tutorial?.reward ? `${stage.name} · 教學獎勵待領取` : g.phase === "prep" ? `${stage.name} · ${g.wave ? "休整營地" : "營地準備"}` : `${stage.name} · 第 ${g.wave} / ${MAX_WAVES} 關`;
+      $3("wave-title").textContent = g.tutorial?.reward ? `${stage.name} \xB7 \u6559\u5B78\u734E\u52F5\u5F85\u9818\u53D6` : g.phase === "prep" ? `${stage.name} \xB7 ${g.wave ? "\u4F11\u6574\u71DF\u5730" : "\u71DF\u5730\u6E96\u5099"}` : `${stage.name} \xB7 \u7B2C ${g.wave} / ${MAX_WAVES} \u95DC`;
       $3("stage-rule").textContent = stage.rule;
       const objective = g.phase === "wave" ? g.objectiveStatus() : null, nextObjective = STAGE_OBJECTIVES[Math.min(g.wave, MAX_WAVES - 1)];
-      $3("phase-label").textContent = g.phase === "prep" ? `下一站 · ${stage.name}` : objective ? `${objective.icon} ${objective.title}` : `${stage.name} · 遠征結束`;
-      $3("phase-hint").textContent = g.phase === "prep" ? `${nextObjective.short} · 拖卡建造並找商人整備` : objective ? `${objective.text} · 尚餘 ${g.enemies.length + g.spawnQueue.length} 隻` : "本次遠征已停止結算";
+      $3("phase-label").textContent = g.phase === "prep" ? `\u4E0B\u4E00\u7AD9 \xB7 ${stage.name}` : objective ? `${objective.icon} ${objective.title}` : `${stage.name} \xB7 \u9060\u5F81\u7D50\u675F`;
+      $3("phase-hint").textContent = g.phase === "prep" ? `${nextObjective.short} \xB7 \u62D6\u5361\u5EFA\u9020\u4E26\u627E\u5546\u4EBA\u6574\u5099` : objective ? `${objective.text} \xB7 \u5C1A\u9918 ${g.enemies.length + g.spawnQueue.length} \u96BB` : "\u672C\u6B21\u9060\u5F81\u5DF2\u505C\u6B62\u7D50\u7B97";
       $3("objective-panel").hidden = g.phase !== "wave";
       if (objective) {
         $3("objective-panel").className = `objective-panel ${objective.type}${objective.complete ? " complete" : ""}`;
@@ -6771,13 +6999,13 @@
         $3("objective-progress").style.width = `${Math.max(0, Math.min(100, objective.progress * 100))}%`;
       }
       const stageNumber = Math.min(MAX_WAVES, g.phase === "prep" ? g.wave + 1 : g.wave), threat = g.enemies.length + g.spawnQueue.length;
-      $3("stage-progress-label").textContent = `第 ${stageNumber} 關 / 共 ${MAX_WAVES} 關`;
+      $3("stage-progress-label").textContent = `\u7B2C ${stageNumber} \u95DC / \u5171 ${MAX_WAVES} \u95DC`;
       [...$3("stage-pips").children].forEach((pip, i) => {
         pip.classList.toggle("cleared", i < g.wave - (g.phase === "wave" ? 1 : 0));
         pip.classList.toggle("active", i === stageNumber - 1);
       });
       $3("enemy-count").textContent = threat;
-      $3("threat-label").textContent = g.phase === "prep" ? "整備防線" : g.wave === MAX_WAVES ? "泰坦威脅" : "獸群威脅";
+      $3("threat-label").textContent = g.phase === "prep" ? "\u6574\u5099\u9632\u7DDA" : g.wave === MAX_WAVES ? "\u6CF0\u5766\u5A01\u8105" : "\u7378\u7FA4\u5A01\u8105";
       $3("threat-pill").classList.toggle("active", g.phase === "wave");
       $3("wave-banner").classList.toggle("subtle", g.phase === "wave");
       $3("wave-banner").classList.toggle("receded", g.phase === "wave" && g.waveTime > 3.5);
@@ -6790,13 +7018,13 @@
       $3("nest-hp").closest(".nest-stat").classList.toggle("in-danger", g.base.hp / g.base.maxHp <= 0.3);
       $3("next-wave").hidden = g.phase !== "prep";
       $3("next-wave").disabled = !!g.tutorial?.reward;
-      $3("next-wave").textContent = g.wave ? "選擇下一關 ↗" : "查看遠征地圖 ↗";
-      $3("run-info").textContent = `第 ${store.state.profile.runs} 次遠征 · 擊敗 ${g.stats.kills} · 共鳴 ${g.stats.combos}`;
-      $3("dash-label").textContent = g.hero.dashCD > 0 ? `${g.hero.dashCD.toFixed(1)}s` : "衝刺";
+      $3("next-wave").textContent = g.wave ? "\u9078\u64C7\u4E0B\u4E00\u95DC \u2197" : "\u67E5\u770B\u9060\u5F81\u5730\u5716 \u2197";
+      $3("run-info").textContent = `\u7B2C ${store.state.profile.runs} \u6B21\u9060\u5F81 \xB7 \u64CA\u6557 ${g.stats.kills} \xB7 \u5171\u9CF4 ${g.stats.combos}`;
+      $3("dash-label").textContent = g.hero.dashCD > 0 ? `${g.hero.dashCD.toFixed(1)}s` : "\u885D\u523A";
       $3("dash").classList.toggle("cooling", g.hero.dashCD > 0);
       $3("dash").style.setProperty("--dash-remaining", Math.min(100, g.hero.dashCD / (3.1 * g.mods.dash) * 100).toFixed(1));
       $3("dash").setAttribute("aria-disabled", String(g.hero.dashCD > 0));
-      for (const [id, key, label] of [["volley", "volleyCD", "齊射 · J"], ["shock", "shockCD", "震擊 · K"]]) {
+      for (const [id, key, label] of [["volley", "volleyCD", "\u9F4A\u5C04 \xB7 J"], ["shock", "shockCD", "\u9707\u64CA \xB7 K"]]) {
         const button = $3(`skill-${id}`), remaining = g.hero[key] || 0, carried = g.carriesSkill(id), ready = carried && g.phase === "wave" && remaining <= 0;
         const level = 1 + UPGRADES.filter((u) => u.branch === id && g.selectedUpgrades.includes(u.id)).length;
         const tutorialLocked = mandatoryTutorial(g) ? g.tutorial.step !== "skill" || !g.tutorial.started || g.tutorial.awaiting || g.tutorial.skillCast : tutorialProtected(g) && !["skill", "build"].includes(g.tutorial.step);
@@ -6805,19 +7033,19 @@
         button.disabled = !carried || tutorialLocked;
         button.setAttribute("aria-disabled", String(!ready || tutorialLocked));
         button.style.setProperty("--dash-remaining", Math.min(100, remaining / ACTIVE_SKILLS[id].cooldown * 100).toFixed(1));
-        $3(`${id}-label`).textContent = !carried ? "未攜帶" : remaining > 0 ? `${remaining.toFixed(1)}s` : controlLabel(`${label.split(" · ")[0]}${touchControls() ? "" : ` L${level}`}`, id === "volley" ? "J" : "K");
+        $3(`${id}-label`).textContent = !carried ? "\u672A\u651C\u5E36" : remaining > 0 ? `${remaining.toFixed(1)}s` : controlLabel(`${label.split(" \xB7 ")[0]}${touchControls() ? "" : ` L${level}`}`, id === "volley" ? "J" : "K");
       }
       const fixedWeapon = g.loadout?.weapons.length === 1;
       $3("weapon").disabled = fixedWeapon;
       if ($3("weapon").dataset.weapon !== `${g.hero.weapon}-${fixedWeapon}`) {
         $3("weapon").dataset.weapon = `${g.hero.weapon}-${fixedWeapon}`;
         const weapon = WEAPONS[g.hero.weapon], weapons = g.loadout?.weapons || [], next = weapons[(weapons.indexOf(g.hero.weapon) + 1) % weapons.length];
-        $3("weapon").innerHTML = spriteIcon(g.hero.weapon, "equipped-weapon-art") + `<span>${weapon.name}${fixedWeapon ? " · 已攜帶" : ` ⇄ 切${WEAPONS[next]?.name || ""}`}</span>`;
+        $3("weapon").innerHTML = spriteIcon(g.hero.weapon, "equipped-weapon-art") + `<span>${weapon.name}${fixedWeapon ? " \xB7 \u5DF2\u651C\u5E36" : ` \u21C4 \u5207${WEAPONS[next]?.name || ""}`}</span>`;
       }
       const carriedBuilds = g.loadout?.cards.filter((id) => CARDS[id]).length || 4, carriedHires = g.loadout?.cards.filter((id) => HIRES[id]).length || 2;
-      $3("deck-build").textContent = `建造卡 · ${carriedBuilds}`;
-      $3("deck-hire").textContent = `雇佣卡 · ${carriedHires}`;
-      $3("deck-hint").textContent = selected !== null ? touchControls() ? "點空地使用 · 再點卡牌取消" : "已選卡：點空地使用，Esc 取消" : g.loadout?.legacy ? "拖卡使用 · 顯示持有張數" : "只顯示本次出征攜帶卡";
+      $3("deck-build").textContent = `\u5EFA\u9020\u5361 \xB7 ${carriedBuilds}`;
+      $3("deck-hire").textContent = `\u96C7\u4F63\u5361 \xB7 ${carriedHires}`;
+      $3("deck-hint").textContent = selected !== null ? touchControls() ? "\u9EDE\u7A7A\u5730\u4F7F\u7528 \xB7 \u518D\u9EDE\u5361\u724C\u53D6\u6D88" : "\u5DF2\u9078\u5361\uFF1A\u9EDE\u7A7A\u5730\u4F7F\u7528\uFF0CEsc \u53D6\u6D88" : g.loadout?.legacy ? "\u62D6\u5361\u4F7F\u7528 \xB7 \u986F\u793A\u6301\u6709\u5F35\u6578" : "\u53EA\u986F\u793A\u672C\u6B21\u51FA\u5F81\u651C\u5E36\u5361";
       $3("deck-build").setAttribute("aria-pressed", String(!HIRES[g.hand[0]]));
       $3("deck-hire").setAttribute("aria-pressed", String(!!HIRES[g.hand[0]]));
       $3("build-indicator").hidden = !(g.building && g.phase === "wave");
@@ -6828,7 +7056,7 @@
         $3("event-interact-icon").textContent = def.icon;
         $3("event-interact-name").textContent = def.name;
         $3("event-interact-action").textContent = controlLabel(g.mapEventPrompt(mapEvent), "E");
-        eventButton.setAttribute("aria-label", `${def.name}，${g.mapEventPrompt(mapEvent)}`);
+        eventButton.setAttribute("aria-label", `${def.name}\uFF0C${g.mapEventPrompt(mapEvent)}`);
       }
       tutorialUI.render(tutorialSaveView || g, !!modalKind, painter);
     }
@@ -6861,15 +7089,15 @@
         updateHUD();
         if (wasMandatory) {
           showCamp({ afterTutorial: true });
-          campUI.message("第一關獎勵已保存！先找行商，用木材與獸骨購買建造卡，再從山口繼續遠征。不需要購買付費禮包。");
+          campUI.message("\u7B2C\u4E00\u95DC\u734E\u52F5\u5DF2\u4FDD\u5B58\uFF01\u5148\u627E\u884C\u5546\uFF0C\u7528\u6728\u6750\u8207\u7378\u9AA8\u8CFC\u8CB7\u5EFA\u9020\u5361\uFF0C\u518D\u5F9E\u5C71\u53E3\u7E7C\u7E8C\u9060\u5F81\u3002\u4E0D\u9700\u8981\u8CFC\u8CB7\u4ED8\u8CBB\u79AE\u5305\u3002");
           return;
         }
         if (practiceRun()) {
           showCamp();
-          campUI.message(skip ? "已退出新手試煉；原遠征與資源未改動。" : "新手試煉完成！練習獎勵不入正式存檔，原遠征與資源已保留。");
+          campUI.message(skip ? "\u5DF2\u9000\u51FA\u65B0\u624B\u8A66\u7149\uFF1B\u539F\u9060\u5F81\u8207\u8CC7\u6E90\u672A\u6539\u52D5\u3002" : "\u65B0\u624B\u8A66\u7149\u5B8C\u6210\uFF01\u7DF4\u7FD2\u734E\u52F5\u4E0D\u5165\u6B63\u5F0F\u5B58\u6A94\uFF0C\u539F\u9060\u5F81\u8207\u8CC7\u6E90\u5DF2\u4FDD\u7559\u3002");
           return;
         }
-        notify(skip ? "已跳過引導，隨時可從暫停選單查看操作。" : "獎勵已入包！找商人補給，或選擇下一關。", 4200);
+        notify(skip ? "\u5DF2\u8DF3\u904E\u5F15\u5C0E\uFF0C\u96A8\u6642\u53EF\u5F9E\u66AB\u505C\u9078\u55AE\u67E5\u770B\u64CD\u4F5C\u3002" : "\u734E\u52F5\u5DF2\u5165\u5305\uFF01\u627E\u5546\u4EBA\u88DC\u7D66\uFF0C\u6216\u9078\u64C7\u4E0B\u4E00\u95DC\u3002", 4200);
         experience.haptic("success");
       } catch (error) {
         saveFailure(error);
@@ -6912,7 +7140,7 @@
       $3("modal").classList.toggle("danger-modal", ["clear-save", "logout", "delete-account"].includes(kind));
       $3("modal-title").textContent = title;
       $3("modal-copy").textContent = copy;
-      $3("modal-eyebrow").textContent = kind === "merchant" ? marketTab === "shop" ? "PAYMENT · APP STORE" : "SUPPLIES · CONTRACTS · CRAFT" : kind === "promotion" ? "LIMITED PACKS · APP STORE" : kind === "end" ? "EXPEDITION COMPLETE" : kind === "companion" ? "SACRED BEAST PARTNERS" : kind === "loadout" ? "EXPEDITION LOADOUT" : kind === "account" ? "SECURE ACCOUNT" : ["clear-save", "logout", "delete-account"].includes(kind) ? "CONFIRM ACTION" : "TAKE A BREATH";
+      $3("modal-eyebrow").textContent = kind === "merchant" ? marketTab === "shop" ? "PAYMENT \xB7 APP STORE" : "SUPPLIES \xB7 CONTRACTS \xB7 CRAFT" : kind === "promotion" ? "LIMITED PACKS \xB7 APP STORE" : kind === "end" ? "EXPEDITION COMPLETE" : kind === "companion" ? "SACRED BEAST PARTNERS" : kind === "loadout" ? "EXPEDITION LOADOUT" : kind === "account" ? "SECURE ACCOUNT" : ["clear-save", "logout", "delete-account"].includes(kind) ? "CONFIRM ACTION" : "TAKE A BREATH";
       $3("modal-content").innerHTML = content;
       $3("modal-actions").innerHTML = actions;
       $3("modal").hidden = false;
@@ -6927,7 +7155,7 @@
       await campUI.change((state) => {
         const result = collectCampProduction(state, type);
         if (!result.ok) throw new Error(result.reason);
-      }, `${FACILITIES[type].name}已收成 · ${def.name}存入營地倉儲，下次新遠征自動裝載。`);
+      }, `${FACILITIES[type].name}\u5DF2\u6536\u6210 \xB7 ${def.name}\u5B58\u5165\u71DF\u5730\u5009\u5132\uFF0C\u4E0B\u6B21\u65B0\u9060\u5F81\u81EA\u52D5\u88DD\u8F09\u3002`);
     }
     async function collectTask(npc) {
       const def = CAMP_TASKS[npc];
@@ -6936,7 +7164,7 @@
       await campUI.change((state) => {
         const result = claimCampTask(state, npc);
         if (!result.ok) throw new Error(result.reason);
-      }, `${def.name}的委託已交付 · 報酬存入永久營地。`);
+      }, `${def.name}\u7684\u59D4\u8A17\u5DF2\u4EA4\u4ED8 \xB7 \u5831\u916C\u5B58\u5165\u6C38\u4E45\u71DF\u5730\u3002`);
     }
     function closeModal() {
       if (shopCheckout?.phase === "pending") return;
@@ -6949,93 +7177,16 @@
       if (priorFocus?.isConnected) priorFocus.focus();
       priorFocus = null;
     }
-    function requestMainGameSwitch() {
-      if (shellContentMode !== "both") {
-        notify("目前版本暫未開放主世界");
-        return;
-      }
-      if (shellSwitching || working) return;
-      if (nativeStoreKit.pending || shopCheckout?.phase === "pending") {
-        notify("請先完成目前的付款操作，再切換遊戲", 4200);
-        return;
-      }
-      if (typeof window.android?.openMainGame !== "function") {
-        notify("請在 iOS App 內切換主世界", 4200);
-        return;
-      }
-      if (modalKind === "settings") contentSwitchReturn = "settings";
-      else if (!["content-switch", "content-switch-error"].includes(modalKind)) contentSwitchReturn = "";
-      const runCopy = g && !$3("game").hidden ? "目前遠征會先安全保存並保持暫停。" : "營地與遊戲進度會先保存在本機。";
-      openModal("content-switch", "前往主世界？", `${runCopy} 返回時可從冒險大廳繼續。`, '<div class="delete-boundary"><b>切換前會完成</b><span>等待正在進行的存檔</span><span>保留營地與遠征進度</span><span>不會建立付款訂單</span><span>不會清除目前帳號</span></div>', '<button class="primary" data-action="content-switch-confirm">保存並進入主世界</button><button class="secondary" data-action="content-switch-cancel">留在目前遊戲</button>');
-    }
-    function cancelMainGameSwitch() {
-      if (contentSwitchReturn === "settings") {
-        contentSwitchReturn = "";
-        renderSettings();
-        return;
-      }
-      contentSwitchReturn = "";
-      closeModal();
-    }
-    async function beginMainGameSwitch() {
-      if (shellSwitching || working || shellContentMode !== "both") return;
-      if (nativeStoreKit.pending || shopCheckout?.phase === "pending") {
-        notify("請先完成目前的付款操作，再切換遊戲", 4200);
-        return;
-      }
-      shellSwitching = true;
-      working = true;
-      updateContentSwitchUI();
-      $3("modal").setAttribute("aria-busy", "true");
-      const confirm = $3("modal").querySelector('[data-action="content-switch-confirm"]');
-      if (confirm) {
-        confirm.disabled = true;
-        confirm.textContent = "正在保存…";
-      }
-      try {
-        if (checkpointPending) await checkpointPending;
-        if (g && !["win", "lose"].includes(g.phase)) {
-          const saved = await checkpoint();
-          if (!saved || saveFailed) throw new Error("目前進度尚未成功保存，請先重試存檔。");
-        } else {
-          flush();
-          if (saveFailed) throw new Error("目前進度尚未成功保存，請先重試存檔。");
-        }
-        if (confirm) confirm.textContent = "正在進入主世界…";
-        window.android.openMainGame();
-        setTimeout(() => {
-          if (document.hidden) return;
-          shellSwitching = false;
-          working = false;
-          updateContentSwitchUI();
-          if (modalKind === "content-switch") {
-            $3("modal").setAttribute("aria-busy", "false");
-            $3("modal-copy").textContent = "尚未完成切換，請確認網路正常後再試。你的進度已安全保存。";
-            if (confirm) {
-              confirm.disabled = false;
-              confirm.textContent = "重新進入主世界";
-            }
-          }
-        }, 8e3);
-      } catch (error) {
-        shellSwitching = false;
-        working = false;
-        updateContentSwitchUI();
-        if (modalKind === "save-error") return;
-        openModal("content-switch-error", "暫時無法切換", error?.message || "請稍後再試。", "", '<button class="primary" data-action="content-switch-retry">重試</button><button class="secondary" data-action="content-switch-cancel">返回</button>');
-      }
-    }
     function settingsContent() {
       const s = experience.settings, session = accountSession.reload(), option = (setting, value, label) => `<button data-setting="${setting}" data-setting-value="${value}" aria-pressed="${s[setting] === value}">${label}</button>`;
-      const switchRow = shellContentMode === "both" ? '<div class="settings-data-row content-switch"><span><b>主世界</b><small>保存目前進度後，前往線上冒險；遊戲內可返回聖獸營地。</small></span><button data-action="content-switch">進入主世界</button></div>' : "";
-      const data = `<section class="settings-data" aria-label="帳號與存檔"><div class="settings-data-row"><span><b>${session ? `已登入 · ${escapeHTML(session.label)}` : "尚未登入帳號"}</b><small>${session ? "正式玩家 ID 已由安全帳號服務綁定；退出不會刪除遊戲存檔。" : "訪客可試玩；登入後才可發起真實付款。密碼不會保存在遊戲中。"}</small></span><button data-action="${session ? "logout-confirm" : "account-login"}">${session ? "退出帳號" : "帳號登入"}</button></div>${switchRow}<div class="settings-data-row danger"><span><b>本機遊戲存檔</b><small>刪除教程、營地、伙伴和遠征進度；帳號登入與聲音、畫質設定保留。</small></span><button data-action="clear-save-confirm">刪除存檔</button></div></section>`;
+      const data = `<section class="settings-data" aria-label="\u5E33\u865F\u8207\u5B58\u6A94"><div class="settings-data-row"><span><b>${session ? `\u5DF2\u767B\u5165 \xB7 ${escapeHTML(session.label)}` : "\u5C1A\u672A\u767B\u5165\u5E33\u865F"}</b><small>${session ? "\u6B64\u5E33\u865F\u7528\u65BC\u8056\u7378\u71DF\u5730\uFF1B\u9032\u5EA6\u4FDD\u5B58\u5728\u672C\u6A5F\uFF0C\u9000\u51FA\u4E0D\u6703\u522A\u9664\u5B58\u6A94\u3002" : "\u8A2A\u5BA2\u53EF\u8A66\u73A9\uFF1B\u767B\u5165\u5F8C\u624D\u80FD\u8CFC\u8CB7\u3002\u71DF\u5730\u9032\u5EA6\u4FDD\u5B58\u5728\u6B64\u88DD\u7F6E\u3002"}</small></span><button data-action="${session ? "logout-confirm" : "account-login"}">${session ? "\u9000\u51FA\u5E33\u865F" : "\u5E33\u865F\u767B\u5165"}</button></div><div class="settings-data-row danger"><span><b>\u672C\u6A5F\u904A\u6232\u5B58\u6A94</b><small>\u522A\u9664\u6559\u7A0B\u3001\u71DF\u5730\u3001\u4F19\u4F34\u548C\u9060\u5F81\u9032\u5EA6\uFF1B\u5E33\u865F\u767B\u5165\u8207\u8072\u97F3\u3001\u756B\u8CEA\u8A2D\u5B9A\u4FDD\u7559\u3002</small></span><button data-action="clear-save-confirm">\u522A\u9664\u5B58\u6A94</button></div></section>`;
       return `${data}<div class="settings-panel">
-    <div class="setting-row"><span><b>觸覺回饋</b><small>建造、技能、受擊與通關使用 iPhone 原生震動</small></span><button class="setting-switch" data-setting="haptics" aria-label="切換觸覺回饋" aria-pressed="${s.haptics}"></button></div>
-    <label class="setting-row"><span><b>聲音音量</b><small>調整背景音樂與音效；設為 0 即靜音</small></span><span class="setting-volume"><input data-setting="volume" type="range" min="0" max="100" step="5" value="${Math.round(s.volume * 100)}"><output>${Math.round(s.volume * 100)}%</output></span></label>
-    <div class="setting-row"><span><b>低電量模式</b><small>降至 30 FPS，減少粒子並降低渲染解析度</small></span><button class="setting-switch" data-setting="powerSaver" aria-label="切換低電量模式" aria-pressed="${s.powerSaver}"></button></div>
-    <div class="setting-row"><span><b>字體大小</b><small>同步放大主要介面與說明文字</small></span><span class="setting-options">${option("fontSize", "small", "小")}${option("fontSize", "normal", "標準")}${option("fontSize", "large", "大")}</span></div>
-    <div class="setting-row"><span><b>畫質</b><small>自動會依裝置與系統低電量狀態調整</small></span><span class="setting-options">${option("quality", "auto", "自動")}${option("quality", "high", "高")}${option("quality", "balanced", "平衡")}${option("quality", "low", "省電")}</span></div>
-  </div><nav class="settings-legal" aria-label="法律文件與帳號管理"><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/terms-of-service.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/terms-of-service.html" target="_blank" rel="noopener noreferrer">用戶協議</a><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/privacy-policy.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/privacy-policy.html" target="_blank" rel="noopener noreferrer">隱私政策</a><a href="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/account-deletion.html" data-legal-url="https://d1udhm4c9vjzph.cloudfront.net/ios-legal/account-deletion.html" target="_blank" rel="noopener noreferrer">刪除帳號</a></nav><p class="settings-system-note">${s.nativeLowPower ? "iPhone 系統低電量模式已開啟，遊戲目前自動採用省電渲染。" : "偏好會保存在本機；iPhone 開啟系統低電量模式時會自動降載。"}</p>`;
+    <div class="setting-row"><span><b>\u89F8\u89BA\u56DE\u994B</b><small>\u5EFA\u9020\u3001\u6280\u80FD\u3001\u53D7\u64CA\u8207\u901A\u95DC\u4F7F\u7528 iPhone \u539F\u751F\u9707\u52D5</small></span><button class="setting-switch" data-setting="haptics" aria-label="\u5207\u63DB\u89F8\u89BA\u56DE\u994B" aria-pressed="${s.haptics}"></button></div>
+    <label class="setting-row"><span><b>\u8072\u97F3\u97F3\u91CF</b><small>\u8ABF\u6574\u80CC\u666F\u97F3\u6A02\u8207\u97F3\u6548\uFF1B\u8A2D\u70BA 0 \u5373\u975C\u97F3</small></span><span class="setting-volume"><input data-setting="volume" type="range" min="0" max="100" step="5" value="${Math.round(s.volume * 100)}"><output>${Math.round(s.volume * 100)}%</output></span></label>
+    <div class="setting-row"><span><b>\u4F4E\u96FB\u91CF\u6A21\u5F0F</b><small>\u964D\u81F3 30 FPS\uFF0C\u6E1B\u5C11\u7C92\u5B50\u4E26\u964D\u4F4E\u6E32\u67D3\u89E3\u6790\u5EA6</small></span><button class="setting-switch" data-setting="powerSaver" aria-label="\u5207\u63DB\u4F4E\u96FB\u91CF\u6A21\u5F0F" aria-pressed="${s.powerSaver}"></button></div>
+    <div class="setting-row"><span><b>\u5B57\u9AD4\u5927\u5C0F</b><small>\u540C\u6B65\u653E\u5927\u4E3B\u8981\u4ECB\u9762\u8207\u8AAA\u660E\u6587\u5B57</small></span><span class="setting-options">${option("fontSize", "small", "\u5C0F")}${option("fontSize", "normal", "\u6A19\u6E96")}${option("fontSize", "large", "\u5927")}</span></div>
+    <div class="setting-row"><span><b>\u756B\u8CEA</b><small>\u81EA\u52D5\u6703\u4F9D\u88DD\u7F6E\u8207\u7CFB\u7D71\u4F4E\u96FB\u91CF\u72C0\u614B\u8ABF\u6574</small></span><span class="setting-options">${option("quality", "auto", "\u81EA\u52D5")}${option("quality", "high", "\u9AD8")}${option("quality", "balanced", "\u5E73\u8861")}${option("quality", "low", "\u7701\u96FB")}</span></div>
+  </div><nav class="settings-legal" aria-label="\u6CD5\u5F8B\u6587\u4EF6\u8207\u5E33\u865F\u7BA1\u7406"><a href="#" data-legal="terms">\u7528\u6236\u5354\u8B70</a><a href="#" data-legal="privacy">\u96B1\u79C1\u653F\u7B56</a><a href="#account" data-action="account-manage">\u522A\u9664\u71DF\u5730\u5E33\u865F</a></nav><p class="settings-system-note">${s.nativeLowPower ? "iPhone \u7CFB\u7D71\u4F4E\u96FB\u91CF\u6A21\u5F0F\u5DF2\u958B\u555F\uFF0C\u904A\u6232\u76EE\u524D\u81EA\u52D5\u63A1\u7528\u7701\u96FB\u6E32\u67D3\u3002" : "\u504F\u597D\u6703\u4FDD\u5B58\u5728\u672C\u6A5F\uFF1BiPhone \u958B\u555F\u7CFB\u7D71\u4F4E\u96FB\u91CF\u6A21\u5F0F\u6642\u6703\u81EA\u52D5\u964D\u8F09\u3002"}</p>`;
     }
     function showAccount() {
       const session = accountSession.reload();
@@ -7043,7 +7194,7 @@
         location.href = "login-preview.html";
         return;
       }
-      openModal("account", "帳號管理", `${session.label}，正式帳號已安全登入。`, `<div class="account-summary"><span aria-hidden="true">◇</span><div><small>目前登入</small><b>${escapeHTML(session.label)}</b><p>玩家 ID 已用於綁定新訂單；令牌保存在 iOS Keychain。退出不會刪除營地、伙伴或遠征存檔。</p></div></div>`, `<button class="primary" data-action="account-close">繼續遊玩</button><button class="secondary" data-action="logout-confirm" data-return="account">退出帳號</button><button class="secondary danger-action" data-action="delete-account-confirm">刪除正式帳號</button>`);
+      openModal("account", "\u5E33\u865F\u7BA1\u7406", `${session.label}\uFF0C\u6B63\u5F0F\u5E33\u865F\u5DF2\u5B89\u5168\u767B\u5165\u3002`, `<div class="account-summary"><span aria-hidden="true">\u25C7</span><div><small>\u76EE\u524D\u767B\u5165</small><b>${escapeHTML(session.label)}</b><p>\u9019\u662F\u8056\u7378\u71DF\u5730\u7684\u7368\u7ACB\u5854\u9632\u904A\u6232\u5E33\u865F\u3002\u71DF\u5730\u3001\u4F19\u4F34\u8207\u9060\u5F81\u9032\u5EA6\u4FDD\u5B58\u5728\u6B64\u88DD\u7F6E\uFF0C\u5C1A\u4E0D\u652F\u63F4\u96F2\u7AEF\u540C\u6B65\uFF1B\u9000\u51FA\u6703\u4FDD\u7559\u672C\u6A5F\u9032\u5EA6\u3002</p></div></div>`, `<button class="primary" data-action="account-close">\u7E7C\u7E8C\u904A\u73A9</button><button class="secondary" data-action="logout-confirm" data-return="account">\u9000\u51FA\u5E33\u865F</button><button class="secondary danger-action" data-action="delete-account-confirm">\u522A\u9664\u6B63\u5F0F\u5E33\u865F</button>`);
     }
     function syncSettingsControls() {
       const s = experience.settings;
@@ -7055,10 +7206,10 @@
         } else control.setAttribute("aria-pressed", String(value !== void 0 ? s[key] === value : Boolean(s[key])));
       }
       const note = $3("modal-content").querySelector(".settings-system-note");
-      if (note) note.textContent = s.nativeLowPower ? "iPhone 系統低電量模式已開啟，遊戲目前自動採用省電渲染。" : "偏好會保存在本機；iPhone 開啟系統低電量模式時會自動降載。";
+      if (note) note.textContent = s.nativeLowPower ? "iPhone \u7CFB\u7D71\u4F4E\u96FB\u91CF\u6A21\u5F0F\u5DF2\u958B\u555F\uFF0C\u904A\u6232\u76EE\u524D\u81EA\u52D5\u63A1\u7528\u7701\u96FB\u6E32\u67D3\u3002" : "\u504F\u597D\u6703\u4FDD\u5B58\u5728\u672C\u6A5F\uFF1BiPhone \u958B\u555F\u7CFB\u7D71\u4F4E\u96FB\u91CF\u6A21\u5F0F\u6642\u6703\u81EA\u52D5\u964D\u8F09\u3002";
     }
     function renderSettings() {
-      openModal("settings", "遊戲設定", "依你的裝置與遊玩習慣調整；帳號與存檔操作彼此獨立。", settingsContent(), '<button class="primary" data-action="settings-close">完成</button>');
+      openModal("settings", "\u904A\u6232\u8A2D\u5B9A", "\u4F9D\u4F60\u7684\u88DD\u7F6E\u8207\u904A\u73A9\u7FD2\u6163\u8ABF\u6574\uFF1B\u5E33\u865F\u8207\u5B58\u6A94\u64CD\u4F5C\u5F7C\u6B64\u7368\u7ACB\u3002", settingsContent(), '<button class="primary" data-action="settings-close">\u5B8C\u6210</button>');
     }
     function showSettings() {
       settingsReturnToPause = modalKind === "pause";
@@ -7084,12 +7235,12 @@
       if (!g || !["prep", "wave"].includes(g.phase)) return;
       g.paused = true;
       if (mandatoryTutorial(g)) {
-        openModal("pause", "訓練已暫停", "進度會自動保存；關閉頁面後再回來，仍從目前步驟繼續。", '<p class="howto">完成五步教學並領取獎勵，才會開放營地與自由遠征。教學不可跳過或放棄。</p>', '<button class="primary" data-action="resume">繼續目前教學 →</button>');
+        openModal("pause", "\u8A13\u7DF4\u5DF2\u66AB\u505C", "\u9032\u5EA6\u6703\u81EA\u52D5\u4FDD\u5B58\uFF1B\u95DC\u9589\u9801\u9762\u5F8C\u518D\u56DE\u4F86\uFF0C\u4ECD\u5F9E\u76EE\u524D\u6B65\u9A5F\u7E7C\u7E8C\u3002", '<p class="howto">\u5B8C\u6210\u4E94\u6B65\u6559\u5B78\u4E26\u9818\u53D6\u734E\u52F5\uFF0C\u624D\u6703\u958B\u653E\u71DF\u5730\u8207\u81EA\u7531\u9060\u5F81\u3002\u6559\u5B78\u4E0D\u53EF\u8DF3\u904E\u6216\u653E\u68C4\u3002</p>', '<button class="primary" data-action="resume">\u7E7C\u7E8C\u76EE\u524D\u6559\u5B78 \u2192</button>');
         checkpoint();
         return;
       }
       const background = reason === "background";
-      openModal("pause", background ? "已為你暫停" : "荒野稍歇", background ? "遊戲進入背景時已自動暫停；回來後由你決定何時繼續。" : "暫停期間不會受傷，也不會消耗資源。", `<div class="pause-resources">◆ 琥珀 ${g.amber}　▰ 木材 ${g.materials.wood}　✧ 獸骨 ${g.materials.bone}<br>伙伴：${g.companion ? COMPANIONS[g.companion.type]?.name || "已出戰" : "尚未孵化"} · 擊敗 ${g.stats.kills} · 共鳴 ${g.stats.combos}</div><div class="howto">${touchControls() ? "展開底部「建造」，" : ""}拖卡到空地：建造；拖到同類建築：升級。<br>普通攻擊自動鎖定；點右下「齊射」或「震擊」釋放技能。<br>弩台負責速射，投獸器壓制獸群；衝刺穿過骨牆可引爆骨片。<br>每 2.5 秒與關鍵操作自動儲存；回營地後可以繼續。</div>`, '<button class="primary" data-action="resume">繼續遠征</button><button class="secondary" data-action="settings">音量與遊戲設定</button><button class="secondary" data-action="pause-save">儲存進度</button><button class="secondary" data-action="save-camp">儲存並回營地</button><button class="secondary" data-action="exit-confirm">放棄本局</button>');
+      openModal("pause", background ? "\u5DF2\u70BA\u4F60\u66AB\u505C" : "\u8352\u91CE\u7A0D\u6B47", background ? "\u904A\u6232\u9032\u5165\u80CC\u666F\u6642\u5DF2\u81EA\u52D5\u66AB\u505C\uFF1B\u56DE\u4F86\u5F8C\u7531\u4F60\u6C7A\u5B9A\u4F55\u6642\u7E7C\u7E8C\u3002" : "\u66AB\u505C\u671F\u9593\u4E0D\u6703\u53D7\u50B7\uFF0C\u4E5F\u4E0D\u6703\u6D88\u8017\u8CC7\u6E90\u3002", `<div class="pause-resources">\u25C6 \u7425\u73C0 ${g.amber}\u3000\u25B0 \u6728\u6750 ${g.materials.wood}\u3000\u2727 \u7378\u9AA8 ${g.materials.bone}<br>\u4F19\u4F34\uFF1A${g.companion ? COMPANIONS[g.companion.type]?.name || "\u5DF2\u51FA\u6230" : "\u5C1A\u672A\u5B75\u5316"} \xB7 \u64CA\u6557 ${g.stats.kills} \xB7 \u5171\u9CF4 ${g.stats.combos}</div><div class="howto">${touchControls() ? "\u5C55\u958B\u5E95\u90E8\u300C\u5EFA\u9020\u300D\uFF0C" : ""}\u62D6\u5361\u5230\u7A7A\u5730\uFF1A\u5EFA\u9020\uFF1B\u62D6\u5230\u540C\u985E\u5EFA\u7BC9\uFF1A\u5347\u7D1A\u3002<br>\u666E\u901A\u653B\u64CA\u81EA\u52D5\u9396\u5B9A\uFF1B\u9EDE\u53F3\u4E0B\u300C\u9F4A\u5C04\u300D\u6216\u300C\u9707\u64CA\u300D\u91CB\u653E\u6280\u80FD\u3002<br>\u5F29\u53F0\u8CA0\u8CAC\u901F\u5C04\uFF0C\u6295\u7378\u5668\u58D3\u5236\u7378\u7FA4\uFF1B\u885D\u523A\u7A7F\u904E\u9AA8\u7246\u53EF\u5F15\u7206\u9AA8\u7247\u3002<br>\u6BCF 2.5 \u79D2\u8207\u95DC\u9375\u64CD\u4F5C\u81EA\u52D5\u5132\u5B58\uFF1B\u56DE\u71DF\u5730\u5F8C\u53EF\u4EE5\u7E7C\u7E8C\u3002</div>`, '<button class="primary" data-action="resume">\u7E7C\u7E8C\u9060\u5F81</button><button class="secondary" data-action="settings">\u97F3\u91CF\u8207\u904A\u6232\u8A2D\u5B9A</button><button class="secondary" data-action="pause-save">\u5132\u5B58\u9032\u5EA6</button><button class="secondary" data-action="save-camp">\u5132\u5B58\u4E26\u56DE\u71DF\u5730</button><button class="secondary" data-action="exit-confirm">\u653E\u68C4\u672C\u5C40</button>');
       checkpoint();
     }
     function handleEvents() {
@@ -7106,10 +7257,10 @@
           experience.haptic("medium");
           painter.shake = 2;
         } else if (ev.type === "companion-ready") {
-          notify(`${ev.name} · Lv.${ev.level} 已加入遠征`);
+          notify(`${ev.name} \xB7 Lv.${ev.level} \u5DF2\u52A0\u5165\u9060\u5F81`);
           sound("build");
         } else if (ev.type === "companion-level") {
-          notify(`${ev.name}升至 Lv.${ev.level}！`);
+          notify(`${ev.name}\u5347\u81F3 Lv.${ev.level}\uFF01`);
           sound("combo");
           experience.haptic("success");
           checkpoint();
@@ -7127,14 +7278,17 @@
           experience.haptic("success");
           painter.shake = 3;
         } else if (ev.type === "market-ready") {
+          trackStageEnd(g.wave, "win");
           clearInput();
           showWaveLoot(ev);
           sound("combo");
           experience.haptic("success");
           checkpoint();
         } else if (ev.type === "end") {
+          trackStageEnd(g.wave || 1, ev.won ? "win" : "fail");
           experience.haptic(ev.won ? "success" : "warning");
-          settle();
+          if (ev.won) settle();
+          else showDefeatChoice(ev.reason);
         } else {
           sound(ev.type);
           if (ev.type === "build") experience.haptic("medium");
@@ -7145,7 +7299,7 @@
           }
           if (ev.type === "wave") {
             experience.haptic("heavy");
-            hideWaveLoot();
+            closeWaveLoot();
             $3("toast").classList.remove("visible");
             toastUntil = 0;
             const arena = $3("arena");
@@ -7199,16 +7353,16 @@
     function selectCard(slot) {
       if (!g?.canBuild || !g.hand[slot]) return;
       if (tutorialProtected(g) && g.tutorial.step !== "build") {
-        notify("先完成上方引導，再練習拖卡建造");
+        notify("\u5148\u5B8C\u6210\u4E0A\u65B9\u5F15\u5C0E\uFF0C\u518D\u7DF4\u7FD2\u62D6\u5361\u5EFA\u9020");
         return;
       }
       if (!g.inventory[g.hand[slot]]) {
-        notify("這張卡用完了，休整時找商人購買");
+        notify("\u9019\u5F35\u5361\u7528\u5B8C\u4E86\uFF0C\u4F11\u6574\u6642\u627E\u5546\u4EBA\u8CFC\u8CB7");
         return;
       }
       selected = selected === slot ? null : slot;
       g.building = selected !== null;
-      if (selected !== null) notify(`${DEPLOY_CARDS[g.hand[slot]].name}：點空地使用卡牌`);
+      if (selected !== null) notify(`${DEPLOY_CARDS[g.hand[slot]].name}\uFF1A\u9EDE\u7A7A\u5730\u4F7F\u7528\u5361\u724C`);
       renderHand();
     }
     function setBattleDeck(open) {
@@ -7218,7 +7372,7 @@
       }
       $3("game").classList.toggle("deck-open", open);
       $3("toggle-deck").setAttribute("aria-expanded", String(open));
-      $3("toggle-deck").textContent = open ? "收起 ▾" : "建造 ▴";
+      $3("toggle-deck").textContent = open ? "\u6536\u8D77 \u25BE" : "\u5EFA\u9020 \u25B4";
     }
     $3("toggle-deck").addEventListener("click", () => {
       if (modalKind || !g) return;
@@ -7233,19 +7387,19 @@
       painter.resize();
       renderHand();
       $3("battle-view").setAttribute("aria-pressed", String(painter.overview));
-      $3("battle-view").textContent = painter.overview ? "近景" : "全景";
+      $3("battle-view").textContent = painter.overview ? "\u8FD1\u666F" : "\u5168\u666F";
     });
     $3("hand").addEventListener("pointerdown", (e) => {
       const card = e.target.closest("[data-slot]");
       if (!card || !g?.canBuild || modalKind || e.button > 0) return;
       if (tutorialProtected(g) && g.tutorial.step !== "build") {
-        notify("先完成上方引導，再練習拖卡建造");
+        notify("\u5148\u5B8C\u6210\u4E0A\u65B9\u5F15\u5C0E\uFF0C\u518D\u7DF4\u7FD2\u62D6\u5361\u5EFA\u9020");
         return;
       }
       const slot = Number(card.dataset.slot);
       if (!g.hand[slot]) return;
       if (!g.inventory[g.hand[slot]]) {
-        notify("這張卡用完了，休整時找商人購買");
+        notify("\u9019\u5F35\u5361\u7528\u5B8C\u4E86\uFF0C\u4F11\u6574\u6642\u627E\u5546\u4EBA\u8CFC\u8CB7");
         return;
       }
       e.preventDefault();
@@ -7372,12 +7526,11 @@
       }
     });
     $3("begin").addEventListener("click", (event) => {
-      if (accountSession.reload()) {
+      if (accountSession.reload() || guestSession.active()) {
         event.preventDefault();
         showCamp();
       }
     });
-    $3("landing-main-game").addEventListener("click", requestMainGameSwitch);
     $3("continue-run").addEventListener("click", resumeRun);
     $3("camp-loadout").addEventListener("click", showLoadout);
     $3("camp-companion").addEventListener("click", () => showCompanions());
@@ -7432,7 +7585,7 @@
         if (HIRES[loadoutCard]) loadoutDraft.cards = [...loadoutDraft.cards.filter((id) => !HIRES[id]), loadoutCard];
         else if (loadoutDraft.cards.includes(loadoutCard)) loadoutDraft.cards = loadoutDraft.cards.filter((id) => id !== loadoutCard);
         else if (loadoutDraft.cards.filter((id) => CARDS[id]).length >= LOADOUT_RULES.buildCards) {
-          renderLoadout("建造卡上限為 3 張；先取消一張已選建造卡再更換。");
+          renderLoadout("\u5EFA\u9020\u5361\u4E0A\u9650\u70BA 3 \u5F35\uFF1B\u5148\u53D6\u6D88\u4E00\u5F35\u5DF2\u9078\u5EFA\u9020\u5361\u518D\u66F4\u63DB\u3002");
           return;
         } else loadoutDraft.cards.push(loadoutCard);
         renderLoadout();
@@ -7441,7 +7594,7 @@
       const loadoutWeapon = e.target.closest("[data-loadout-weapon]")?.dataset.loadoutWeapon;
       if (modalKind === "loadout" && Object.hasOwn(WEAPONS, loadoutWeapon)) {
         if (!campWeaponUnlocked(store.state.camp, loadoutWeapon) && !loadoutDraft.weapons.includes(loadoutWeapon)) {
-          renderLoadout("升級骨器工坊後才能攜帶這把武器。");
+          renderLoadout("\u5347\u7D1A\u9AA8\u5668\u5DE5\u574A\u5F8C\u624D\u80FD\u651C\u5E36\u9019\u628A\u6B66\u5668\u3002");
           return;
         }
         loadoutDraft.weapons = [loadoutWeapon];
@@ -7459,26 +7612,15 @@
         location.reload();
         return;
       }
-      if (action === "content-switch") {
-        requestMainGameSwitch();
-        return;
-      }
-      if (action === "content-switch-cancel") {
-        cancelMainGameSwitch();
-        return;
-      }
-      if (action === "content-switch-retry") {
-        requestMainGameSwitch();
-        return;
-      }
-      if (action === "content-switch-confirm") {
-        await beginMainGameSwitch();
-        return;
-      }
       if (mandatoryTutorial(g) && ["camp", "home", "save-camp", "restart", "replace-run", "exit-confirm", "abandon"].includes(action)) return;
       if (working) return;
+      if (action === "account-manage") {
+        e.preventDefault();
+        showAccount();
+        return;
+      }
       if (action === "account-login") {
-        location.href = "login-preview.html";
+        location.href = "login-preview.html?return=camp";
         return;
       }
       if (action === "account-close") {
@@ -7487,15 +7629,15 @@
       }
       if (action === "logout-confirm") {
         const back = e.target.closest("[data-return]")?.dataset.return || "account";
-        openModal("logout", "退出目前帳號？", "會清除 iOS Keychain 內的登入令牌；遊戲存檔、營地、伙伴與設定都會保留。", "", `<button class="primary" data-action="cancel-account-action" data-return="${back}">保留登入</button><button class="secondary danger-action" data-action="logout-account">確認退出帳號</button>`);
+        openModal("logout", "\u9000\u51FA\u76EE\u524D\u5E33\u865F\uFF1F", "\u9000\u51FA\u8056\u7378\u71DF\u5730\u5E33\u865F\u5F8C\uFF0C\u904A\u6232\u5B58\u6A94\u3001\u71DF\u5730\u3001\u4F19\u4F34\u8207\u8A2D\u5B9A\u90FD\u6703\u4FDD\u7559\u5728\u6B64\u88DD\u7F6E\u3002", "", `<button class="primary" data-action="cancel-account-action" data-return="${back}">\u4FDD\u7559\u767B\u5165</button><button class="secondary danger-action" data-action="logout-account">\u78BA\u8A8D\u9000\u51FA\u5E33\u865F</button>`);
         return;
       }
       if (action === "clear-save-confirm") {
-        openModal("clear-save", "刪除全部本機存檔？", "教程、營地建築、伙伴、材料與遠征進度都會永久清除，並從新手訓練重新開始。", '<div class="delete-boundary"><b>仍會保留</b><span>目前帳號登入</span><span>聲音、畫質與操作設定</span><span>用戶協議及隱私設定入口</span></div>', '<button class="primary" data-action="cancel-account-action" data-return="settings">取消，保留存檔</button><button class="secondary danger-action" data-action="clear-save">確認刪除存檔</button>');
+        openModal("clear-save", "\u522A\u9664\u5168\u90E8\u672C\u6A5F\u5B58\u6A94\uFF1F", "\u6559\u7A0B\u3001\u71DF\u5730\u5EFA\u7BC9\u3001\u4F19\u4F34\u3001\u6750\u6599\u8207\u9060\u5F81\u9032\u5EA6\u90FD\u6703\u6C38\u4E45\u6E05\u9664\uFF0C\u4E26\u5F9E\u65B0\u624B\u8A13\u7DF4\u91CD\u65B0\u958B\u59CB\u3002", '<div class="delete-boundary"><b>\u4ECD\u6703\u4FDD\u7559</b><span>\u76EE\u524D\u5E33\u865F\u767B\u5165</span><span>\u8072\u97F3\u3001\u756B\u8CEA\u8207\u64CD\u4F5C\u8A2D\u5B9A</span><span>\u7528\u6236\u5354\u8B70\u53CA\u96B1\u79C1\u8A2D\u5B9A\u5165\u53E3</span></div>', '<button class="primary" data-action="cancel-account-action" data-return="settings">\u53D6\u6D88\uFF0C\u4FDD\u7559\u5B58\u6A94</button><button class="secondary danger-action" data-action="clear-save">\u78BA\u8A8D\u522A\u9664\u5B58\u6A94</button>');
         return;
       }
       if (action === "delete-account-confirm") {
-        openModal("delete-account", "永久刪除正式帳號？", "這會要求伺服器刪除你的遊戲帳號與相關玩家資料，並清除此裝置上的遊戲存檔。此操作無法恢復；單純想換帳號請使用「退出帳號」。", '<div class="delete-boundary"><b>不會冒充成功</b><span>只有伺服器確認刪除後才會清除登入狀態</span><span>付款法規要求保留的匿名交易記錄可能依法保留</span></div>', '<button class="primary" data-action="cancel-account-action" data-return="account">取消，保留帳號</button><button class="secondary danger-action" data-action="delete-account">確認永久刪除</button>');
+        openModal("delete-account", "\u6C38\u4E45\u522A\u9664\u8056\u7378\u71DF\u5730\u5E33\u865F\uFF1F", "\u5C07\u6C38\u4E45\u522A\u9664\u8056\u7378\u71DF\u5730\u5E33\u865F\u53CA\u76F8\u95DC\u73A9\u5BB6\u8CC7\u6599\uFF0C\u6E05\u9664\u6B64\u88DD\u7F6E\u4E0A\u7684\u71DF\u5730\u3001\u4F19\u4F34\u3001\u6750\u6599\u548C\u9060\u5F81\u9032\u5EA6\u3002\u7121\u6CD5\u6062\u5FA9\uFF1B\u5176\u4ED6\u5E33\u865F\u8CC7\u6599\u4E0D\u53D7\u5F71\u97FF\u3002\u53EA\u60F3\u63DB\u5E33\u865F\u8ACB\u4F7F\u7528\u300C\u9000\u51FA\u5E33\u865F\u300D\u3002", '<div class="delete-boundary"><b>\u522A\u9664\u7BC4\u570D</b><span>\u5E33\u865F\u8207\u672C\u6A5F\u904A\u6232\u9032\u5EA6\u5C07\u6E05\u9664\uFF0C\u8072\u97F3\u8207\u756B\u8CEA\u8A2D\u5B9A\u6703\u4FDD\u7559</span><span>\u4F9D\u6CD5\u9700\u7559\u5B58\u7684\u4EA4\u6613\u8A18\u9304\u53EF\u80FD\u4FDD\u7559\uFF1B\u522A\u9664\u5E33\u865F\u4E0D\u6703\u81EA\u52D5\u9000\u6B3E</span></div>', '<button class="primary" data-action="cancel-account-action" data-return="account">\u53D6\u6D88\uFF0C\u4FDD\u7559\u5E33\u865F</button><button class="secondary danger-action" data-action="delete-account">\u78BA\u8A8D\u6C38\u4E45\u522A\u9664</button>');
         return;
       }
       if (action === "cancel-account-action") {
@@ -7507,33 +7649,19 @@
         working = true;
         try {
           if (checkpointPending) await checkpointPending;
-          if (saveFailed) throw new Error("目前進度尚未成功保存，請先處理存檔錯誤再退出帳號。");
+          if (saveFailed) throw new Error("\u76EE\u524D\u9032\u5EA6\u5C1A\u672A\u6210\u529F\u4FDD\u5B58\uFF0C\u8ACB\u5148\u8655\u7406\u5B58\u6A94\u932F\u8AA4\u518D\u9000\u51FA\u5E33\u865F\u3002");
           await nativeAuth.logout();
           accountSession.clear();
           location.href = "login-preview.html?status=signed-out";
         } catch (error) {
-          openModal("account-error", "暫時無法退出帳號", error.message, "", '<button class="primary" data-action="account-close">返回</button>');
+          openModal("account-error", "\u66AB\u6642\u7121\u6CD5\u9000\u51FA\u5E33\u865F", error.message, "", '<button class="primary" data-action="account-close">\u8FD4\u56DE</button>');
         } finally {
           working = false;
         }
         return;
       }
       if (action === "delete-account") {
-        working = true;
-        try {
-          await nativeAuth.deleteAccount();
-          accountSession.clear();
-          try {
-            campUI?.clear();
-            await store.clearProgress();
-          } catch {
-          }
-          location.href = "login-preview.html?status=account-deleted";
-        } catch (error) {
-          openModal("account-error", "帳號尚未刪除", error.message || "伺服器未確認刪除，請稍後再試。", "", '<button class="primary" data-action="account-close">返回</button>');
-        } finally {
-          working = false;
-        }
+        await finishAccountDeletion();
         return;
       }
       if (action === "clear-save") {
@@ -7565,8 +7693,20 @@
         return;
       }
       if (action === "settings") showSettings();
+      if (action === "defeat-revive") {
+        await reviveFromDefeat();
+        return;
+      }
+      if (action === "defeat-shop") {
+        nativeEconomy.openShop();
+        return;
+      }
+      if (action === "defeat-settle") {
+        settle();
+        return;
+      }
       if (action === "pause-save") {
-        if (await checkpoint(true)) $3("modal-copy").textContent = readonlyQADemo() || practiceRun() ? "試玩不會改動真實存檔。" : "目前進度已儲存。遊戲仍保持暫停，準備好再繼續。";
+        if (await checkpoint(true)) $3("modal-copy").textContent = readonlyQADemo() || practiceRun() ? "\u8A66\u73A9\u4E0D\u6703\u6539\u52D5\u771F\u5BE6\u5B58\u6A94\u3002" : "\u76EE\u524D\u9032\u5EA6\u5DF2\u5132\u5B58\u3002\u904A\u6232\u4ECD\u4FDD\u6301\u66AB\u505C\uFF0C\u6E96\u5099\u597D\u518D\u7E7C\u7E8C\u3002";
       }
       if (action === "settings-close") closeSettings();
       if (action === "companion-close") closeCompanions();
@@ -7583,7 +7723,7 @@
         closeModal();
         await showRoute("camp");
       }
-      if (action === "camp-new") openModal("replace", "放棄已保存的遠征？", "這會刪除本次戰鬥進度與本次購買的卡牌，不發放營火石；永久營地與已結算資源保留。", "", '<button class="primary" data-action="cancel-camp">保留存檔</button><button class="secondary" data-action="replace-run">確認，重新出發</button>');
+      if (action === "camp-new") openModal("replace", "\u653E\u68C4\u5DF2\u4FDD\u5B58\u7684\u9060\u5F81\uFF1F", "\u9019\u6703\u522A\u9664\u672C\u6B21\u6230\u9B25\u9032\u5EA6\u8207\u672C\u6B21\u8CFC\u8CB7\u7684\u5361\u724C\uFF0C\u4E0D\u767C\u653E\u71DF\u706B\u77F3\uFF1B\u6C38\u4E45\u71DF\u5730\u8207\u5DF2\u7D50\u7B97\u8CC7\u6E90\u4FDD\u7559\u3002", "", '<button class="primary" data-action="cancel-camp">\u4FDD\u7559\u5B58\u6A94</button><button class="secondary" data-action="replace-run">\u78BA\u8A8D\uFF0C\u91CD\u65B0\u51FA\u767C</button>');
       if (action === "camp-build") {
         const b = e.target.closest("[data-facility]");
         closeModal();
@@ -7594,7 +7734,7 @@
       if (action === "camp-move-building") {
         campUI.movingFrom = Number(e.target.closest("[data-slot]").dataset.slot);
         closeModal();
-        campUI.message("走到另一塊空地按「互動」安置。建築暫時保留原位；點「取消搬遷」可返回。");
+        campUI.message("\u8D70\u5230\u53E6\u4E00\u584A\u7A7A\u5730\u6309\u300C\u4E92\u52D5\u300D\u5B89\u7F6E\u3002\u5EFA\u7BC9\u66AB\u6642\u4FDD\u7559\u539F\u4F4D\uFF1B\u9EDE\u300C\u53D6\u6D88\u642C\u9077\u300D\u53EF\u8FD4\u56DE\u3002");
       }
       if (action === "camp-place-building") {
         const to = Number(e.target.closest("[data-slot]").dataset.slot), from = campUI.movingFrom;
@@ -7607,7 +7747,7 @@
         lastTime = performance.now();
       }
       if (action === "restart") start();
-      if (action === "exit-confirm") openModal("exit", practiceRun() ? "結束新手試煉？" : "放棄這次遠征？", practiceRun() ? "只結束本次練習；原遠征、營地與資源完整保留。" : "將清除本次戰鬥存檔，不發放營火石。永久營地與已結算資源保留。", "", '<button class="primary" data-action="resume">繼續遊玩</button><button class="secondary" data-action="abandon">確認退出</button>');
+      if (action === "exit-confirm") openModal("exit", practiceRun() ? "\u7D50\u675F\u65B0\u624B\u8A66\u7149\uFF1F" : "\u653E\u68C4\u9019\u6B21\u9060\u5F81\uFF1F", practiceRun() ? "\u53EA\u7D50\u675F\u672C\u6B21\u7DF4\u7FD2\uFF1B\u539F\u9060\u5F81\u3001\u71DF\u5730\u8207\u8CC7\u6E90\u5B8C\u6574\u4FDD\u7559\u3002" : "\u5C07\u6E05\u9664\u672C\u6B21\u6230\u9B25\u5B58\u6A94\uFF0C\u4E0D\u767C\u653E\u71DF\u706B\u77F3\u3002\u6C38\u4E45\u71DF\u5730\u8207\u5DF2\u7D50\u7B97\u8CC7\u6E90\u4FDD\u7559\u3002", "", '<button class="primary" data-action="resume">\u7E7C\u7E8C\u904A\u73A9</button><button class="secondary" data-action="abandon">\u78BA\u8A8D\u9000\u51FA</button>');
       if (action === "save-camp") returnCamp();
       if (action === "camp") showCamp();
       if (action === "cancel-camp") closeModal();
@@ -7630,13 +7770,14 @@
         showCamp();
       }
       if (action === "retry-save") {
-        if (g && ["win", "lose"].includes(g.phase)) settle();
+        if (g?.phase === "win") settle();
+        else if (g?.phase === "lose") showDefeatChoice(defeatReason);
         else if (g) {
           if (await checkpoint(true)) {
             if (campUI.active) {
               closeModal();
               g = null;
-              campUI.message("已恢復存檔。剛才未完成的購買沒有扣除材料，可再找行商選購。");
+              campUI.message("\u5DF2\u6062\u5FA9\u5B58\u6A94\u3002\u525B\u624D\u672A\u5B8C\u6210\u7684\u8CFC\u8CB7\u6C92\u6709\u6263\u9664\u6750\u6599\uFF0C\u53EF\u518D\u627E\u884C\u5546\u9078\u8CFC\u3002");
             } else pause();
           }
         } else {
@@ -7653,7 +7794,7 @@
           pendingImport = null;
           saveFailed = false;
           showCamp();
-          campUI.message("存檔已匯入；可以查看營地或繼續遠征。");
+          campUI.message("\u5B58\u6A94\u5DF2\u532F\u5165\uFF1B\u53EF\u4EE5\u67E5\u770B\u71DF\u5730\u6216\u7E7C\u7E8C\u9060\u5F81\u3002");
         } catch (error) {
           saveFailure(error);
         } finally {
@@ -7745,10 +7886,19 @@
       }
       lastTime = performance.now();
     });
+    window.addEventListener("emberwild-shell-resume", () => {
+      shellAppActive = true;
+      clearInput();
+      try {
+        window.__pbmFallbackAudio && window.__pbmFallbackAudio.resume && window.__pbmFallbackAudio.resume();
+      } catch (e) {
+      }
+      lastTime = performance.now();
+    });
     window.addEventListener("pagehide", flush);
     window.addEventListener("storage", (event) => {
       if (!qaMode && event.key === SAVE_KEY && event.newValue !== store.raw) {
-        const error = new Error("另一個頁面已更新存檔。為避免互相覆蓋，本頁已暫停。");
+        const error = new Error("\u53E6\u4E00\u500B\u9801\u9762\u5DF2\u66F4\u65B0\u5B58\u6A94\u3002\u70BA\u907F\u514D\u4E92\u76F8\u8986\u84CB\uFF0C\u672C\u9801\u5DF2\u66AB\u505C\u3002");
         error.code = "CONFLICT";
         saveFailure(error);
       }
@@ -7767,7 +7917,7 @@
         const raw = !store.blocked && g && store.state.run?.runId === g.runId ? encode({ ...store.state, run: g.snapshot() }, store.revision) : store.export();
         const blob = new Blob([raw], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
         a.href = url;
-        a.download = `emberwild-save-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`;
+        a.download = `emberwild-save-${( new Date()).toISOString().slice(0, 10)}.json`;
         document.body.append(a);
         a.click();
         a.remove();
@@ -7783,12 +7933,12 @@
       e.target.value = "";
       if (!file) return;
       try {
-        if (file.size > 5e5) throw new Error("檔案太大，請選擇本遊戲匯出的 JSON 存檔");
+        if (file.size > 5e5) throw new Error("\u6A94\u6848\u592A\u5927\uFF0C\u8ACB\u9078\u64C7\u672C\u904A\u6232\u532F\u51FA\u7684 JSON \u5B58\u6A94");
         const raw = await file.text(), saved = decode(raw);
         pendingImport = raw;
-        openModal("import", "匯入並替換本機存檔？", `檔案包含 ${saved.state.camp.buildings.length} 座營地建築、${saved.state.camp.stones} 營火石${saved.state.run ? "與未完成遠征" : ""}。這會替換目前進度，建議先匯出備份。`, "", '<button class="primary" data-action="cancel-camp">取消，保留目前進度</button><button class="secondary" data-action="import-confirm">確認替換</button>');
+        openModal("import", "\u532F\u5165\u4E26\u66FF\u63DB\u672C\u6A5F\u5B58\u6A94\uFF1F", `\u6A94\u6848\u5305\u542B ${saved.state.camp.buildings.length} \u5EA7\u71DF\u5730\u5EFA\u7BC9\u3001${saved.state.camp.stones} \u71DF\u706B\u77F3${saved.state.run ? "\u8207\u672A\u5B8C\u6210\u9060\u5F81" : ""}\u3002\u9019\u6703\u66FF\u63DB\u76EE\u524D\u9032\u5EA6\uFF0C\u5EFA\u8B70\u5148\u532F\u51FA\u5099\u4EFD\u3002`, "", '<button class="primary" data-action="cancel-camp">\u53D6\u6D88\uFF0C\u4FDD\u7559\u76EE\u524D\u9032\u5EA6</button><button class="secondary" data-action="import-confirm">\u78BA\u8A8D\u66FF\u63DB</button>');
       } catch (error) {
-        campUI.message(`匯入失敗，原存檔未改動：${error.message}`);
+        campUI.message(`\u532F\u5165\u5931\u6557\uFF0C\u539F\u5B58\u6A94\u672A\u6539\u52D5\uFF1A${error.message}`);
       }
     });
     campUI = new CampUI(store, { onError: saveFailure, onInteract: campSite, isPaused: () => !shellAppActive || !!modalKind || working || saveFailed });
@@ -7802,17 +7952,22 @@
     updateSoundButton();
     syncBackgroundMusic();
     refreshSaveUI();
-    window.setShellContentMode(sdkContentMode());
     window.emberwildBoot?.ready();
     const entryIntent = new URLSearchParams(location.search).get("enter");
-    if (entryIntent === "camp") refreshNativeAccount().then(() => {
+    refreshNativeAccount().finally(() => {
+      accountChecking = false;
+      if (accountCleanup) return;
+      if (new URLSearchParams(location.search).get("account") === "manage") {
+        showAccount();
+        return;
+      }
       if (entryIntent !== "camp") return;
-      if (accountSession.reload()) showCamp();
+      if (accountSession.reload() || guestSession.active()) showCamp();
       else location.replace("login-preview.html?return=camp");
     });
     if (acceptanceResetError) {
       saveFailed = true;
-      openModal("reset-error", "本地清檔暫未完成", acceptanceResetError.message, '<p class="howto">未驗證備份前不會清除資料。請關閉其他遊戲頁並確認瀏覽器允許儲存後重試。</p>', '<button class="primary" data-action="reload-reset">重新檢查並清檔</button>');
+      openModal("reset-error", "\u672C\u5730\u6E05\u6A94\u66AB\u672A\u5B8C\u6210", acceptanceResetError.message, '<p class="howto">\u672A\u9A57\u8B49\u5099\u4EFD\u524D\u4E0D\u6703\u6E05\u9664\u8CC7\u6599\u3002\u8ACB\u95DC\u9589\u5176\u4ED6\u904A\u6232\u9801\u4E26\u78BA\u8A8D\u700F\u89BD\u5668\u5141\u8A31\u5132\u5B58\u5F8C\u91CD\u8A66\u3002</p>', '<button class="primary" data-action="reload-reset">\u91CD\u65B0\u6AA2\u67E5\u4E26\u6E05\u6A94</button>');
     }
     if (qaMode) {
       window.emberwildQA = { get game() {

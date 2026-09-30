@@ -18,7 +18,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         analyticsLaunchOptions = launchOptions
         refreshAnalyticsAuthorization(application)
         let window = UIWindow(frame: UIScreen.main.bounds)
-        window.backgroundColor = UIColor(red: 0.067, green: 0.094, blue: 0.153, alpha: 1)
+        window.backgroundColor = UIColor(red: 0.024, green: 0.090, blue: 0.078, alpha: 1)
         window.rootViewController = SplashViewController()
         window.makeKeyAndVisible()
         self.window = window
@@ -32,7 +32,6 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         requestTrackingAuthorizationIfNeeded(application)
     }
 
-    // Re-read the system status on launch/foreground, including Settings changes.
     func refreshAnalyticsAuthorization(_ application: UIApplication, activate: Bool = false) {
         let initialized = AnalyticsSDK.configure(application: application, launchOptions: analyticsLaunchOptions)
         if AnalyticsSDK.isConfigured { analyticsLaunchOptions = nil }
@@ -48,8 +47,6 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
               game.canPresentTrackingAuthorization,
               ATTrackingManager.trackingAuthorizationStatus == .notDetermined,
               !trackingRequestInFlight, !trackingPromptAttempted else { return }
-        // At most one attempt in this process; a missing/undetermined callback
-        // never blocks the game, loops prompts, or grants authorization.
         trackingRequestInFlight = true
         trackingPromptAttempted = true
         PaymentDebugLog.record("att-request-start")
@@ -57,7 +54,6 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.trackingRequestInFlight = false
-                // The live system value is authoritative, not a stale callback.
                 self.refreshAnalyticsAuthorization(application)
                 PaymentDebugLog.record("att-request-finished status=\(ATTrackingManager.trackingAuthorizationStatus.rawValue)")
             }

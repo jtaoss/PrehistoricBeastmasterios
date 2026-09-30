@@ -24,10 +24,10 @@ export class NativeAccountAuth{
     const previous=typeof host.javaCallBack==='function'?host.javaCallBack:null;
     host.javaCallBack=value=>{try{previous?.(value);}finally{this.handle(value);}};
   }
-  available(){return typeof this.host.android?.miniAuth==='function';}
+  available(){return typeof this.host.pbmNative?.miniAuth==='function';}
   request(action,fields={}){
     if(this.pending)throw new NativeAuthError('AUTH_IN_PROGRESS','另一項帳號操作正在處理，請稍候');
-    if(!['status','login','register','recover','logout','delete'].includes(action))throw new NativeAuthError('INVALID_AUTH_ACTION','不支援的帳號操作');
+    if(!['status','login','register','recover','logout','delete','completeDelete'].includes(action))throw new NativeAuthError('INVALID_AUTH_ACTION','不支援的帳號操作');
     if(!this.available())throw new NativeAuthError('IOS_APP_REQUIRED','請在 iOS App 內使用真實帳號服務');
     const id=requestId(this.host),payload={action,requestId:id,...fields};
     return new Promise((resolve,reject)=>{
@@ -38,7 +38,7 @@ export class NativeAccountAuth{
         this.pending=null;
         reject(new NativeAuthError('AUTH_TIMEOUT',action==='register'?'註冊回應逾時，請稍後先使用此帳號登入，確認是否已建立。':'帳號服務回應逾時，請稍後重試。'));
       },action==='status'?this.statusTimeoutMs:this.requestTimeoutMs);
-      try{this.host.android.miniAuth(JSON.stringify(payload));}
+      try{this.host.pbmNative.miniAuth(JSON.stringify(payload));}
       catch(error){clearTimeout(pending.timer);this.pending=null;reject(new NativeAuthError('NATIVE_BRIDGE_FAILED',error?.message||'無法連接帳號服務'));}
     });
   }
@@ -48,6 +48,7 @@ export class NativeAccountAuth{
   recover(account){return this.request('recover',{account});}
   logout(){return this.request('logout');}
   deleteAccount(){return this.request('delete');}
+  completeDeletionCleanup(){return this.request('completeDelete');}
   handle(value){
     const payload=resultObject(value),pending=this.pending;
     if(!pending||payload.requestId!==pending.requestId||payload.action!==pending.action)return false;

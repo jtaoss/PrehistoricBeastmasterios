@@ -1,9 +1,6 @@
-// Pure simulation: no DOM, network, native bridge, or dependency on the shipping game.
 import {freshTutorial,validateTutorial,tutorialActive,tutorialProtected,tutorialWaiting,mandatoryTutorial,TUTORIAL_STEPS,TUTORIAL_BUILD_RADIUS} from './tutorial.mjs';
 export const WORLD = Object.freeze({ width: 720, height: 820 });
 export const MAX_WAVES = 8;
-// One source of truth for progression tuning. Buildings persist between
-// stages, so pressure grows steadily without deleting the player's strategy.
 export const STAGE_BALANCE=Object.freeze([
   {hp:1,damage:.85,speed:1,spawn:1.5,wood:5,bone:3,amber:3},
   {hp:1.14,damage:.9,speed:1,spawn:1.36,wood:6,bone:3,amber:3},
@@ -71,8 +68,6 @@ export const CARDS = Object.freeze({
   spring: { name: '潮汐泉', cost: 5, color: '#91d7d8', short: '回血緩敵', hp: 165, radius: 24, range: 112, description: '附近回復生命並減速敵人；泉邊衝刺釋放寒潮。' }
 });
 export const STARTING_BUILD_DECK = Object.freeze(['watchtower','catapult','wall','spring']);
-// The old two cards remain loadable so existing local saves are never destroyed.
-// New runs and the merchant use the four-card construction set below.
 export const BUILD_CARDS = Object.freeze(Object.fromEntries(STARTING_BUILD_DECK.map(id=>[id,CARDS[id]])));
 export const HIRES = Object.freeze({
   hunter: {name:'遊獵弓手',color:'#a6cfb8',short:'遠程跟隨',hp:65,radius:15,range:240,description:'跟隨獵人，以骨箭遠程支援；倒下後需重新雇佣。'},
@@ -207,7 +202,6 @@ export function validateSnapshot(s) {
   required(['prep','wave','draft','win','lose'].includes(s.phase));
   required(s.phase !== 'wave' || s.wave > 0);
   required(s.phase !== 'draft' || s.wave > 0 && s.wave < MAX_WAVES);
-  // A completed six-stage save from the previous build remains settleable.
   required(s.phase !== 'win' || s.wave === MAX_WAVES || s.wave === 6);
   actor(s.hero); actor(s.base);
   numbers(s.hero,['maxHp','angle','attackCD','dashCD','dashTime','dashX','dashY','invulnerable','swing']);
@@ -228,7 +222,6 @@ export function validateSnapshot(s) {
     for(const k of ['wood','bone'])required(Number.isInteger(s.materials?.[k])&&isNum(s.materials[k],0,999));
     for(const k of Object.keys(DEPLOY_CARDS)){
       const value=s.inventory?.[k];
-      // v2 saves created before the two new buildings legitimately omit them.
       required((value===undefined&&['watchtower','catapult'].includes(k))||(Number.isInteger(value)&&isNum(value,0,99)));
     }
     for(const a of s.allies){actor(a);required(own(HIRES,a.type));numbers(a,['maxHp','cd','angle']);required(isNum(a.maxHp,1,1000)&&isNum(a.hp,0,a.maxHp));}
@@ -317,8 +310,6 @@ export class Expedition {
     const migrateMapEvents=!snapshot.eventPlan;g.eventPlan=snapshot.eventPlan?JSON.parse(JSON.stringify(snapshot.eventPlan)):createMapEventPlan(g.seed,()=>g.nextId++);
     if(migrateMapEvents)for(const mapEvent of g.eventPlan)if(mapEvent.stage<=g.stats.waves)mapEvent.status='missed';
     if(g.companion){const p=g.companion,d=COMPANIONS[p.type];p.cd=Number.isFinite(p.cd)?p.cd:0;p.abilityCD=Number.isFinite(p.abilityCD)?p.abilityCD:2;p.attackCount=Number.isInteger(p.attackCount)?p.attackCount:0;p.angle=Number.isFinite(p.angle)?p.angle:0;p.maxHp=g.companionMaxHp(p.type,p.level);p.hp=clamp(p.hp,0,p.maxHp);p.r=d.radius;}
-    // Existing runs receive the new fortification durability without losing
-    // their current damage ratio, position, level or identity.
     for(const b of g.buildings){
       const tunedMax=CARDS[b.type].hp*(1+(b.level-1)*.6);
       if(Math.abs(b.maxHp-tunedMax)>.001){const ratio=b.hp/b.maxHp;b.maxHp=tunedMax;b.hp=Math.min(tunedMax,tunedMax*ratio);}
@@ -332,7 +323,6 @@ export class Expedition {
     g.rng.setState(snapshot.rngState);
     if(g.phase==='wave'&&!g.objective)g.setupObjective();
     if(g.phase==='wave'&&!tutorialProtected(g))g.activateMapEvent();
-    // Restore persistent mechanics, not stale pointer input, events or animations.
     g.paused = true; g.building = false; g.events = []; g.effects = [];
     return g;
   }
@@ -369,7 +359,9 @@ export class Expedition {
     if(this.paused||this.phase!=='wave')return false;const mapEvent=this.nearbyMapEvent();if(!mapEvent||id!==undefined&&mapEvent.id!==id)return false;
     if(mapEvent.type==='merchant'){
       if(this.amber<6){this.event('notice',{message:'荒境行商需要 6 琥珀 · 採集晶礦或擊敗敵人後再來'});return false;}
-      this.amber-=6;this.materials.wood=Math.min(999,this.materials.wood+3);this.materials.bone=Math.min(999,this.materials.bone+2);this.heal(20);return this.resolveMapEvent(mapEvent,'行商收下琥珀 · 木材 +3、獸骨 +2、生命回復 20');
+      this.amber-=6;this.materials.wood=Math.min(999,this.materials.wood+3);this.materials.bone=Math.min(999,this.materials.bone+2);this.heal(20);
+      if(typeof globalThis.pbmNative?.gameTelemetry==='function'){try{globalThis.pbmNative.gameTelemetry(JSON.stringify({event:'item_consume',item_id:'map_merchant_trade',cost_pearls:6,remaining_balance:this.amber}));}catch{}}
+      return this.resolveMapEvent(mapEvent,'行商收下琥珀 · 木材 +3、獸骨 +2、生命回復 20');
     }
     if(mapEvent.type==='chest'){
       const rewards=[{wood:4,bone:1,amber:5},{wood:2,bone:3,amber:7},{wood:3,bone:2,amber:9}][mapEvent.variant];this.materials.wood=Math.min(999,this.materials.wood+rewards.wood);this.materials.bone=Math.min(999,this.materials.bone+rewards.bone);this.amber=Math.min(99,this.amber+rewards.amber);return this.resolveMapEvent(mapEvent,`寶箱已開啟 · 木材 +${rewards.wood}、獸骨 +${rewards.bone}、琥珀 +${rewards.amber}`);
@@ -435,6 +427,24 @@ export class Expedition {
   }
   completeObjective(){const o=this.objective;if(!o||o.completed||!this.objectiveReady())return false;o.completed=true;const def=this.objectiveDefinition();this.effects.push({kind:'burst',x:this.hero.x,y:this.hero.y,r:92,color:'#e8d28a',life:.65,maxLife:.65});this.event('objective-complete',{objective:o.type,title:def.title});return true;}
   failObjective(reason){if(['lose','win'].includes(this.phase))return false;this.phase='lose';this.building=false;this.event('end',{won:false,reason});return true;}
+  reviveAfterDefeat(){
+    if(this.phase!=='lose')return false;
+    this.hero.hp=Math.max(1,Math.ceil(this.hero.maxHp*.5));
+    this.hero.invulnerable=Math.max(this.hero.invulnerable||0,2);
+    if(this.base.hp<=0)this.base.hp=Math.max(1,Math.ceil(this.base.maxHp*.35));
+    if(this.objective?.type==='escort'&&this.objective.npc.hp<=0){
+      this.objective.npc.hp=Math.max(1,Math.ceil(this.objective.npc.maxHp*.5));
+    }
+    if(this.objective?.type==='strongholds'){
+      for(const point of this.objective.points)if(point.hp<=0)point.hp=Math.max(1,Math.ceil(point.maxHp*.35));
+    }
+    if(this.objective?.type==='mining'&&this.objective.timeLeft<=0)this.objective.timeLeft=20;
+    this.projectiles=this.projectiles.filter(projectile=>!projectile.hostile);
+    for(const enemy of this.enemies){enemy.attackCD=Math.max(enemy.attackCD||0,1.5);if('windup' in enemy)enemy.windup=0;}
+    this.phase='wave';this.paused=false;this.building=false;
+    this.event('notice',{message:'原始珍珠喚回了獵人 · 繼續守護'});
+    return true;
+  }
   updateObjective(dt){
     const o=this.objective;if(!o||o.completed||this.phase!=='wave')return;
     if(o.type==='escort'){
@@ -472,7 +482,7 @@ export class Expedition {
     if(leveled){const d=COMPANIONS[p.type];this.effects.push({kind:'burst',x:p.x,y:p.y,r:72,color:d.color,life:.65,maxLife:.65});this.event('companion-level',{companion:p.type,name:d.name,level:p.level});}
     return leveled;
   }
-  cost() { return 0; } // Materials are paid at the merchant; deploying consumes one owned card.
+  cost() { return 0; }
   applyLoadout(loadout){
     if(!isValidLoadout(loadout))throw new Error('出征配置不完整：需要 3 張建造卡、1 張佣兵卡、1 把武器與 1 個主動技能');
     this.loadout=copyLoadout(loadout);this.hero.weapon=this.loadout.weapons[0];this.hero.weaponChain=0;
@@ -527,7 +537,6 @@ export class Expedition {
     if(tutorialWaiting(this))return{ok:false,reason:'先點擊教學面板繼續'};
     if(!findingTutorialSpot&&tutorialProtected(this)&&this.tutorial.version===2&&this.tutorial.step==='build'){
       if(!Number.isFinite(x)||!Number.isFinite(y)||slot!==this.tutorial.slot||distance({x,y},this.tutorial.buildSpot)>TUTORIAL_BUILD_RADIUS)return{ok:false,reason:'將發光卡牌拖到金色虛線圈內，再放開'};
-      // The entire visible training ring is a safe drop target, even on small landscape screens.
       ({x,y}=this.tutorial.buildSpot);
     }
     if(tutorialProtected(this)&&(this.tutorial.step!=='build'||own(HIRES,type)))return{ok:false,reason:'先完成上方引導，再拖建造卡到空地'};
@@ -728,8 +737,6 @@ export class Expedition {
     const enemies=this.enemies.filter(e=>e.hp>0),weakpoints=this.bossWeakpoints(),objectives=this.attackableObjectives(),nearbyObjectives=objectives.filter(entry=>distance(this.hero,entry)<=190),ore=this.objective?.type==='mining'?this.nodes.filter(node=>node.hp>0&&node.objectiveKind==='ore'&&distance(this.hero,node)<=190):[],targets=weakpoints.length?weakpoints:ore.length?ore:nearbyObjectives.length?nearbyObjectives:enemies.length?enemies:objectives.length?objectives:this.nodes.filter(n=>n.hp>0);
     const target=targets.sort((a,b)=>distance(this.hero,a)-distance(this.hero,b))[0];
     if(!target)return false;
-    // Crystals require walking into a modest harvesting radius; enemies may be
-    // engaged across the arena so combat never needs a basic-attack button.
     const weapon=WEAPONS[this.hero.weapon]||WEAPONS.spear,rangedTarget=target.type||target.bossId||target.objectiveKind==='nest';
     const range=weapon.ranged?(rangedTarget?weapon.range:190):weapon.range+target.r;
     const fired=distance(this.hero,target)<=range?this.attack(target):false;
@@ -766,7 +773,6 @@ export class Expedition {
       this.burst(h.x,h.y,170,52*this.mods.axe,'#d8e7bd','frost');
       if(this.mods.shockFieldDuration>0)this.projectiles.push({id:this.nextId++,kind:'shock-field',x:h.x,y:h.y,vx:0,vy:0,damage:this.mods.shockFieldDamage,life:this.mods.shockFieldDuration,maxLife:this.mods.shockFieldDuration,radius:this.mods.shockFieldRadius,tickCD:.85,fire:false,hits:[],pierce:999,hostile:false});
     }
-    // Let the volley/impact visibly play before holding the success card.
     if(tutorialActive(this)&&this.tutorial.version===2&&this.tutorial.step==='skill'){this.tutorial.skillCast=true;this.tutorial.elapsed=0;}
     else this.advanceTutorial('skill');
     this.event('skill',{skill:id,name:skill.name});return true;
@@ -836,8 +842,6 @@ export class Expedition {
       if (t.invulnerable > 0) return;
       amount *= this.mods.armor; t.invulnerable = .65; this.event('hurt');
     }
-    // Fortifications are made for holding a line. This reduction applies only
-    // to placed buildings; the hunter, egg and hired allies use normal damage.
     if (this.buildings.includes(t)) amount *= FORTIFICATION_BALANCE.incomingDamage;
     if(t===this.companion&&t.type==='stoneback')amount*=.62;
     t.hp = Math.max(0, t.hp - amount); this.float(t.x, t.y - (t.r || 25), `−${Math.round(amount)}`, '#ffb29a');
@@ -862,9 +866,6 @@ export class Expedition {
     if(tutorialActive(this))this.tutorial.reward=payout;
     else{this.materials.wood=Math.min(999,this.materials.wood+payout.wood);this.materials.bone=Math.min(999,this.materials.bone+payout.bone);this.amber=Math.min(99,this.amber+payout.amber);}
     this.drops = []; this.projectiles = [];
-    // Only destroyed fortifications disappear. Every survivor keeps its exact
-    // position, level and id, then receives a modest field repair before the
-    // next stage. This makes a defence line a lasting player investment.
     this.buildings=this.buildings.filter(b=>b.hp>0);
     const survivors=this.buildings.length;
     this.heal(FORTIFICATION_BALANCE.heroRecovery);
@@ -875,8 +876,6 @@ export class Expedition {
     if (this.wave === MAX_WAVES) { this.phase = 'win'; this.event('end', { won: true,objective:objectiveTitle }); return; }
     this.phase = 'prep'; this.building = false;this.choices=[];
     if(this.tutorial?.reward){this.event('tutorial-reward');return true;}
-    // The receipt reports what actually entered the pack, including remaining
-    // battlefield drops and respecting capacity. Rendering never grants loot.
     this.event('market-ready',{wood:this.materials.wood-before.wood,bone:this.materials.bone-before.bone,amber:this.amber-before.amber,survivors,repair:Math.round(FORTIFICATION_BALANCE.betweenStageRepair*100),objective:objectiveTitle});return true;
   }
   tick(dt, input = {}) {
@@ -885,7 +884,6 @@ export class Expedition {
     if(tutorialProtected(this)&&this.tutorial.version===2&&this.tutorial.step!=='move')input={};
     if (!Number.isFinite(dt) || dt <= 0 || this.paused || !['prep', 'wave'].includes(this.phase)) return;
     dt = Math.min(dt, .05);const realDt=dt;this.realTime += dt;
-    // Construction is slow motion, never a second independent timer or game loop.
     if (this.building && this.phase === 'wave') dt *= .15;
     this.time += dt;
     const h = this.hero;
@@ -911,8 +909,6 @@ export class Expedition {
       const t=this.tutorial;t.elapsed=Math.min(1e8,t.elapsed+dt);
       if(t.step==='move'&&(Math.abs(input.x||0)+Math.abs(input.y||0)>.05)){t.moved=Math.min(64,t.moved+distance(old,h));if(t.version===2?distance(h,t.moveTarget)<24:t.moved>=64)this.advanceTutorial('move');}
     }
-    // Combat attacks are automatic. Movement, construction and active skills
-    // remain the player's decisions; the nearest in-range enemy is selected.
     this.autoAttack();
     h.x = clamp(h.x, 43, WORLD.width - 43); h.y = clamp(h.y, 70, WORLD.height - 55);
     if(!tutorialProtected(this)||this.tutorial.version!==2){this.updateBuildings(dt);this.updateAllies(dt);this.updateCompanion(dt);}this.updateProjectiles(dt);
@@ -1039,7 +1035,6 @@ export class Expedition {
       }
       const from = { x: p.x, y: p.y }; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
       if (p.hostile) {
-        // The projectile follows the telegraphed shot; it never homes after release.
         const defenders=this.combatDefenders();
         const t = defenders.find(t => t.hp > 0 && pointToSegment(t, from, p) < t.r + 6);
         if (t) { this.damageTarget(t, p.damage); p.life = 0; } continue;
@@ -1114,9 +1109,6 @@ export class Expedition {
       return;
     }
     let target=[this.base,...this.objectiveDefenders()].filter(candidate=>candidate.hp>0).sort((a,b)=>distance(e,a)-distance(e,b))[0]||this.base;
-    // Bosses are hero duels. Giving them global hero aggro prevents the
-    // counter-intuitive case where kiting away from the egg makes them turn
-    // around and delete the objective off-screen.
     const heroAggro=e.elite||['matriarch','charger','boss'].includes(e.type)?999:e.type==='raptor'?165:125;
     if (distance(e, this.hero) < heroAggro) target = this.hero;
     for (const b of [...this.buildings,...this.allies,...(this.companion?[this.companion]:[])]) if (b.hp > 0 && distance(e, b) < distance(e, target) && distance(e, b) < (b.type==='stoneback'?235:170)) target = b;

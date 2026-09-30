@@ -75,8 +75,6 @@ export function decode(raw) {
   validateState(e.state);return e;
 }
 
-// One atomic record contains both the active expedition and permanent progression.
-// No reward is stored separately from clearing the completed run.
 export class SaveStore {
   constructor(storage,locks=null){this.storage=storage;this.locks=locks;this.queue=Promise.resolve();this.reload();}
   reload(){
@@ -84,7 +82,6 @@ export class SaveStore {
     try{
       this.raw=this.storage.getItem(SAVE_KEY);const backup=this.storage.getItem(BACKUP_KEY);
       if(this.raw){try{const e=decode(this.raw);this.accept(e,this.raw);return;}catch{}}
-      // Never downgrade a newer-format primary file, even when an old backup exists.
       let future=false;try{future=JSON.parse(this.raw)?.version>10;}catch{}
       if(future){this.blocked=true;this.warning='這份存檔來自較新版本，已停止寫入。請先匯出備份。';return;}
       if(backup){try{const e=decode(backup);this.accept(e,backup);this.warning='主存檔異常，已恢復上一份備份。';return;}catch{}}
@@ -105,7 +102,6 @@ export class SaveStore {
   async mutate(fn){
     const task=async()=>{
       const transaction=()=>this.commit(fn);
-      // Serialize cooperating tabs; CAS above also detects stale state without Web Locks.
       return this.locks?this.locks.request('emberwild-save-v2',transaction):transaction();
     };
     const p=this.queue.then(task,task);this.queue=p.catch(()=>{});return p;
@@ -139,8 +135,6 @@ export class SaveStore {
     return this.markOfferPrompts([kind],week);
   }
   markOfferPrompts(kinds,week=offerWeekKey()){
-    // One combined presentation is one save transaction; keep the existing
-    // fields so earlier saves and purchase limits remain compatible.
     return this.mutate(s=>{const prompts=ensureOfferPromptState(s.profile);for(const kind of kinds){if(kind==='starter')prompts.starterShown=true;else if(kind==='weekly')prompts.weeklyShownWeek=week;else throw new Error('禮包提示類型無效');}});
   }
   abandon(){return this.mutate(s=>{if(s.run?.tutorial?.mandatory&&s.run.tutorial.status==='active')throw new Error('請先完成新手訓練，不可放棄教學');s.run=null;});}
@@ -148,8 +142,6 @@ export class SaveStore {
     const task=async()=>{
       const transaction=()=>{
         if(this.storage.getItem(SAVE_KEY)!==this.raw){const e=new Error('另一個頁面已更新存檔，請重新載入後再刪除');e.code='CONFLICT';throw e;}
-        // Remove the primary last so a partial failure cannot expose an older
-        // backup as the active save on the next reload.
         for(const key of [BACKUP_KEY,LEGACY_KEY,SAVE_KEY])this.storage.removeItem(key);
         if(PROGRESS_KEYS.some(key=>this.storage.getItem(key)!==null))throw new Error('存檔刪除未完成，請關閉其他遊戲頁後重試。');
         this.reload();return true;

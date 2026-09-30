@@ -1,4 +1,6 @@
 import Foundation
+import QuartzCore
+import Security
 import StoreKit
 
 enum PaymentDebugLog {
@@ -31,7 +33,6 @@ enum PaymentDebugLog {
             try handle.seekToEnd()
             try handle.write(contentsOf: data)
         } catch {
-            // Payment diagnostics must never affect checkout.
         }
         #endif
     }
@@ -58,6 +59,8 @@ final class StoreKitManager {
         func onPaymentProgress(_ request: PayRequest?, message: String)
         func onCheckoutStarted(_ request: PayRequest, _ productInfo: ProductInfo)
         func onCheckoutReleased(_ request: PayRequest)
+        func onVerifiedDelivery(_ request: PayRequest?, orderId: String,
+                                transactionId: String, productInfo: ProductInfo) -> Bool
         func onSuccess(_ request: PayRequest?, orderId: String, transactionId: String, productInfo: ProductInfo)
         func onPending(_ request: PayRequest?)
         func onCancel(_ request: PayRequest?)
@@ -71,11 +74,7 @@ final class StoreKitManager {
         var priceAmountMicros: Int64
         var currencyCode: String
         var pendingSince: TimeInterval?
-        // Optional for decoding old unfinished contexts. New orders always store
-        // the server-issued UUID; old receipts are retried unchanged, never rebuilt.
         var appAccountToken: UUID?
-        // Optional for old installs. Persist before entering Apple UI, so a lost
-        // response or process termination cannot silently replace the SDK order.
         var recoveryState: String?
         var storefrontId: String?
         var transactionId: String?
@@ -84,6 +83,7 @@ final class StoreKitManager {
         var deliveryRetryAt: TimeInterval?
         var deliveryLastCode: String?
         var deliveryNeedsReview: Bool?
+        var confirmationMode: String?
 
         var request: PayRequest? { try? PayRequest(json: requestJSON) }
 
@@ -99,7 +99,8 @@ final class StoreKitManager {
         case inProgress
     }
 
-    private let backend = BackendGateway()
+    private let backend = BillingService.shared
+    private let appStore = AppStoreBillingService.shared
     weak var listener: Listener?
     private var activeRequest: PayRequest?
     private var applePurchaseOrder: String?
@@ -147,9 +148,6 @@ final class StoreKitManager {
     private let store = UserDefaults.standard
     private let contextPrefix = "ios_purchase_context_"
     private let contextsKey = "ios_purchase_contexts_v2"
-    // Completed means SERVER-DELIVERED, not Apple acknowledgement complete.
-    // Old v1 records meet this stronger prerequisite too. The journal never
-    // grants content or substitutes for server verification; finish is retriable.
     private struct CompletedTransaction: Codable {
         let transactionId: String
         let productId: String
@@ -170,14 +168,11 @@ final class StoreKitManager {
     private var warmupTask: Task<Void, Never>?
     private var connectionWarmupTask: Task<Void, Never>?
     private var lastPreparationAt: TimeInterval = -.infinity
-    private struct StatusJob { let id: UUID; let task: Task<BackendGateway.OrderStatus, Error> }
+    private struct StatusJob { let id: UUID; let task: Task<OrderStatus, Error> }
     private var statusJobs: [String: StatusJob] = [:]
     private var statusCheckedAt: [String: TimeInterval] = [:]
     private enum OrderReconciliation: Equatable {
         case delivered
-        // A matched CREATED order without a transaction permits only an explicit
-        // original-order retry after the fresh Apple scan, never automatic purchase.
-        // It is not proof that Apple cannot subsequently return a transaction.
         case unresolved(retryEligible: Bool)
         case unavailable
     }
@@ -188,8 +183,6 @@ final class StoreKitManager {
     var isProcessingPayment: Bool {
         launchTask != nil || activeRequest != nil || !confirmingTokens.isEmpty
     }
-    // Delivery and Apple's presentation lifetime are independent. Keep the
-    // single-sheet lock, but never describe a delivered order as unpaid.
     var checkoutBlockingMessage: String? {
         guard launchTask != nil, let request = checkoutRequest else { return nil }
         if isCheckoutDelivered(request) {
@@ -236,14 +229,16 @@ final class StoreKitManager {
         recoveryStopped = false
         PaymentDebugLog.record("storekit-manager-start")
         prepareForCheckout()
+        let storefrontChanges = appStore.storefrontUpdates()
         storefrontTask = Task { [weak self] in
-            for await _ in Storefront.updates {
+            for await _ in storefrontChanges {
                 guard !Task.isCancelled else { return }
                 self?.invalidateProductCache()
             }
         }
+        let updates = appStore.transactionUpdates()
         updatesTask = Task { [weak self] in
-            for await update in Transaction.updates {
+            for await update in updates {
                 guard !Task.isCancelled else { return }
                 await self?.handle(verification: update)
             }
@@ -264,7 +259,6 @@ final class StoreKitManager {
         for job in recoveryJobs.values { job.task.cancel() }
         recoveryJobs.removeAll()
         for job in completedFinishJobs.values { job.task.cancel() }
-        // Each finish operation owns its entry until it actually returns.
         warmupTask?.cancel()
         warmupTask = nil
         connectionWarmupTask?.cancel()
@@ -278,7 +272,6 @@ final class StoreKitManager {
         updatesTask = nil
         launchTask?.cancel()
         launchTask = nil
-        // In-flight confirmations own their locks until their real completion.
         activeRequest = nil
         activeContext = nil
     }
@@ -287,12 +280,11 @@ final class StoreKitManager {
         launch(request, retryingOriginal: false)
     }
 
-    /// Called on game entry/foreground, not by an authentication or purchase
-    /// timer. Catalog work and connection warmup run independently of checkout.
+
     func prepareForCheckout() {
         guard !recoveryStopped, !isProcessingPayment, interruptedRecoveryJobs.isEmpty,
-              ProcessInfo.processInfo.systemUptime - lastPreparationAt >= 30 else { return }
-        lastPreparationAt = ProcessInfo.processInfo.systemUptime
+              CACurrentMediaTime() - lastPreparationAt >= 30 else { return }
+        lastPreparationAt = CACurrentMediaTime()
         if connectionWarmupTask == nil {
             connectionWarmupTask = Task { [weak self] in
                 guard let self else { return }
@@ -313,7 +305,6 @@ final class StoreKitManager {
         }
     }
 
-    /// Called only by the native, explicit "retry original order" action.
     func retryOriginal(_ request: PayRequest) {
         launch(request, retryingOriginal: true)
     }
@@ -322,8 +313,8 @@ final class StoreKitManager {
         guard let request, let context = blockingContext(for: request),
               context.recoveryState == "interrupted" || context.recoveryState == "awaitingApple",
               context.transactionId == nil, context.pendingSince == nil,
-              context.appAccountToken != nil, let original = context.request,
-              !original.username.isEmpty, original.username == request.username,
+              context.appAccountToken != nil, let original = context.request else { return nil }
+        guard !original.username.isEmpty, original.username == request.username,
               original.uid == request.uid, original.roleId == request.roleId,
               original.serverId == request.serverId, original.channel == request.channel,
               original.goodsId == request.goodsId else { return nil }
@@ -388,14 +379,12 @@ final class StoreKitManager {
         }
 
         let id = UUID()
-        // Capture before queuing async work: background delivery may complete
-        // between this player's tap and the preflight worker starting.
         let selectionAtLaunch = blockingContext(for: request)?.request
         checkoutID = id
         checkoutRequest = request
         launchTask = Task { [weak self] in
             guard let self else { return }
-            let preflightStarted = ProcessInfo.processInfo.systemUptime
+            let preflightStarted = CACurrentMediaTime()
             let shouldOpenCheckout = await self.boundedRecoverBeforeLaunch(request, productId: productId, retryingOriginal: retryingOriginal, selectionAtLaunch: selectionAtLaunch)
             self.recordTiming("checkout-preflight", since: preflightStarted)
             if shouldOpenCheckout, !Task.isCancelled, self.checkoutID == id {
@@ -415,8 +404,6 @@ final class StoreKitManager {
         _ = await scanUnfinished(trigger: .observed)
     }
 
-    /// Recovery only: no order creation, payment sheet, or sign-in synchronization. A user
-    /// action can retry after the automatic budget is exhausted or the server is fixed.
     func checkPendingPayments() async -> String? {
         PaymentDebugLog.record("payment-recovery-check-start")
         guard !recoveryScanRunning else {
@@ -466,9 +453,6 @@ final class StoreKitManager {
                 }
             }
         }
-        // finish() has no server-acknowledgement result. Re-read the queue before
-        // claiming that historical transactions have disappeared. This pass is
-        // read-only: it cannot deliver, finish, purchase, or start authentication.
         if trigger == .manual, !summary.historicalIDs.isEmpty, !Task.isCancelled, !recoveryStopped {
             var remaining = Set<UInt64>()
             guard let remainingSnapshot = await checkoutTransactions.read(timeout: preflightTimeout),
@@ -534,8 +518,6 @@ final class StoreKitManager {
         return message
     }
 
-    /// Stop only the read/recovery preflight. Never cancel a live purchase or
-    /// interpret timeout as proof that an older order was unpaid.
     @discardableResult
     func stopWaitingForPreflight() -> Bool {
         guard canStopPreflight, let check = preflightCheck else { return false }
@@ -581,17 +563,10 @@ final class StoreKitManager {
         } else if result {
             listener?.onPaymentProgress(check.request, message: "檢查完成，正在準備付款…")
         }
-        // Resume once without waiting for an uncooperative StoreKit read. The
-        // worker cannot proceed to purchase; that is owned by the awaiting caller.
         check.continuation.resume(returning: result)
     }
 
-    /// Isolate game orders, not price tiers. Known unrelated orders retain their own
-    /// recovery records and cannot monopolize another game's item at the same price.
     private func recoverBeforeLaunch(_ request: PayRequest, productId: String, retryingOriginal: Bool = false, selectionAtLaunch: PayRequest? = nil) async -> Bool {
-        // A repeat tap while this item has an unresolved order is a recovery
-        // intent, not permission to buy again if that older order just delivers.
-        // This also protects limited gifts without inventing local weekly rules.
         let selectionAtStart = selectionAtLaunch ?? blockingContext(for: request)?.request
         guard let snapshot = await checkoutTransactions.read(), !Task.isCancelled, !recoveryStopped else { return false }
         for verification in snapshot {
@@ -621,8 +596,6 @@ final class StoreKitManager {
             switch result {
             case .delivered(let recoveredRequest):
                 if recoveredRequest?.cpOrder == request.cpOrder {
-                    // The retry was the already-delivered order. Its callback above is the
-                    // terminal result; opening another checkout would double-charge it.
                     finishActiveRequest(request)
                     return false
                 }
@@ -649,8 +622,6 @@ final class StoreKitManager {
             }
         }
 
-        // A local uncertain marker is not proof of non-payment. Ask the actual
-        // delivery backend before offering a retry or rejecting a new tap.
         guard !Task.isCancelled, !recoveryStopped else { return false }
         if finishRecoveredSelection(selectionAtStart, for: request) { return false }
         let blocker = blockingContext(for: request)
@@ -661,21 +632,16 @@ final class StoreKitManager {
         if finishRecoveredSelection(selectionAtStart, for: request) { return false }
         if completedTransactions.contains(where: { $0.cpOrder == request.cpOrder }) {
             finishActiveRequest(request)
-            if reconciled == .delivered { return false } // Reconciliation already emitted the single success result.
+            if reconciled == .delivered { return false }
             listener?.onError(request, code: "PURCHASE_ALREADY_PROCESSED", message: "Original order already completed; no new purchase was started")
             return false
         }
 
         if blockingContext(for: request)?.pendingSince != nil {
-            // Age is not proof of cancellation; keep Ask to Buy orders recoverable.
             finishActiveRequest(request)
             listener?.onPending(request)
             return false
         }
-        // Preserve existing pending/verified/account-isolation behavior. Only a
-        // retryable interrupted order may ever reach another purchase call.
-        // A lookup failure, mismatched response, or paid/unknown server state
-        // must not be treated as an unpaid order, including on a rapid retry.
         if let blocker, blockingContext(for: request)?.sdkOrderId == blocker.sdkOrderId,
            retryRequest(for: request) != nil {
             switch reconciled {
@@ -716,12 +682,11 @@ final class StoreKitManager {
         return true
     }
 
+
     private func createOrderAndPurchase(_ request: PayRequest, expectedProductId: String, retryingOriginal: Bool = false) async {
         var phase = "product-query"
-        var phaseStarted = ProcessInfo.processInfo.systemUptime
+        var phaseStarted = CACurrentMediaTime()
         do {
-            // Resolve availability before creating a backend order. Reuse this exact
-            // Product for checkout, after validating the backend's returned SKU.
             try Task.checkCancellation()
             PaymentDebugLog.record("product-query-start product=\(expectedProductId)")
             guard let product = try await loadProduct(expectedProductId) else {
@@ -732,28 +697,26 @@ final class StoreKitManager {
             }
             try Task.checkCancellation()
             PaymentDebugLog.record("product-query-success product=\(product.id) displayPrice=\(product.displayPrice)")
-            let checkoutStorefront = SKPaymentQueue.default().storefront?.identifier
+            let checkoutStorefront = appStore.storefrontIdentifier
             recordTiming(phase, since: phaseStarted)
             if retryingOriginal {
-                // Catalog loading is an await point: an old transaction can arrive
-                // during it. Recover again before re-entering the Apple sheet.
                 guard await boundedRecoverBeforeLaunch(request, productId: expectedProductId, retryingOriginal: true),
                       var context = findContext(for: request) else { return }
                 guard let savedStorefront = context.storefrontId, savedStorefront == checkoutStorefront else {
-                    throw BackendGateway.GatewayError.message(code: "STOREFRONT_CHANGED", message: "Return to the original App Store region before retrying this order")
+                    throw BillingError.message(code: "STOREFRONT_CHANGED", message: "Return to the original App Store region before retrying this order")
                 }
                 guard context.priceAmountMicros == priceAmountMicros(product), context.currencyCode == currencyCode(for: product) else {
-                    throw BackendGateway.GatewayError.message(code: "ORIGINAL_PRICE_CHANGED", message: "The original product price changed; check the original transaction before purchasing")
+                    throw BillingError.message(code: "ORIGINAL_PRICE_CHANGED", message: "The original product price changed; check the original transaction before purchasing")
                 }
                 activeContext = context
                 phase = "purchase"
-                phaseStarted = ProcessInfo.processInfo.systemUptime
+                phaseStarted = CACurrentMediaTime()
                 PaymentDebugLog.record("retry-original-order product=\(expectedProductId) backendOrderCreated=false")
                 try await purchase(product: product, context: &context, request: request)
                 return
             }
             phase = "backend-create-order"
-            phaseStarted = ProcessInfo.processInfo.systemUptime
+            phaseStarted = CACurrentMediaTime()
             listener?.onPaymentProgress(request, message: "正在建立支付訂單…")
             PaymentDebugLog.record("backend-create-order-start product=\(expectedProductId) usernamePresent=\(!request.username.isEmpty)")
             let order = try await backend.createPlayOrder(request)
@@ -772,10 +735,10 @@ final class StoreKitManager {
             }
             guard let contexts = loadContexts(),
                   !contexts.values.contains(where: { $0.sdkOrderId == order.orderId || ($0.productId == order.productId && $0.appAccountToken == order.appAccountToken) }) else {
-                throw BackendGateway.GatewayError.message(code: "ORDER_IDENTITY_CONFLICT", message: "Backend reused an unresolved order identity; no new Apple purchase was started")
+                throw BillingError.message(code: "ORDER_IDENTITY_CONFLICT", message: "Backend reused an unresolved order identity; no new Apple purchase was started")
             }
-            guard checkoutStorefront == SKPaymentQueue.default().storefront?.identifier else {
-                throw BackendGateway.GatewayError.message(code: "STOREFRONT_CHANGED", message: "App Store region changed; please retry")
+            guard checkoutStorefront == appStore.storefrontIdentifier else {
+                throw BillingError.message(code: "STOREFRONT_CHANGED", message: "App Store region changed; please retry")
             }
             var context = PurchaseContext(
                 requestJSON: request.rawJSON,
@@ -789,15 +752,14 @@ final class StoreKitManager {
             )
             activeContext = context
             guard storeContext(context) else {
-                throw BackendGateway.GatewayError.message(code: "PURCHASE_STORAGE_UNAVAILABLE", message: "Cannot persist order before purchasing")
+                throw BillingError.message(code: "PURCHASE_STORAGE_UNAVAILABLE", message: "Cannot persist order before purchasing")
             }
             phase = "purchase"
-            phaseStarted = ProcessInfo.processInfo.systemUptime
+            phaseStarted = CACurrentMediaTime()
             try await purchase(product: product, context: &context, request: request)
-        } catch let error as BackendGateway.GatewayError {
+        } catch let error as BillingError {
             recordTiming(phase + "-failed", since: phaseStarted)
             PaymentDebugLog.record("\(phase)-failed code=\(error.code) message=\(error.localizedDescription)")
-            // A failed preflight on a retry must not delete the original order.
             if !retryingOriginal && phase != "purchase" { removeActiveContext(for: request) }
             finishActiveRequest(request)
             listener?.onError(request, code: error.code, message: error.localizedDescription)
@@ -814,8 +776,6 @@ final class StoreKitManager {
             recordTiming(phase + "-failed", since: phaseStarted)
             let failure = Self.paymentFailure(for: error)
             PaymentDebugLog.record("\(phase)-error code=\(failure.code) chain=\(failure.diagnostic)")
-            // An updates callback may have already delivered, or be delivering,
-            // this order while Product.purchase() is returning a late error.
             guard !isSettlingOrCompleted(request) else { return }
             if phase == "purchase", !failure.isUserCancellation {
                 preserveInterrupted(request)
@@ -841,7 +801,7 @@ final class StoreKitManager {
         try Task.checkCancellation()
         guard !isSettlingOrCompleted(request) else { return }
         guard let token = context.appAccountToken else {
-            throw BackendGateway.GatewayError.message(code: "APP_ACCOUNT_TOKEN_MISSING", message: "The SDK order has no server account binding token")
+            throw BillingError.message(code: "APP_ACCOUNT_TOKEN_MISSING", message: "The SDK order has no server account binding token")
         }
         if let priceMicros = priceAmountMicros(product) {
             context.priceAmountMicros = priceMicros
@@ -853,25 +813,21 @@ final class StoreKitManager {
         context.recoveryState = "awaitingApple"
         context.attemptCount = (context.attemptCount ?? 0) + 1
         guard storeContext(context) else {
-            throw BackendGateway.GatewayError.message(code: "PURCHASE_STORAGE_UNAVAILABLE", message: "Cannot persist purchase attempt")
+            throw BillingError.message(code: "PURCHASE_STORAGE_UNAVAILABLE", message: "Cannot persist purchase attempt")
         }
         activeContext = context
         PaymentDebugLog.record("purchase-sheet-requested product=\(product.id)")
 
         let options: Set<Product.PurchaseOption> = [.appAccountToken(token)]
-        let purchaseStarted = ProcessInfo.processInfo.systemUptime
+        let purchaseStarted = CACurrentMediaTime()
         applePurchaseOrder = request.cpOrder
         defer { if applePurchaseOrder == request.cpOrder { applePurchaseOrder = nil } }
-        let result = try await product.purchase(options: options)
+        let result = try await appStore.purchase(product: product, options: options)
         recordTiming("apple-purchase-return", since: purchaseStarted)
         switch result {
         case .success(let verification):
             PaymentDebugLog.record("purchase-result success product=\(product.id)")
             let confirmation = await handle(verification: verification, waitForHistoricalFinish: false)
-            // Apple can return an older, already-delivered consumable from this
-            // checkout. Silently deduplicating it would leave the NEW request's
-            // native/H5 gates locked forever. Only the checkout owner releases
-            // its request; background old-transaction callbacks must stay silent.
             let otherOrder: Bool
             switch confirmation {
             case .alreadyDelivered(let order): otherOrder = order != request.cpOrder
@@ -917,8 +873,8 @@ final class StoreKitManager {
     private func loadProduct(_ productId: String, attempt: Int = 0) async throws -> Product? {
         try Task.checkCancellation()
         do {
-            let storefront = SKPaymentQueue.default().storefront?.identifier
-            let now = ProcessInfo.processInfo.systemUptime
+            let storefront = appStore.storefrontIdentifier
+            let now = CACurrentMediaTime()
             if let storefront, storefront == catalogStorefront,
                now - catalogLoadedAt < productCacheLifetime,
                let product = cachedProducts[productId] {
@@ -932,7 +888,7 @@ final class StoreKitManager {
             if let existing = catalogTask {
                 pending = existing
             } else {
-                pending = (UUID(), Task { try await Product.products(for: ProductCatalog.allProductIds.sorted()) })
+                pending = (UUID(), Task { try await AppStoreBillingService.shared.products(for: ProductCatalog.allProductIds.sorted()) })
                 catalogTask = pending
             }
             let products: [Product]
@@ -944,11 +900,11 @@ final class StoreKitManager {
             if catalogTask?.id == pending.id { catalogTask = nil }
             try Task.checkCancellation()
             guard generation == catalogGeneration,
-                  storefront == SKPaymentQueue.default().storefront?.identifier else {
-                throw BackendGateway.GatewayError.message(code: "STOREFRONT_CHANGED", message: "App Store region changed; please retry")
+                  storefront == appStore.storefrontIdentifier else {
+                throw BillingError.message(code: "STOREFRONT_CHANGED", message: "App Store region changed; please retry")
             }
             cachedProducts = Dictionary(products.filter { ProductCatalog.contains($0.id) }.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
-            catalogLoadedAt = ProcessInfo.processInfo.systemUptime
+            catalogLoadedAt = CACurrentMediaTime()
             PaymentDebugLog.record("product-catalog-loaded count=\(cachedProducts.count)")
             return products.first(where: { $0.id == productId })
         } catch is CancellationError {
@@ -965,13 +921,12 @@ final class StoreKitManager {
         cachedProducts.removeAll()
         catalogLoadedAt = 0
         catalogStorefront = nil
-        // A stale fetch may finish, but its generation cannot populate this cache.
         catalogTask = nil
         PaymentDebugLog.record("product-cache-invalidated")
     }
 
     private func recordTiming(_ phase: String, since start: TimeInterval) {
-        let milliseconds = Int((ProcessInfo.processInfo.systemUptime - start) * 1000)
+        let milliseconds = Int((CACurrentMediaTime() - start) * 1000)
         PaymentDebugLog.record("payment-timing stage=\(phase) elapsedMs=\(milliseconds)")
     }
 
@@ -1012,8 +967,6 @@ final class StoreKitManager {
         trigger: RecoveryTrigger = .observed,
         waitForHistoricalFinish: Bool = true
     ) async -> ConfirmationResult {
-        // Both Transaction.updates and purchase() can supply the SAME transaction.
-        // Check identity before looking for a context already cleared by success.
         let token = String(transaction.id)
         if ProductCatalog.contains(transaction.productID),
            let completed = completedTransactions.first(where: { $0.transactionId == token }),
@@ -1029,14 +982,11 @@ final class StoreKitManager {
         guard !confirmingTokens.contains(token) else { return .inProgress }
         if ProductCatalog.contains(transaction.productID),
            AnalyticsEventCoordinator.hasLegacyVerifiedPurchase(transactionId: token) {
-            // Old builds wrote their native verified-success marker only AFTER
-            // server delivery. Migrate it without ordering, notifying H5, emitting
-            // revenue again, or clearing a newer same-product purchase context.
             confirmingTokens.insert(token)
             defer { confirmingTokens.remove(token) }
-            await transaction.finish()
+            await appStore.finish(transaction)
             recordCompleted(transaction, cpOrder: "")
-            completedFinishTimes[token] = ProcessInfo.processInfo.systemUptime
+            completedFinishTimes[token] = CACurrentMediaTime()
             PaymentDebugLog.record("legacy-completed-transaction-migrated transaction=\(token)")
             return .alreadyDelivered(cpOrder: "")
         }
@@ -1046,8 +996,6 @@ final class StoreKitManager {
             let code = (loadContexts() ?? [:]).values.contains { $0.productId == transaction.productID } ? "ACCOUNT_MISMATCH" : "PURCHASE_CONTEXT_MISSING"
             PaymentDebugLog.record("confirmation-failed code=\(code) product=\(transaction.productID)")
             let message = "An App Store purchase exists but its SDK order context is missing"
-            // Unowned background receipts must not impersonate the current tap.
-            // An explicit checkout/preflight reports its own failure separately.
             if notifyFailure, activeRequest == nil { listener?.onError(nil, code: code, message: message) }
             return .failed(code: code, message: message)
         }
@@ -1090,11 +1038,8 @@ final class StoreKitManager {
                 if notifyFailure { listener?.onError(request, code: "DELIVERY_RETRY_EXHAUSTED", message: "Automatic delivery retry limit reached; original transaction retained") }
                 return .failed(code: "DELIVERY_RETRY_EXHAUSTED", message: "Automatic delivery retry limit reached")
             }
-            // Persist before contacting the server. A restart cannot reset the budget.
             context.deliveryRetryCount = (context.deliveryRetryCount ?? 0) + 1
         }
-        // Leave a durable recovery deadline while the HTTP request is in flight.
-        // If the process dies, the next launch resumes with the same retry budget.
         if context.deliveryRetryAt == nil { context.deliveryRetryAt = recoveryNow() + deliveryRetryDelays[0] }
         guard storeContext(context) else {
             finishActiveRequest(request)
@@ -1108,7 +1053,7 @@ final class StoreKitManager {
             confirmingOrders.remove(context.sdkOrderId)
         }
 
-        let confirmationStarted = ProcessInfo.processInfo.systemUptime
+        let confirmationStarted = CACurrentMediaTime()
         do {
             if trigger != .automatic { listener?.onPaymentProgress(request, message: "App Store 已確認，正在驗證並發放獎勵…") }
             PaymentDebugLog.record("confirmation-start product=\(transaction.productID) transaction=\(transaction.id)")
@@ -1120,12 +1065,20 @@ final class StoreKitManager {
             )
             recordTiming("backend-confirmation", since: confirmationStarted)
             guard confirmation.consume else {
-                throw BackendGateway.GatewayError.message(code: "DELIVERY_PENDING", message: "Server delivery is not complete; the transaction remains unfinished")
+                throw BillingError.message(code: "DELIVERY_PENDING", message: "Server delivery is not complete; the transaction remains unfinished")
+            }
+            guard listener?.onVerifiedDelivery(
+                request,
+                orderId: context.sdkOrderId,
+                transactionId: String(transaction.id),
+                productInfo: context.productInfo()
+            ) ?? true else {
+                throw BillingError.message(
+                    code: "LOCAL_DELIVERY_STORAGE_UNAVAILABLE",
+                    message: "Verified delivery could not be persisted on this device"
+                )
             }
             PaymentDebugLog.record("confirmation-success product=\(transaction.productID) transaction=\(transaction.id)")
-            // consume=true is the server's verified-delivery acknowledgement.
-            // Persist that proof before releasing this order. Apple finish may
-            // take seconds and must not delay the already-earned game reward.
             recordCompleted(transaction, cpOrder: context.request?.cpOrder ?? "")
             cancelDeliveryRecovery(token)
             removeStoredContext(context)
@@ -1140,7 +1093,7 @@ final class StoreKitManager {
                 )
             }
             return .delivered(request)
-        } catch let error as BackendGateway.GatewayError {
+        } catch let error as BillingError {
             recordTiming("backend-confirmation-failed", since: confirmationStarted)
             PaymentDebugLog.record("confirmation-failed code=\(error.code) message=\(error.localizedDescription)")
             return deliveryFailed(transaction: transaction, jws: jws, context: context,
@@ -1160,7 +1113,7 @@ final class StoreKitManager {
     }
 
     static func isTransientDeliveryCode(_ code: String) -> Bool {
-        ["NETWORK_ERROR", "HTTP_0", "HTTP_408", "HTTP_429", "HTTP_500", "HTTP_502", "HTTP_503", "HTTP_504", "DELIVERY_PENDING", "DELIVERY_INTERRUPTED"].contains(code)
+        ["NETWORK_ERROR", "HTTP_0", "HTTP_408", "HTTP_429", "HTTP_500", "HTTP_502", "HTTP_503", "HTTP_504", "DELIVERY_PENDING", "DELIVERY_INTERRUPTED", "LOCAL_DELIVERY_STORAGE_UNAVAILABLE"].contains(code)
     }
 
     private func deliveryFailed(transaction: Transaction, jws: String, context: PurchaseContext,
@@ -1184,8 +1137,6 @@ final class StoreKitManager {
         finishActiveRequest(saved.request)
         if retry { scheduleDeliveryRecovery(transaction: transaction, jws: jws, context: saved) }
         else { cancelDeliveryRecovery(String(transaction.id)) }
-        // Intermediate retries stay quiet. Initial status and final exhaustion
-        // are visible; neither is a success or a reason to repurchase.
         if notifyFailure && (trigger != .automatic || !retry) {
             listener?.onError(saved.request, code: reportCode, message: message)
         }
@@ -1218,18 +1169,12 @@ final class StoreKitManager {
         recoveryJobs.removeValue(forKey: transactionId)?.task.cancel()
     }
 
-    /// Only called after StoreKit signature verification AND an exact match to
-    /// the journal written after server-confirmed delivery. No new context is
-    /// read/cleared here; this old transaction must never settle a newer order.
     private func finishCompletedTransaction(_ transaction: Transaction, completed: CompletedTransaction,
                                             trigger: RecoveryTrigger) async -> ConfirmationResult {
         guard !Task.isCancelled, !recoveryStopped else {
             return .failed(code: "DELIVERY_INTERRUPTED", message: "Historical transaction cleanup interrupted")
         }
         if let job = completedFinishJob(transaction, trigger: trigger) {
-            // Preflight for the same product joins cleanup; it must not submit
-            // another checkout while the old consumable is still being finished.
-            // Purchase replies themselves use the nonblocking path in confirm.
             await job.task.value
         }
         return .alreadyDelivered(cpOrder: completed.cpOrder)
@@ -1248,7 +1193,7 @@ final class StoreKitManager {
               }) else { return nil }
         if let job = completedFinishJobs[token] { return job }
         if trigger != .manual, let last = completedFinishTimes[token],
-           ProcessInfo.processInfo.systemUptime - last < completedFinishCooldown { return nil }
+           CACurrentMediaTime() - last < completedFinishCooldown { return nil }
         let id = UUID()
         let task = Task { [weak self] in
             guard let self else { return }
@@ -1260,10 +1205,10 @@ final class StoreKitManager {
             }
             guard !Task.isCancelled, !self.recoveryStopped else { return }
             PaymentDebugLog.record("completed-transaction-finish-start product=\(transaction.productID) transaction=\(token)")
-            let started = ProcessInfo.processInfo.systemUptime
-            await transaction.finish()
+            let started = CACurrentMediaTime()
+            await appStore.finish(transaction)
             self.recordTiming("apple-finish", since: started)
-            self.completedFinishTimes[token] = ProcessInfo.processInfo.systemUptime
+            self.completedFinishTimes[token] = CACurrentMediaTime()
             PaymentDebugLog.record("completed-transaction-finish-returned product=\(transaction.productID) transaction=\(token)")
         }
         let job = RecoveryJob(id: id, task: task)
@@ -1295,26 +1240,25 @@ final class StoreKitManager {
               let context = findContext(orderId: orderId), let original = context.request,
               let accountToken = context.appAccountToken,
               !confirmingOrders.contains(context.sdkOrderId) else { return .unavailable }
-        // Do not race the live Apple sheet or an active native confirmation.
         if applePurchaseOrder == original.cpOrder { return .unavailable }
         let productId = context.productId
         let job: StatusJob
         if let existing = statusJobs[context.sdkOrderId] {
             job = existing
         } else {
-            let now = ProcessInfo.processInfo.systemUptime
-            // Explicit retry checks need a real response, not a throttled false
-            // or an old CREATED cache entry. Still join an in-flight lookup.
+            let now = CACurrentMediaTime()
             if !force, let checked = statusCheckedAt[context.sdkOrderId], now - checked < 30 { return .unavailable }
             statusCheckedAt[context.sdkOrderId] = now
-            job = StatusJob(id: UUID(), task: Task { try await self.backend.orderStatus(sdkOrderId: context.sdkOrderId) })
+            job = StatusJob(id: UUID(), task: Task {
+                try await self.backend.orderStatus(sdkOrderId: context.sdkOrderId)
+            })
             statusJobs[context.sdkOrderId] = job
         }
         defer {
             if statusJobs[context.sdkOrderId]?.id == job.id { statusJobs.removeValue(forKey: context.sdkOrderId) }
         }
         do {
-            let started = ProcessInfo.processInfo.systemUptime
+            let started = CACurrentMediaTime()
             let status = try await job.task.value
             recordTiming("backend-order-status", since: started)
             guard !Task.isCancelled, !recoveryStopped,
@@ -1327,18 +1271,23 @@ final class StoreKitManager {
             guard status.isDelivered else {
                 return .unresolved(retryEligible: status.state == "CREATED" && status.transactionId.isEmpty && current.transactionId == nil)
             }
-            // Never steal a transaction already bound to another order/account.
             if let completed = completedTransactions.first(where: { $0.transactionId == status.transactionId }),
                completed.cpOrder != original.cpOrder || completed.productId != productId || completed.appAccountToken != accountToken { return .unavailable }
             let alreadyNotified = completedTransactions.contains { $0.transactionId == status.transactionId }
+            guard listener?.onVerifiedDelivery(
+                original,
+                orderId: current.sdkOrderId,
+                transactionId: status.transactionId,
+                productInfo: current.productInfo()
+            ) ?? true else {
+                return .unavailable
+            }
             recordDelivered(transactionId: status.transactionId, productId: productId,
                             appAccountToken: accountToken, cpOrder: original.cpOrder)
             cancelDeliveryRecovery(status.transactionId)
             removeStoredContext(current)
             finishActiveRequest(original)
             PaymentDebugLog.record("server-order-reconciled product=\(productId) transaction=\(status.transactionId) state=CONSUMED")
-            // No fake receipt, new order, purchase, or Apple finish here. If Apple
-            // redelivers the signed transaction, the existing verified path finishes it.
             if !alreadyNotified {
                 listener?.onSuccess(original, orderId: current.sdkOrderId,
                                     transactionId: status.transactionId, productInfo: current.productInfo())
@@ -1346,13 +1295,10 @@ final class StoreKitManager {
             return .delivered
         } catch {
             PaymentDebugLog.record("server-order-query-unavailable product=\(productId)")
-            return .unavailable // Failure is not an unpaid order and never authorizes retry.
+            return .unavailable
         }
     }
 
-    // One journal entry per SDK ORDER, never per price tier. Legacy keys are
-    // migrated only after writing and reading back the entire new journal.
-    // Corruption is not an empty queue: fail closed, without erasing evidence.
     private func loadContexts() -> [String: PurchaseContext]? {
         var contexts: [String: PurchaseContext] = [:]
         if let text = store.string(forKey: contextsKey) {
@@ -1393,7 +1339,9 @@ final class StoreKitManager {
     private func findContext(orderId: String) -> PurchaseContext? { loadContexts()?[orderId] }
 
     private func sameSelection(_ left: PayRequest, _ right: PayRequest) -> Bool {
-        left.resolvedProductId() == right.resolvedProductId()
+        left.destination == right.destination
+            && (left.resultAccountId.isEmpty || right.resultAccountId.isEmpty || left.resultAccountId == right.resultAccountId)
+            && left.resolvedProductId() == right.resolvedProductId()
             && left.username == right.username && left.uid == right.uid
             && left.roleId == right.roleId && left.serverId == right.serverId
             && left.channel == right.channel
@@ -1410,8 +1358,6 @@ final class StoreKitManager {
     private func blockingContext(for request: PayRequest) -> PurchaseContext? {
         let matches = (loadContexts() ?? [:]).values.filter { context in
             guard context.productId == request.resolvedProductId(), let original = context.request else { return false }
-            // A legacy unbound order cannot safely coexist with another order of
-            // that SKU. Recover it first; never guess ownership of a late receipt.
             return context.appAccountToken == nil || original.cpOrder == request.cpOrder || sameSelection(original, request)
         }.sorted { $0.sdkOrderId < $1.sdkOrderId }
         return matches.first
@@ -1424,8 +1370,6 @@ final class StoreKitManager {
             if matched.count == 1 { return matched.first }
             if matched.count > 1 { return nil }
         }
-        // Compatibility for a single old pre-token order; server verification is
-        // still mandatory. With multiple orders, price/product is never identity.
         if candidates.count == 1, candidates.first?.appAccountToken == nil { return candidates.first }
         return nil
     }
@@ -1435,7 +1379,8 @@ final class StoreKitManager {
         guard var contexts = loadContexts(), !context.sdkOrderId.isEmpty else { return false }
         if let existing = contexts[context.sdkOrderId] {
             guard existing.requestJSON == context.requestJSON, existing.productId == context.productId,
-                  existing.appAccountToken == context.appAccountToken else { return false }
+                  existing.appAccountToken == context.appAccountToken,
+                  existing.confirmationMode == context.confirmationMode else { return false }
         }
         contexts[context.sdkOrderId] = context
         return saveContexts(contexts)
@@ -1464,7 +1409,6 @@ final class StoreKitManager {
     private func cancelPurchaseAttempt(_ request: PayRequest) {
         guard let context = findContext(for: request),
               context.request?.cpOrder == request.cpOrder else { return }
-        // Canceling the retry sheet says nothing about an earlier lost response.
         if (context.attemptCount ?? 1) > 1 { preserveInterrupted(request) }
         else { removeStoredContext(context) }
     }
@@ -1491,9 +1435,6 @@ final class StoreKitManager {
         }
     }
 
-    /// A lost Apple reply is not permission to buy again. After a short backoff,
-    /// check only this saved order (at most three times). Never sync/sign in,
-    /// create an order or invoke purchase() from recovery.
     private func scheduleInterruptedRecovery(_ request: PayRequest) {
         guard !recoveryStopped, let context = findContext(for: request),
               context.transactionId == nil, context.pendingSince == nil,
@@ -1514,8 +1455,6 @@ final class StoreKitManager {
                       current.appAccountToken == context.appAccountToken,
                       current.transactionId == nil, current.pendingSince == nil,
                       current.recoveryState == "interrupted" else { return }
-                // Foreground/preflight scans own the queue while they run.
-                // Do not add competing StoreKit work to a live Apple sheet.
                 guard self.applePurchaseOrder == nil, !self.recoveryScanRunning else { continue }
                 self.recoveryScanRunning = true
                 await self.checkInterruptedOrder(orderId)
@@ -1544,8 +1483,6 @@ final class StoreKitManager {
         _ = await reconcileDeliveredOrder(orderId: orderId, force: true)
     }
 
-    /// Public StoreKit cases determine behavior. Internal Apple error metadata is
-    /// diagnostic evidence only; never a reason to skip verification or finish.
     static func paymentFailure(for error: Error) -> PaymentFailure {
         var pending: [Error] = [error]
         var seen = Set<ObjectIdentifier>()
@@ -1584,15 +1521,12 @@ final class StoreKitManager {
                 pending.append(contentsOf: underlying.prefix(12))
             }
         }
-        // Never log userInfo, URLs, descriptions, account identifiers or tokens.
         let chain = diagnostic.joined(separator: ">")
         if gateway { return PaymentFailure(code: "APP_STORE_TEMPORARILY_UNAVAILABLE", message: "App Store 暫時無法完成請求，請稍後檢查原訂單再重試", diagnostic: chain) }
         if serviceInterrupted { return PaymentFailure(code: "APP_STORE_CONNECTION_INTERRUPTED", message: "App Store 付款服務暫時中斷，原訂單已保留，系統會嘗試核對", diagnostic: chain) }
         if authentication { return PaymentFailure(code: "APP_STORE_AUTHENTICATION_FAILED", message: "App Store 認證未完成，請檢查登入狀態後重試原訂單", diagnostic: chain) }
         if network { return PaymentFailure(code: "NETWORK_ERROR", message: "連線中斷，請稍後檢查原訂單再重試", diagnostic: chain) }
         if sheetInterrupted { return PaymentFailure(code: "APP_STORE_SHEET_INTERRUPTED", message: "App Store 付款視窗未返回結果，原訂單已保留", diagnostic: chain) }
-        // Public API cancellation does not prove the user tapped Cancel. iOS 16
-        // also maps some sheet/authentication failures to this result.
         if cancelled { return PaymentFailure(code: "USER_CANCELED", message: "App Store 未完成這次付款", diagnostic: chain) }
         return PaymentFailure(code: "STOREKIT_ERROR", message: "App Store 未能完成請求，請稍後檢查原訂單再重試", diagnostic: chain)
     }
@@ -1605,7 +1539,11 @@ final class StoreKitManager {
     }
 
     private func currencyCode(for product: Product) -> String {
-        product.priceFormatStyle.locale.currency?.identifier ?? "USD"
+        if #available(iOS 16.0, *) {
+            return product.priceFormatStyle.locale.currency?.identifier ?? "USD"
+        } else {
+            return product.priceFormatStyle.locale.currencyCode ?? "USD"
+        }
     }
 
     private func priceAmountMicros(_ product: Product) -> Int64? {
@@ -1615,18 +1553,11 @@ final class StoreKitManager {
 
 }
 
-/// A single read-only StoreKit enumeration, independent of checkout lifetime.
-/// Removing a waiter never claims that Apple cancelled a transaction. Late
-/// results can only satisfy current readers, never open a payment or mutate orders.
 @MainActor private final class CheckoutTransactionReader {
     private var job: (id: UUID, task: Task<Void, Never>)?
     private var waiters: [UUID: CheckedContinuation<[VerificationResult<Transaction>]?, Never>] = [:]
     private var deadlines: [UUID: Task<Void, Never>] = [:]
 
-    // All recovery/preflight readers join the same live Apple enumeration.
-    // No completed snapshot is cached: a later explicit retry must see fresh
-    // transactions. Timeout detaches only that reader, never claims an empty
-    // queue and never creates more calls while a hung Apple read is outstanding.
     func read(timeout: TimeInterval? = nil) async -> [VerificationResult<Transaction>]? {
         let waiterID = UUID()
         return await withTaskCancellationHandler(operation: {
@@ -1643,12 +1574,8 @@ final class StoreKitManager {
                 guard job == nil else { return }
                 let id = UUID()
                 let task = Task { [weak self] in
-                    var snapshot: [VerificationResult<Transaction>] = []
-                    for await verification in Transaction.unfinished {
-                        guard !Task.isCancelled else { break }
-                        snapshot.append(verification)
-                    }
-                    self?.complete(id, snapshot: Task.isCancelled ? nil : snapshot)
+                    let snapshot = await AppStoreBillingService.shared.unfinishedTransactions()
+                    self?.complete(id, snapshot: snapshot)
                 }
                 job = (id, task)
             }
@@ -1675,5 +1602,12 @@ final class StoreKitManager {
     func stop() {
         job?.task.cancel()
         if let id = job?.id { complete(id, snapshot: nil) }
+    }
+}
+
+extension StoreKitManager.Listener {
+    func onVerifiedDelivery(_ request: PayRequest?, orderId: String,
+                            transactionId: String, productInfo: StoreKitManager.ProductInfo) -> Bool {
+        true
     }
 }

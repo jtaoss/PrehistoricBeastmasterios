@@ -1,9 +1,7 @@
 import Foundation
 
-// Compile the REAL BackendGateway and JSONObject alongside these configuration
-// doubles. PayRequest/catalog are compiled from production. Network access is
-// deliberately impossible even if a future test calls an async gateway method.
 enum ShellConfig {
+    static let miniGameOrderEndpoint = "https://example.invalid/orders"
     static let sdkApiEndpoint = "https://example.invalid/"
     static let webSdkChannel = "test"
     static let payChannel = "24"
@@ -11,7 +9,6 @@ enum ShellConfig {
     static let bundleId = "com.stone.primitive.saga"
     static let backendAppId = "1000151"
     static let paymentApiToken = ""
-    static let miniGameOrderEndpoint = "https://example.invalid/v1/minigame/orders"
     static let versionName = "test"
     static let versionCode = "1"
 }

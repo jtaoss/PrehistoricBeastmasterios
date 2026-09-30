@@ -85,7 +85,7 @@ import Foundation
             expected: ["query", "order", "checkout", "purchase", "STOREKIT_ERROR", "query", timeout], preflightTimeout: 0.05, after: { manager in
                 orderStatus = createdStatus()
                 let saved = UserDefaults.standard.values
-                monotonicTime += 301 // Expire the real catalog cache without exposing a test-only API.
+                monotonicTime += 301
                 queryHook = { holdUnfinished = true }
                 manager.retryOriginal(try PayRequest(json: "test-cp-order"))
                 try await waitForIdle(manager)

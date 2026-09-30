@@ -3,66 +3,16 @@ import WebKit
 
 protocol H5BridgeHost: AnyObject {
     func onH5Ready()
-    func onAccountSession(_ json: String)
-    func onLoginRequested()
-    func onLogoutRequested()
-    func onBindingPhoneRequested()
-    func onPayRequested(_ json: String)
     func onMiniPurchaseRequested(_ json: String)
+    func onPayRequested(_ json: String)
+    func onEconomyActionRequested(_ json: String)
+    func onGameShopRequested()
     func onMiniAuthRequested(_ json: String)
-    func onGameOrderFailed(_ json: String)
-    func onRoleReported(_ json: String)
     func onAnalyticsEvent(_ name: String, json: String?)
+    func onAccountSession(_ json: String)
+    func onRoleReported(_ json: String)
+    func onGameTelemetryEvent(_ json: String)
     func openExternalURL(_ url: String)
-    func openMainGame()
-    func returnToGameCenter()
-}
-
-final class IosWkBridge: NSObject, WKScriptMessageHandler {
-    weak var host: H5BridgeHost?
-    var onlineGameURL: URL?
-
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        if message.name == "pay" && !isTrustedOnlineGameMainFrame(message.frameInfo) { return }
-        DispatchQueue.main.async { [weak self] in
-            self?.dispatch(name: message.name, body: message.body)
-        }
-    }
-
-    private func dispatch(name: String, body: Any) {
-        switch name {
-        case "regsuccess":
-            host?.onH5Ready()
-        case "startSDK":
-            host?.onLoginRequested()
-        case "loginout":
-            host?.onLogoutRequested()
-        case "pay":
-            host?.onPayRequested(jsonPayload(body))
-        case "uploadRole":
-            host?.onRoleReported(jsonPayload(body))
-        default:
-            break
-        }
-    }
-
-    private func jsonPayload(_ body: Any) -> String {
-        if let text = body as? String {
-            return text
-        }
-        if let dict = body as? [String: Any],
-           let data = try? JSONSerialization.data(withJSONObject: dict),
-           let json = String(data: data, encoding: .utf8) {
-            return json
-        }
-        return String(describing: body)
-    }
-
-    private func isTrustedOnlineGameMainFrame(_ frame: WKFrameInfo) -> Bool {
-        guard frame.isMainFrame,
-              let url = frame.request.url, let game = onlineGameURL else { return false }
-        return IOSWebNavigationPolicy.isOnlineGameURL(url, configured: game)
-    }
 }
 
 final class ShellLogBridge: NSObject, WKScriptMessageHandler {
@@ -74,8 +24,6 @@ final class ShellLogBridge: NSObject, WKScriptMessageHandler {
     }
 }
 
-/// A deliberately narrow bridge for the bundled game only. Remote H5 pages
-/// cannot invoke native haptics through this handler.
 final class GameHapticsBridge: NSObject, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.frameInfo.isMainFrame,
@@ -115,65 +63,90 @@ final class GameHapticsBridge: NSObject, WKScriptMessageHandler {
 
 final class H5Bridge: NSObject, WKScriptMessageHandler {
     weak var host: H5BridgeHost?
-    var onlineGameURL: URL?
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let body = message.body as? [String: Any] else { return }
-        let method = String(describing: body["method"] ?? "")
-        let payload = String(describing: body["payload"] ?? "")
-        let isTrustedLocalMainFrame = message.frameInfo.isMainFrame && Self.isBundledGame(message.frameInfo.request.url)
-        let isTrustedOnlineMainFrame = message.frameInfo.isMainFrame
-            && message.frameInfo.request.url.flatMap { url in
-                onlineGameURL.map { IOSWebNavigationPolicy.isOnlineGameURL(url, configured: $0) }
-            } == true
+        let isTrustedLocalMainFrame = message.frameInfo.isMainFrame
+            && (IOSWebNavigationPolicy.isBundledFile(message.frameInfo.request.url, in: ShellConfig.localGameDirectory)
+                || IOSWebNavigationPolicy.isApprovedRemoteGameURL(message.frameInfo.request.url))
+        let method: String
+        let payload: String
+
+        if message.name == "pay" || message.name == "dopay" {
+            method = "pay"
+            if let dict = message.body as? [String: Any] {
+                payload = JSONObject(dict).jsonString()
+            } else if let text = message.body as? String {
+                payload = text
+            } else {
+                return
+            }
+        } else if let body = message.body as? [String: Any] {
+            if let m = body["method"] as? String {
+                method = m
+                payload = String(describing: body["payload"] ?? "")
+            } else if body["cpOrder"] != nil || body["goodsId"] != nil || body["productId"] != nil {
+                method = "pay"
+                payload = JSONObject(body).jsonString()
+            } else {
+                method = String(describing: body["method"] ?? "")
+                payload = String(describing: body["payload"] ?? "")
+            }
+        } else if let text = message.body as? String {
+            if let obj = try? JSONObject(json: text), (obj.has("cpOrder") || obj.has("goodsId") || obj.has("productId")) {
+                method = "pay"
+                payload = text
+            } else {
+                method = message.name
+                payload = text
+            }
+        } else {
+            return
+        }
+
         DispatchQueue.main.async { [weak self] in
-            self?.dispatch(method: method, payload: payload,
-                           isTrustedLocalMainFrame: isTrustedLocalMainFrame,
-                           isTrustedOnlineMainFrame: isTrustedOnlineMainFrame)
+            self?.dispatch(method: method, payload: payload, isTrustedLocalMainFrame: isTrustedLocalMainFrame)
         }
     }
 
-    private func dispatch(method: String, payload: String,
-                          isTrustedLocalMainFrame: Bool, isTrustedOnlineMainFrame: Bool) {
+    private func dispatch(method: String, payload: String, isTrustedLocalMainFrame: Bool) {
         switch method {
-        case "regsuccess", "loadComplete":
+        case "regsuccess", "loadComplete", "startSDK":
             host?.onH5Ready()
-        case "account":
-            host?.onAccountSession(payload)
-        case "login":
-            host?.onLoginRequested()
-        case "loginout":
-            host?.onLogoutRequested()
-        case "bindingPhone":
-            host?.onBindingPhoneRequested()
-        case "pay", "chargeInfo":
-            guard isTrustedOnlineMainFrame else { return }
-            host?.onPayRequested(payload)
         case "miniPurchase":
-            // Unlike the legacy remote-game payment bridge, this narrow entry
-            // point may only be called by the bundled game's main frame.
             guard isTrustedLocalMainFrame else { return }
             host?.onMiniPurchaseRequested(payload)
+        case "dopay", "pay", "purchase", "order":
+            guard isTrustedLocalMainFrame else { return }
+            host?.onPayRequested(payload)
+        case "accountSession", "account", "loginSuccess":
+            host?.onAccountSession(payload)
+        case "roleReported", "setRole", "uploadRole":
+            host?.onRoleReported(payload)
+        case "economyAction":
+            guard isTrustedLocalMainFrame else { return }
+            host?.onEconomyActionRequested(payload)
+        case "openGameShop":
+            guard isTrustedLocalMainFrame else { return }
+            host?.onGameShopRequested()
         case "miniAuth":
-            // Passwords and tokens may only cross the native bridge from the
-            // bundled game's main frame. Remote content and iframes are denied.
             guard isTrustedLocalMainFrame else { return }
             host?.onMiniAuthRequested(payload)
-        case "gameOrderFailed":
-            host?.onGameOrderFailed(payload)
-        case "upRole", "upLoadAccountInfo":
-            host?.onRoleReported(payload)
+        case "gameTelemetry":
+            guard isTrustedLocalMainFrame else { return }
+            host?.onGameTelemetryEvent(payload)
         case "sdkEvent":
             let envelope = JSONObject.parse(payload)
             host?.onAnalyticsEvent(envelope.string("name"), json: envelope.string("json"))
         case "AF_Event_Name":
             host?.onAnalyticsEvent("legacy_af_event", json: payload)
         case "sdkToBrowser":
-            host?.openExternalURL(payload)
-        case "openMainGame":
-            host?.openMainGame()
-        case "returnToGameCenter":
-            host?.returnToGameCenter()
+            if payload.hasPrefix("pbm-legal:") {
+                let key = String(payload.dropFirst("pbm-legal:".count))
+                guard let approved = ShellConfig.legalURL(key) else { return }
+                host?.openExternalURL(approved.absoluteString)
+            } else {
+                host?.openExternalURL(payload)
+            }
         case "sendToNative":
             if payload.hasPrefix("[GP-SHELL]") || payload.hasPrefix("[PBM-SHELL]") {
                 NSLog("%@", payload)
@@ -184,29 +157,18 @@ final class H5Bridge: NSObject, WKScriptMessageHandler {
         }
     }
 
-    private static func isBundledGame(_ url: URL?) -> Bool {
-        guard let url, url.isFileURL,
-              let root = ShellConfig.localGameDirectory?.standardizedFileURL.path else { return false }
-        return url.standardizedFileURL.path.hasPrefix(root + "/")
-    }
 }
 
 final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
-    private(set) var onlineGameURL: URL?
+    var onNavigationStarted: (() -> Void)?
     var onPageFinished: ((String) -> Void)?
     var onNavigationFailed: ((String) -> Void)?
     var onNavigationBlocked: (() -> Void)?
     var onPrivacyPolicyRequested: (() -> Void)?
-    var onCheckoutBusy: (() -> Void)? {
-        didSet { proxy.onCheckoutBusy = onCheckoutBusy }
-    }
     private let bridge = H5Bridge()
-    private let iosWkBridge = IosWkBridge()
     private let shellLogBridge = ShellLogBridge()
     private let gameHaptics = GameHapticsBridge()
-    private let proxy = GameAPIProxy()
     private let localMusic = LocalMusicPlayer()
-    private let iosWkHandlerNames = ["regsuccess", "startSDK", "loginout", "pay", "uploadRole"]
 
     init(host: H5BridgeHost) {
         let config = WKWebViewConfiguration()
@@ -216,40 +178,33 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
         config.preferences.javaScriptCanOpenWindowsAutomatically = false
         let userContent = config.userContentController
         userContent.addUserScript(WKUserScript(source: Self.consoleBridgeScript, injectionTime: .atDocumentStart, forMainFrameOnly: false))
-        userContent.addUserScript(WKUserScript(source: InjectedScripts.loadingRecovery, injectionTime: .atDocumentStart, forMainFrameOnly: true))
-        if let androidBridge = Self.loadScript("android_bridge") {
-            userContent.addUserScript(WKUserScript(source: androidBridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        if let nativeBridge = Self.loadScript("native_bridge") {
+            userContent.addUserScript(WKUserScript(source: nativeBridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
         if let analyticsBridge = Self.loadScript("analytics_bridge") {
             userContent.addUserScript(WKUserScript(source: analyticsBridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
-        // Watch for the asynchronously loaded H5 SDK from the beginning. The
-        // script is idempotent, so post-navigation installs remain fallbacks.
-        userContent.addUserScript(WKUserScript(source: InjectedScripts.paymentBridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
-        let orderScript = InjectedScripts.orderEndpoint(ShellConfig.gameOrderEndpoint)
-        userContent.addUserScript(WKUserScript(source: orderScript, injectionTime: .atDocumentStart, forMainFrameOnly: false))
-        if let proxyScript = Self.loadScript("game_api_proxy") {
-            userContent.addUserScript(WKUserScript(source: proxyScript, injectionTime: .atDocumentStart, forMainFrameOnly: false))
-        }
+        userContent.add(bridge, name: "pbmNative")
+        userContent.add(bridge, name: "pay")
+        userContent.add(bridge, name: "dopay")
         userContent.add(bridge, name: "android")
         userContent.add(shellLogBridge, name: "shellLog")
         userContent.add(gameHaptics, name: "gameHaptics")
-        for name in iosWkHandlerNames {
-            userContent.add(iosWkBridge, name: name)
-        }
-        userContent.addScriptMessageHandler(proxy, contentWorld: .page, name: "gameApiProxy")
         userContent.addScriptMessageHandler(localMusic, contentWorld: .page, name: "localMusic")
         super.init(frame: .zero, configuration: config)
         localMusic.webView = self
         bridge.host = host
-        iosWkBridge.host = host
         navigationDelegate = self
         uiDelegate = self
         scrollView.bounces = false
         scrollView.contentInsetAdjustmentBehavior = .never
         isOpaque = false
-        backgroundColor = .black
-        scrollView.backgroundColor = .black
+        let launchBackground = UIColor(red: 0.024, green: 0.090, blue: 0.078, alpha: 1)
+        backgroundColor = launchBackground
+        scrollView.backgroundColor = launchBackground
+        if #available(iOS 15.0, *) {
+            underPageBackgroundColor = launchBackground
+        }
         #if DEBUG
         if #available(iOS 16.4, *) {
             isInspectable = true
@@ -259,13 +214,10 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
 
     deinit {
         let userContent = configuration.userContentController
-        userContent.removeScriptMessageHandler(forName: "android")
+        userContent.removeScriptMessageHandler(forName: "pbmNative")
+        userContent.removeScriptMessageHandler(forName: WebActionSyncHandler.messageName)
         userContent.removeScriptMessageHandler(forName: "shellLog")
         userContent.removeScriptMessageHandler(forName: "gameHaptics")
-        for name in iosWkHandlerNames {
-            userContent.removeScriptMessageHandler(forName: name)
-        }
-        userContent.removeScriptMessageHandler(forName: "gameApiProxy", contentWorld: .page)
         userContent.removeScriptMessageHandler(forName: "localMusic", contentWorld: .page)
         localMusic.pauseAll()
     }
@@ -275,51 +227,42 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     }
 
     func loadLocalGame() {
-        guard let fileURL = ShellConfig.localGameURL, let directory = ShellConfig.localGameDirectory else { return }
+        guard let fileURL = ShellConfig.localGameURL,
+              let directory = ShellConfig.localGameDirectory else {
+            onNavigationFailed?("tower-defense game is unavailable")
+            return
+        }
         localMusic.pauseAll()
         localMusic.prepare()
-        recordDiagnostic("load-local \(fileURL.absoluteString)")
+        recordDiagnostic("load-local \(fileURL.lastPathComponent)")
         loadFileURL(fileURL, allowingReadAccessTo: directory)
     }
 
-    @discardableResult func configureOnlineGameURL(_ url: URL?) -> Bool {
-        if let url, IOSWebNavigationPolicy.validatedOnlineGameURL(url.absoluteString) == nil { return false }
-        onlineGameURL = url
-        iosWkBridge.onlineGameURL = url
-        bridge.onlineGameURL = url
-        proxy.onlineGameURL = url
-        return true
-    }
-
-    func loadTrustedURL(_ url: URL) {
-        guard shouldAllow(url) else {
-            openApprovedExternalURL(url)
-            return
-        }
-        recordDiagnostic("load-remote \(url.absoluteString)")
+    func loadRemoteGame(url: URL) {
         localMusic.pauseAll()
-        load(URLRequest(url: url))
+        recordDiagnostic("load-remote \(url.absoluteString)")
+        let request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 12)
+        load(request)
     }
 
     func evaluate(_ script: String) {
         evaluateJavaScript(script, completionHandler: nil)
     }
 
-    func beginGameOrderCheckout(_ cpOrder: String) -> Bool { proxy.beginCheckout(cpOrder) }
-    func endGameOrderCheckout(_ cpOrder: String) { proxy.endCheckout(cpOrder) }
-
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else {
             decisionHandler(.cancel)
             return
         }
+        if dispatchSystemScheme(url, navigationType: navigationAction.navigationType) {
+            decisionHandler(.cancel)
+            return
+        }
         if isTrustedTopLevel(url) || shouldAllow(url) {
-            if navigationAction.targetFrame?.isMainFrame == true { localMusic.pauseAll() }
             decisionHandler(.allow)
             return
         }
         let isMainFrame = navigationAction.targetFrame?.isMainFrame != false
-        // Empty child frames are also used by non-payment SDK components.
         if !isMainFrame, url.absoluteString == "about:blank" {
             decisionHandler(.allow)
             return
@@ -331,9 +274,15 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-        // Check the final destination too; an approved URL may HTTP-redirect.
         guard let url = navigationResponse.response.url else {
             decisionHandler(.cancel)
+            return
+        }
+        if let httpResponse = navigationResponse.response as? HTTPURLResponse,
+           navigationResponse.isForMainFrame,
+           !(200...399).contains(httpResponse.statusCode) {
+            decisionHandler(.cancel)
+            onNavigationFailed?("remote page returned \(httpResponse.statusCode)")
             return
         }
         if shouldAllow(url) || (!navigationResponse.isForMainFrame && url.absoluteString == "about:blank") {
@@ -394,7 +343,6 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
                 self?.recordDiagnostic("snapshot-\(label)-failed \(error.localizedDescription)")
             } else {
                 self?.recordDiagnostic("snapshot-\(label) \(String(describing: value ?? "<nil>"))")
-                // Structure/booleans only: never inspect input values or credentials.
                 NSLog("[PBM-WEB-CHECK] %@ %@", label, String(describing: value ?? "<nil>"))
             }
         }
@@ -402,6 +350,7 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     #endif
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        onNavigationStarted?()
         recordDiagnostic("started \(webView.url?.absoluteString ?? "<nil>")")
     }
 
@@ -422,7 +371,6 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        localMusic.pauseAll()
         NSLog("[PBM-WEB] WebContent process terminated, reloading")
         webView.reload()
     }
@@ -430,7 +378,7 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = navigationAction.request.url {
             if shouldAllow(url), !IOSWebNavigationPolicy.allowsExternal(url) {
-                loadTrustedURL(url)
+                load(URLRequest(url: url))
                 return nil
             }
             openApprovedExternalURL(url)
@@ -439,12 +387,23 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     }
 
     func isTrustedTopLevel(_ url: URL) -> Bool {
-        return IOSWebNavigationPolicy.allowsInWebView(url, onlineGameURL: onlineGameURL,
-                                              localGameDirectory: ShellConfig.localGameDirectory)
+        IOSWebNavigationPolicy.allowsInWebView(url, localGameDirectory: ShellConfig.localGameDirectory)
     }
 
     func shouldAllow(_ url: URL) -> Bool {
         isTrustedTopLevel(url)
+    }
+
+    private static let externalSystemSchemes: Set<String> = ["mailto", "tel", "sms", "itms-apps"]
+
+    private func dispatchSystemScheme(_ url: URL, navigationType: WKNavigationType) -> Bool {
+        guard let scheme = url.scheme?.lowercased(),
+              Self.externalSystemSchemes.contains(scheme),
+              navigationType == .linkActivated else {
+            return false
+        }
+        UIApplication.shared.open(url)
+        return true
     }
 
     func openApprovedExternalURL(_ url: URL) {
@@ -469,16 +428,21 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     window.__shellConsoleBridgeInstalled=true;
     ['log','warn','error'].forEach(function(level){var original=console[level];
     console[level]=function(){var message=Array.prototype.slice.call(arguments).map(function(v){
-    try{return typeof v==='object'?JSON.stringify(v):String(v);}catch(e){return String(v);}}).join(' ');
+    try{if(v&&typeof v==='object'&&v.message){return String(v.message)+(v.stack?' '+String(v.stack):'');}
+    return typeof v==='object'?JSON.stringify(v):String(v);}catch(e){return String(v);}}).join(' ');
     try{window.webkit.messageHandlers.shellLog.postMessage({level:level,message:message});}catch(e){}
     if(original){try{original.apply(console,arguments);}catch(ignore){}}}});})();
     """
 
-    private static func loadScript(_ name: String) -> String? {
+    private static func loadScript(_ name: String, replacements: [String: String] = [:]) -> String? {
         guard let url = Bundle.main.url(forResource: name, withExtension: "js", subdirectory: "js") else {
             return nil
         }
-        return try? String(contentsOf: url, encoding: .utf8)
+        guard var script = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        for (marker, value) in replacements {
+            script = script.replacingOccurrences(of: marker, with: value)
+        }
+        return script
     }
 
     private func recordDiagnostic(_ message: String) {
@@ -502,7 +466,6 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
             try handle.seekToEnd()
             try handle.write(contentsOf: data)
         } catch {
-            // Diagnostics must never affect the game flow.
         }
         #endif
     }

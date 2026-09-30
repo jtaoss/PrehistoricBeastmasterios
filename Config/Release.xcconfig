@@ -14,5 +14,4 @@ SWIFT_COMPILATION_MODE = wholemodule
 MTL_ENABLE_DEBUG_INFO = NO
 VALIDATE_PRODUCT = YES
 
-CONTENT_CONFIG_ENDPOINT = https:/$()/safthwysdk.antieh.com/api/v1/content-config
 STOREKIT_ENABLED = YES

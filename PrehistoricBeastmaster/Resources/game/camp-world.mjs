@@ -1,4 +1,3 @@
-// Top-down camp: four-direction movement, spatial interactions and click-to-walk.
 export const CAMP_WORLD=Object.freeze({width:2000,height:1700,start:{x:980,y:960},speed:185,sprint:280,reach:135,radius:18});
 export const CAMP_SITES=Object.freeze([
  {id:'plot-0',kind:'plot',slot:0,x:630,y:690,label:'西林地塊'},

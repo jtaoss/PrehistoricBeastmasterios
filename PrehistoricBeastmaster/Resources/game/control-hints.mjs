@@ -1,5 +1,3 @@
-// A narrow preview uses the same copy as a phone. Real touch devices keep it
-// even with a hardware keyboard attached; keyboard shortcuts still work.
 const query='(pointer: coarse), (max-width: 1024px)';
 const deviceMedia=globalThis.matchMedia?.(query);
 export function touchControls(host=globalThis){

@@ -9,7 +9,6 @@ export class TutorialUI{
     this.layer=document.createElement('div');this.layer.id='tutorial-layer';this.layer.hidden=true;this.layer.setAttribute('aria-hidden','true');
     this.layer.innerHTML='<svg class="tutorial-veil"><defs><mask id="tutorial-cutouts" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"/><path id="tutorial-holes" fill="black"/></mask></defs><rect width="100%" height="100%" fill="#031b18" fill-opacity=".76" mask="url(#tutorial-cutouts)"/><path id="tutorial-path" fill="none" stroke="#ffe4a3" stroke-width="3" stroke-dasharray="7 7"/></svg><div id="tutorial-marker"><span></span></div><div id="tutorial-finger"><svg viewBox="0 0 48 60"><path d="M15 31V8c0-6 8-6 8 0v15c2-4 7-3 8 1 4-2 8 0 8 4 5 0 7 4 6 9l-3 15c-1 4-4 6-8 6H23c-4 0-6-2-8-5L4 37c-4-6 2-11 6-7l5 5" fill="#fff3d0" stroke="#5b4220" stroke-width="2.5"/></svg></div>';
     document.body.append(this.layer);
-    // Releases must always reach the drag and joystick cleanup handlers.
     for(const type of ['pointerdown','click','keydown'])document.addEventListener(type,e=>this.guard(e),true);
   }
   guard(e){
@@ -85,7 +84,6 @@ export class TutorialUI{
     }
     const target=pending?$('tutorial-claim'):waiting||intro?$('tutorial-next'):{move:$('joystick'),attack:document.querySelector('.auto-attack-status'),skill:$('skill-'+skill),build:document.querySelector('#hand [data-slot="'+(t.slot??0)+'"]')}[step];
     target?.classList.add('tutorial-focus');
-    // Viewport coordinates track canvas letterboxing, resize and scrolling.
     const holes=[];
     const rect=(r,p=7)=>holes.push('M'+(r.x-p)+' '+(r.y-p)+'h'+(r.width+2*p)+'v'+(r.height+2*p)+'h'+(-r.width-2*p)+'Z');
     const circle=(p,r)=>holes.push('M'+(p.x-r)+' '+p.y+'a'+r+' '+r+' 0 1 0 '+(r*2)+' 0a'+r+' '+r+' 0 1 0 '+(-r*2)+' 0Z');
@@ -95,8 +93,6 @@ export class TutorialUI{
     const hero=painter.screen(g.hero.x,g.hero.y),enemy=g.enemies.find(e=>e.hp>0);
     if(!waiting&&!pending){circle(hero,Math.max(28,painter.scale*48));if(enemy&&['attack','skill'].includes(step))circle(painter.screen(enemy.x,enemy.y),Math.max(34,painter.scale*64));}
     const marker=$('tutorial-marker'),finger=$('tutorial-finger'),guiding=!waiting&&!intro&&!pending&&!!target;
-    // Never transiently hide/show an animated element during a frame: a layout read
-    // would restart its CSS animation and the demonstration hand would stay invisible.
     marker.hidden=!(guiding&&t.version===2&&['move','build'].includes(step));finger.hidden=!(guiding&&['move','skill','build'].includes(step));
     let gesturePath='';
     if(guiding){

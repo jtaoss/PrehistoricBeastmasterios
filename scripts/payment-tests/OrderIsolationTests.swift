@@ -95,14 +95,13 @@ import Foundation
         try await run("Apple returns old order through new purchase callback: settle old, never report new success",
             expected: uncertain + ["order", "checkout", "purchase", "confirm", "success", "STOREKIT_PREVIOUS_TRANSACTION", "finish"], after: { manager in
                 expectedPurchaseToken = tokenB; purchaseError = nil; purchaseMode = "success"
-                // Signed receipt belongs to token A even though B was passed into purchase().
                 transactionAccountToken = serverToken
                 manager.launch(try PayRequest(json: "second|unit-test|role-test|2")); try await waitForIdle(manager)
                 precondition(Set(journal().keys) == ["second"] && successOrders == ["test-cp-order"])
                 precondition(journal()["second"]?["transactionId"] == nil)
             }) { _ in distinctOrders = true; purchaseError = StoreKitError.unknown }
 
-        for (label, request) in [("role", "second|unit-test|other-role|1"), ("server", "second|unit-test|role-test|1|pbm_tier_099|other-server"), ("account", "second|other-user|role-test|1")] {
+        for (label, request) in [("role", "second|unit-test|other-role|1"), ("server", "second|unit-test|role-test|1|pbm_tier_099|other-server"), ("account", "second|other-user|role-test|1"), ("entry destination", "second|unit-test|role-test|1|pbm_tier_099|server-test|localAssets|unit-test"), ("native account", "second|unit-test|role-test|1|pbm_tier_099|server-test|webActions|other-native-account")] {
             try await run("\(label) switch cannot reuse or erase old same-price order", expected: uncertain + ["order", "checkout", "purchase", "cancel"], after: { manager in
                 expectedPurchaseToken = tokenB; purchaseError = nil
                 let other = try PayRequest(json: request)

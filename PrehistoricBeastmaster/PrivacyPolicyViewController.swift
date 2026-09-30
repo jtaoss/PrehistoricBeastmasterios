@@ -1,7 +1,6 @@
 import UIKit
 import WebKit
 
-/// A bundled, script-free reader: it never starts SDKs or accepts any consent.
 final class PrivacyPolicyViewController: UIViewController, WKNavigationDelegate {
     private var reader: WKWebView!
     private var documentURL: URL?
@@ -64,7 +63,6 @@ final class PrivacyPolicyViewController: UIViewController, WKNavigationDelegate 
     }
 
     @objc private func openSystemSettings() {
-        // Only the public App Settings URL; never change ATT or open a private deep link.
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
     }

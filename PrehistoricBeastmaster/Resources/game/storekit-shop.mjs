@@ -25,7 +25,7 @@ export class NativeStoreKitShop{
       try{previous?.(value);}finally{this.handle(value);}
     };
   }
-  available(){return typeof this.host.android?.miniPurchase==='function';}
+  available(){return typeof this.host.pbmNative?.miniPurchase==='function';}
   purchase(offer){
     if(this.pending)throw new StoreKitShopError('PAYMENT_IN_PROGRESS','已有一筆付款正在處理，請勿重複點擊');
     if(!offer?.id||!offer?.productId||!Number.isInteger(offer.goodsId))throw new StoreKitShopError('INVALID_OFFER','商品設定不完整');
@@ -33,7 +33,7 @@ export class NativeStoreKitShop{
     const clientRequestId=requestId(this.host);
     return new Promise((resolve,reject)=>{
       this.pending={clientRequestId,offerId:offer.id,resolve,reject};
-      try{this.host.android.miniPurchase(JSON.stringify({offerId:offer.id,clientRequestId}));}
+      try{this.host.pbmNative.miniPurchase(JSON.stringify({offerId:offer.id,clientRequestId}));}
       catch(error){this.pending=null;reject(new StoreKitShopError('NATIVE_BRIDGE_FAILED',error?.message||'無法連接 App Store'));}
     });
   }

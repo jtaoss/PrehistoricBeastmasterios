@@ -2,7 +2,6 @@ export const AMBIENT_TRACK = new URL('./assets/audio/warmth-of-a-primeval-dawn.m
 export const BATTLE_TRACK = new URL('./assets/audio/hold-the-ridge.mp3', import.meta.url).href;
 const TRACKS = Object.freeze({ ambient: AMBIENT_TRACK, battle: BATTLE_TRACK });
 
-// A paused battle is still a battle: menus must not accidentally start camp music.
 export function ambientScene({ screen, modal = '', phase = '' }) {
   if (['landing', 'camp', 'route'].includes(screen)) return true;
   return screen === 'game' && phase !== 'wave' && ['merchant', 'end'].includes(modal);
@@ -42,7 +41,6 @@ export class BackgroundMusic {
       this.blocked = false;
       this.sync();
     };
-    // Keep retries tied to gestures, including touchend for mobile media policies.
     for (const name of ['pointerdown', 'touchend', 'click', 'keydown']) {
       listen(doc, name, unlock, { capture: true, passive: true });
     }
@@ -55,6 +53,10 @@ export class BackgroundMusic {
       this.shellActive = Boolean(event.detail?.active);
       this.sync();
     });
+    listen(win, 'emberwild-shell-resume', () => {
+      this.shellActive = true;
+      this.sync();
+    });
   }
 
   setState({ track, volume }) {
@@ -62,7 +64,6 @@ export class BackgroundMusic {
     const nextTrack = track === 'ambient' || track === 'battle' ? track : null;
     if (this.track === nextTrack && this.volume === nextVolume) return;
     if (this.track !== nextTrack) {
-      // Stop the outgoing player before selecting or starting another one.
       this.pause();
       this.track = nextTrack;
       this.blocked = false;
@@ -82,7 +83,6 @@ export class BackgroundMusic {
     ++this.generation;
     this.pending = false;
     this.media.pause();
-    // Each track keeps its playhead across menus, pauses and scene changes.
   }
 
   sync() {

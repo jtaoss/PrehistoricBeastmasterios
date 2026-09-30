@@ -2,8 +2,6 @@ import AVFoundation
 import UIKit
 import WebKit
 
-// Only the bundled mini-game may control these two fixed, local audio files.
-// Keep the bridge's menu/game aliases, but use the current Emberwild assets.
 final class LocalMusicPlayer: NSObject, WKScriptMessageHandlerWithReply {
     weak var webView: WKWebView?
     private var players: [String: AVAudioPlayer] = [:]
@@ -27,7 +25,6 @@ final class LocalMusicPlayer: NSObject, WKScriptMessageHandlerWithReply {
         return url.standardizedFileURL.path == expected.standardizedFileURL.path
     }
 
-    // Preparing once before the HTML loads keeps decoders warm across screen changes.
     func prepare() {
         let started = CACurrentMediaTime()
         do {
@@ -64,13 +61,13 @@ final class LocalMusicPlayer: NSObject, WKScriptMessageHandlerWithReply {
     }
 
     @objc private func suspend() {
-        pauseAll() // Native stop is immediate, even when WebKit is suspended.
+        pauseAll()
         notifyPage(active: false)
     }
 
     @objc private func resume() {
         guard UIApplication.shared.applicationState == .active, !interrupted else { return }
-        notifyPage(active: true) // Also retries a first load that happened while inactive.
+        notifyPage(active: true)
     }
 
     @objc private func audioInterruption(_ notification: Notification) {

@@ -17,7 +17,7 @@ function setup({values = new Map(), brokenStorage = false, forwardToSdk = false}
       getItem(k) { if (brokenStorage) throw Error('unavailable'); return values.get(k) ?? null; },
       setItem(k, v) { if (brokenStorage) throw Error('unavailable'); values.set(k, String(v)); }
     },
-    android: {sdkEvent(name, json) { if (failSend) throw Error('not ready'); events.push({name, fields: JSON.parse(json)}); }}
+    pbmNative: {sdkEvent(name, json) { if (failSend) throw Error('not ready'); events.push({name, fields: JSON.parse(json)}); }}
   };
   class FakeDate extends Date { static now() { return now; } }
   const context = vm.createContext({window, console: {warn() {}}, Date: FakeDate,

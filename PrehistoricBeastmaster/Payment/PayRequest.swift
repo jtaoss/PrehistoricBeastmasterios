@@ -1,5 +1,15 @@
 import Foundation
 
+enum PaymentDestination: String {
+    case localAssets
+    case webActions
+}
+
+enum PaymentCallback: String {
+    case legacy
+    case actionSync
+}
+
 struct PayRequest {
     let rawJSON: String
     let price: String
@@ -23,6 +33,10 @@ struct PayRequest {
     let extensionValue: String
     let callbackInfo: String
     let clientRequestId: String
+    let destination: PaymentDestination
+    let paymentCallback: PaymentCallback
+    let resultAccountId: String
+    let callbackRequestId: String
 
     init(json: String, fallbackUsername: String = "") throws {
         var source = try JSONObject(json: json)
@@ -33,39 +47,72 @@ struct PayRequest {
             fallbackUsername
         )
         if !resolvedUsername.isEmpty {
-            // Persist the resolved account in the recovery context. Some historical H5 builds
-            // omit it from dopay even though the SDK login callback already supplied it.
             source.put("username", resolvedUsername)
         }
         rawJSON = source.jsonString()
-        price = ShellText.firstNonBlank(source.string("price"), source.string("amount"))
+        price = ShellText.firstNonBlank(source.string("price"), source.string("amount"), source.string("money"))
         roleLevel = source.string("roleLevel")
         roleDay = max(0, source.has("roleDay") ? source.int("roleDay") : source.int("role_day"))
         let total = source.has("roleTotalAmount")
             ? source.double("roleTotalAmount", -1)
             : source.double("role_total_amount", -1)
         roleTotalAmount = total.isFinite && total >= 0 ? total : -1
-        cpOrder = source.string("cpOrder")
-        goodsId = source.has("goodsId") ? source.int("goodsId") : source.int("goodsID")
-        serverId = ShellText.firstNonBlank(source.string("sercerId"), source.string("serverId"))
-        serverName = source.string("serverName")
-        roleId = ShellText.firstNonBlank(source.string("roleID"), source.string("roleId"))
-        roleName = source.string("roleName")
-        goodsName = source.string("goodsName")
-        notifyUrl = source.string("notify_url")
-        productId = ShellText.firstNonBlank(source.string("productId"), source.string("payType_id"))
-        payTypeId = source.string("payType_id")
+        cpOrder = ShellText.firstNonBlank(
+            source.string("cpOrder"),
+            source.string("cp_order"),
+            source.string("orderId"),
+            source.string("order_id"),
+            source.string("orderNo"),
+            source.string("order_no"),
+            source.string("clientRequestId")
+        )
+        goodsId = source.has("goodsId") ? source.int("goodsId") : (source.has("goodsID") ? source.int("goodsID") : source.int("goods_id"))
+        serverId = ShellText.firstNonBlank(source.string("sercerId"), source.string("serverId"), source.string("server_id"))
+        serverName = ShellText.firstNonBlank(source.string("serverName"), source.string("server_name"))
+        roleId = ShellText.firstNonBlank(source.string("roleID"), source.string("roleId"), source.string("role_id"))
+        roleName = ShellText.firstNonBlank(source.string("roleName"), source.string("role_name"))
+        goodsName = ShellText.firstNonBlank(source.string("goodsName"), source.string("goods_name"))
+        notifyUrl = ShellText.firstNonBlank(source.string("notify_url"), source.string("notifyUrl"))
+        productId = ShellText.firstNonBlank(
+            source.string("productId"),
+            source.string("product_id"),
+            source.string("payType_id"),
+            source.string("payTypeId")
+        )
+        payTypeId = ShellText.firstNonBlank(source.string("payType_id"), source.string("payTypeId"))
         uid = source.string("uid")
         username = resolvedUsername
         channel = source.string("channel")
         extra = source.string("extra")
-        extensionValue = source.string("extension")
+        extensionValue = ShellText.firstNonBlank(source.string("extension"), source.string("ext"))
         callbackInfo = source.string("callbackInfo")
         clientRequestId = source.string("clientRequestId")
+        guard !source.has("nativePaymentDestination") || PaymentDestination(rawValue: source.string("nativePaymentDestination")) != nil,
+              !source.has("nativePaymentCallback") || PaymentCallback(rawValue: source.string("nativePaymentCallback")) != nil else {
+            throw URLError(.cannotParseResponse)
+        }
+        let historicalLocal = UUID(uuidString: clientRequestId) != nil
+            && MiniGameProductCatalog.matches(goodsId: goodsId, productId: productId)
+        destination = PaymentDestination(rawValue: source.string("nativePaymentDestination"))
+            ?? (historicalLocal ? .localAssets : .webActions)
+        paymentCallback = PaymentCallback(rawValue: source.string("nativePaymentCallback")) ?? .legacy
+        resultAccountId = source.string("nativePaymentAccount")
+        callbackRequestId = source.string("nativePaymentRequestId")
         if cpOrder.isEmpty {
             throw URLError(.cannotParseResponse)
         }
     }
+
+    func routed(to destination: PaymentDestination, accountId: String,
+                callback: PaymentCallback = .legacy, requestId: String = "") throws -> PayRequest {
+        var source = try JSONObject(json: rawJSON)
+        source.put("nativePaymentDestination", destination.rawValue)
+        source.put("nativePaymentAccount", accountId)
+        source.put("nativePaymentCallback", callback.rawValue)
+        source.put("nativePaymentRequestId", requestId)
+        return try PayRequest(json: source.jsonString())
+    }
+
 
     func resolvedProductId() -> String {
         if ProductCatalog.contains(productId) {
@@ -84,6 +131,17 @@ enum MiniGameProductCatalog {
         let id: String
         let productId: String
         let goodsId: Int
+        let pearlAmount: Int
+        let grantsLimitedSkin: Bool
+
+        init(id: String, productId: String, goodsId: Int,
+             pearlAmount: Int = 0, grantsLimitedSkin: Bool = false) {
+            self.id = id
+            self.productId = productId
+            self.goodsId = goodsId
+            self.pearlAmount = pearlAmount
+            self.grantsLimitedSkin = grantsLimitedSkin
+        }
     }
 
     private static let offers: [String: Offer] = [
@@ -91,11 +149,27 @@ enum MiniGameProductCatalog {
         "pack-relic": Offer(id: "pack-relic", productId: "pbm_tier_499", goodsId: 910002),
         "pack-hire": Offer(id: "pack-hire", productId: "pbm_tier_199", goodsId: 910003),
         "pack-scout": Offer(id: "pack-scout", productId: "pbm_tier_299", goodsId: 910004),
-        "pack-titan": Offer(id: "pack-titan", productId: "pbm_tier_999", goodsId: 910005)
+        "pack-titan": Offer(id: "pack-titan", productId: "pbm_tier_999", goodsId: 910005),
+        "pearl-pouch-60": Offer(id: "pearl-pouch-60", productId: "pbm_tier_099", goodsId: 920001, pearlAmount: 60),
+        "pearl-cache-350-skin": Offer(id: "pearl-cache-350-skin", productId: "pbm_tier_499", goodsId: 920002, pearlAmount: 350, grantsLimitedSkin: true)
     ]
 
     static func offer(_ id: String) -> Offer? {
         offers[id.trimmingCharacters(in: .whitespacesAndNewlines)]
+    }
+
+    static func matches(goodsId: Int, productId: String) -> Bool {
+        offers.values.contains { $0.goodsId == goodsId && $0.productId == productId }
+    }
+
+    static var pearlOffers: [Offer] {
+        offers.values.filter { $0.pearlAmount > 0 }.sorted { $0.pearlAmount < $1.pearlAmount }
+    }
+
+    static func pearlOffer(goodsId: Int, productId: String) -> Offer? {
+        offers.values.first {
+            $0.pearlAmount > 0 && $0.goodsId == goodsId && $0.productId == productId
+        }
     }
 }
 
@@ -126,7 +200,6 @@ enum ProductCatalog {
         Array(productsByCents.values)
     }
 
-    /// The game's reference USD tier, not the amount charged in the storefront's currency.
     static func referenceUSD(forProductId productId: String) -> Double? {
         productsByCents.first(where: { $0.value == productId }).map { Double($0.key) / 100 }
     }
@@ -180,7 +253,6 @@ final class PaymentRequestGate {
         cpOrder = ""
     }
 
-    /// A background old-order callback must not replace the current checkout UI.
     func canPresent(_ order: String?) -> Bool {
         lock.lock()
         defer { lock.unlock() }

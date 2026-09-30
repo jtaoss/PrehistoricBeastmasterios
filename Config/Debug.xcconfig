@@ -8,14 +8,7 @@ ONLY_ACTIVE_ARCH = YES
 ENABLE_TESTABILITY = YES
 MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE
 
-// Match production routing for device acceptance tests. A local endpoint can
-// still be supplied from Secrets.xcconfig when backend development needs it.
-CONTENT_CONFIG_ENDPOINT = https:/$()/safthwysdk.antieh.com/api/v1/content-config
 STOREKIT_ENABLED = YES
-
-// Inject only the operations-provided CLIENT_API_TOKEN into a local Debug build.
-// The spreadsheet's generic TOKEN belongs to the Facebook parameter block and is not valid here.
-PAYMENT_API_TOKEN = $(PBM_CLIENT_API_TOKEN)
 
 // Optional, ignored local overrides keep personal signing out of the operations package.
 #include? "Secrets.xcconfig"

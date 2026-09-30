@@ -1,21 +1,46 @@
 import Network
 import UIKit
 
-final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.Listener {
+final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.Listener, GameShopViewControllerDelegate {
     private var webView: TrustedWebView!
     private let billing = StoreKitManager()
-    private let contentConfigManager = ContentConfigManager()
-    private let miniGameBackend = BackendGateway()
     private let miniGameAuth = MiniGameAuthService()
+    private let activityService = GameActivityService()
+    private let billingService: BillingServiceProtocol
+    private let telemetryTracker: TelemetryTrackerProtocol
+    private let economy = GameEconomyManager.shared
+    private var activeStageId: String?
+    private var activeStageStartedAt: TimeInterval?
+    private lazy var assetOrders = AssetOrderCoordinator(auth: miniGameAuth)
+    private var localPaymentRequests = Set<String>()
+    private var nativeShopRequests: [String: MiniGameProductCatalog.Offer] = [:]
+    private var newlyCreditedTransactions = Set<String>()
+    private weak var gameShopViewController: GameShopViewController?
+    private lazy var localAssets = LocalAssetSyncManager(
+        orders: assetOrders,
+        canStart: { [weak self] in self?.canStartAssetPayment == true },
+        submit: { [weak self] request in self?.startStoreKitPayment(request) }
+    )
+    private lazy var webActions = WebActionSyncHandler(
+        orders: assetOrders,
+        isTrustedURL: { url in
+            guard let url else { return false }
+            if url.isFileURL, let entry = ShellConfig.localGameURL {
+                return url.standardizedFileURL.path == entry.standardizedFileURL.path
+            }
+            return IOSWebNavigationPolicy.isApprovedRemoteGameURL(url)
+        },
+        canStart: { [weak self] in self?.canStartAssetPayment == true },
+        submit: { [weak self] request in self?.startStoreKitPayment(request) }
+    )
+
+    private var canStartAssetPayment: Bool {
+        !billing.isProcessingPayment && billing.checkoutBlockingMessage == nil
+            && miniGameAuthTask == nil && isTowerDefensePage(webView?.url)
+    }
     private let paymentGate = PaymentRequestGate()
     private let analyticsEvents = AnalyticsEventCoordinator()
-    private var contentConfig = ContentConfig()
     private var contentRouteReleased = false
-    private var contentSwitchInProgress = false
-    private var contentSwitchReset: DispatchWorkItem?
-    private var previousOnlineGameURL: URL?
-    private var contentRouteReconciliationPending = false
-    private var localMediaSuspended = false
     private var lastWebUsername = ""
     private let pathMonitor = NWPathMonitor()
     private var networkWasSatisfied = false
@@ -28,11 +53,36 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     private var finishingCheckoutOrder: String?
     private var visibleProgressMessage: String?
     private let stopPaymentCheckButton = UIButton(type: .system)
-    private var miniGameOrderTask: Task<Void, Never>?
+    private let economyButton = UIButton(type: .system)
     private var miniGameAuthTask: Task<Void, Never>?
+    private var activityPollingTask: Task<Void, Never>?
+    private let moduleSession = ModuleSession()
+    private let moduleCatalog = ModuleCatalogService()
+    private let moduleDock = ModuleDockView()
+    private var catalogTask: Task<Void, Never>?
+    private var catalogFetchedAt: Date?
+    private var catalogGeneration = UUID()
+    private var dynamicNoticeURL: URL? = nil
+    private let activityNoticeButton = UIButton(type: .system)
+    private var initialH5Ready = false
     #if DEBUG
     private var openedLaunchDiagnostics = false
     #endif
+
+    init(
+        billingService: BillingServiceProtocol = BillingService.shared,
+        telemetryTracker: TelemetryTrackerProtocol = TelemetryTracker.shared
+    ) {
+        self.billingService = billingService
+        self.telemetryTracker = telemetryTracker
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        self.billingService = BillingService.shared
+        self.telemetryTracker = TelemetryTracker.shared
+        super.init(coder: coder)
+    }
 
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -40,20 +90,30 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     var canPresentTrackingAuthorization: Bool {
         viewIfLoaded?.window != nil && presentedViewController == nil
             && !billing.isProcessingPayment && billing.checkoutBlockingMessage == nil
-            && contentRouteReleased
+            && contentRouteReleased && initialH5Ready
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
+        view.backgroundColor = UIColor(red: 0.024, green: 0.090, blue: 0.078, alpha: 1)
         webView = TrustedWebView(host: self)
-        webView.onCheckoutBusy = { [weak self] in
-            guard let self else { return }
-            self.showToast(self.billing.checkoutBlockingMessage ?? "正在建立付款訂單，請稍候…")
+        webActions.attach(to: webView)
+        webView.onNavigationStarted = { [weak self] in
+            self?.webActions.navigationStarted()
+            self?.localAssets.cancelPreparation()
+            self?.localPaymentRequests.removeAll()
         }
+        localAssets.onPreparation = { [weak self] in self?.showToast("正在建立 App Store 訂單…", duration: 0) }
+        localAssets.onFailure = { [weak self] message in self?.showToast(message, duration: 5) }
+        webActions.onPreparation = { [weak self] in self?.showToast("正在建立 App Store 訂單…", duration: 0) }
+        webActions.onFailure = { [weak self] message in self?.showToast(message, duration: 5) }
+        NotificationCenter.default.addObserver(self, selector: #selector(localAssetStatusChanged(_:)),
+                                               name: .localAssetUpdated, object: localAssets)
+        NotificationCenter.default.addObserver(self, selector: #selector(localAssetStatusChanged(_:)),
+                                               name: .localAssetSyncStatusChanged, object: localAssets)
+        NotificationCenter.default.addObserver(self, selector: #selector(economyBalanceChanged),
+                                               name: .gameEconomyDidChange, object: economy)
         webView.onNavigationBlocked = { [weak self] in
-            // A blocked link is not an Apple payment failure. Do not release
-            // the checkout gate, cancel a transaction, or emit a payment result.
             self?.showToast("此連結未在 iOS 版開放；儲值請在遊戲商品頁使用 App Store 付款", duration: 5)
         }
         webView.translatesAutoresizingMaskIntoConstraints = false
@@ -61,22 +121,21 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         webView.onPageFinished = { [weak self] url in self?.onWebPageFinished(url) }
         webView.onNavigationFailed = { [weak self] message in self?.onWebNavigationFailed(message) }
         view.addSubview(webView)
-        NotificationCenter.default.addObserver(self, selector: #selector(suspendLocalMenuMusic), name: UIApplication.willResignActiveNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(resumeLocalMenuMusic), name: UIApplication.didBecomeActiveNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(pushLowPowerState), name: .NSProcessInfoPowerStateDidChange, object: nil)
         NSLayoutConstraint.activate([
             webView.topAnchor.constraint(equalTo: view.topAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+        installActivityNoticeButton()
+        installEconomyEntry()
+        installModuleDock()
+        initializeContentRoute()
         billing.listener = self
         installPaymentWaitControl()
         billing.start()
         NotificationCenter.default.addObserver(self, selector: #selector(recoverPaymentsOnForeground), name: UIApplication.didBecomeActiveNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(refreshContentConfigOnForeground), name: UIApplication.didBecomeActiveNotification, object: nil)
         startNetworkMonitoring()
-        initializeContentRoute()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -89,80 +148,55 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         #endif
         (UIApplication.shared.delegate as? AppDelegate)?.requestTrackingAuthorizationIfNeeded(UIApplication.shared)
         Task { await billing.resumePurchases(); refreshPaymentWaitControl() }
+        refreshRemoteCatalog(force: false)
     }
 
     deinit {
         toastDismissal?.cancel()
-        contentSwitchReset?.cancel()
         NotificationCenter.default.removeObserver(self)
         pathMonitor.cancel()
-        contentConfigManager.destroy()
-        miniGameOrderTask?.cancel()
         miniGameAuthTask?.cancel()
-    }
-
-    @objc private func suspendLocalMenuMusic() {
-        guard let url = webView.url, isLocalGameCenter(url) else { return }
-        localMediaSuspended = true
-        webView.evaluate("window.setShellAppActive?.(false)")
-        webView.setAllMediaPlaybackSuspended(true, completionHandler: nil)
-    }
-
-    @objc private func resumeLocalMenuMusic() {
-        guard localMediaSuspended else { return }
-        localMediaSuspended = false
-        webView.setAllMediaPlaybackSuspended(false) { [weak self] in
-            guard let self, UIApplication.shared.applicationState == .active,
-                  let url = self.webView.url, self.isLocalGameCenter(url) else { return }
-            self.webView.evaluate("window.setShellAppActive?.(true)")
-            self.pushLowPowerState()
-        }
-    }
-
-    @objc private func pushLowPowerState() {
-        guard let url = webView.url, isLocalGameCenter(url) else { return }
-        webView.evaluate("window.setShellLowPowerMode?.(\(ProcessInfo.processInfo.isLowPowerModeEnabled ? "true" : "false"))")
+        activityPollingTask?.cancel()
+        catalogTask?.cancel()
     }
 
     func onH5Ready() {
-        installPaymentBridge()
+        initialH5Ready = true
+        moduleSession.noteHomeReady()
+        startActivityNoticePollingIfNeeded()
         updateSdkStatus()
         callH5("initSuccess", fields: JSONObject())
+        sendEconomyStateToGame()
+        telemetryTracker.recordAppLaunch()
     }
 
-    func onAccountSession(_ json: String) {
-        let account = JSONObject.parse(json)
-        if accountUsername(account) != lastWebUsername {
-            paymentSessionRevision += 1
-            paymentRetryAlert?.dismiss(animated: true)
-            finishingCheckoutOrder = nil
+    private func startStoreKitPayment(_ request: PayRequest) {
+        PaymentDebugLog.record("storekit-request-received")
+        if let message = billing.checkoutBlockingMessage {
+            PaymentDebugLog.record("storekit-request-blocked reason=apple-checkout-active")
+            showToast(message, duration: 5)
+            return
         }
-        rememberWebUsername(accountUsername(account))
-        analyticsEvents.onAccountSession(json)
-    }
-
-    func onLoginRequested() {
-        webView.evaluate(InjectedScripts.paymentBridge)
-        webView.evaluate(InjectedScripts.webSdkLogin(appId: ShellConfig.backendAppId, channel: ShellConfig.webSdkChannel))
-    }
-
-    func onLogoutRequested() {
-        paymentSessionRevision += 1
-        paymentRetryAlert?.dismiss(animated: true)
-        finishingCheckoutOrder = nil
-        lastWebUsername = ""
-        analyticsEvents.onLogout()
-        callH5("changeUserSuccess", fields: JSONObject())
-    }
-
-    func onBindingPhoneRequested() {
-        showToast("目前不支援手機綁定")
+        if !request.resultAccountId.isEmpty {
+            guard request.resultAccountId == assetOrders.currentAccountID else { return }
+        }
+        if !request.username.isEmpty {
+            lastWebUsername = request.username
+        }
+        guard paymentGate.tryStart(request.cpOrder) else {
+            PaymentDebugLog.record("storekit-request-blocked code=PAYMENT_IN_PROGRESS")
+            showCurrentPaymentProgress()
+            return
+        }
+        let diagnosticServer = request.serverId.allSatisfy({ $0.isNumber }) ? request.serverId : "unknown"
+        PaymentDebugLog.record("storekit-request-parsed product=\(request.resolvedProductId()) server=\(diagnosticServer) goods=\(request.goodsId) price=\(request.price) usernamePresent=\(!request.username.isEmpty)")
+        showPaymentProgress(request, message: "正在準備付款…")
+        billing.launch(request)
+        telemetryTracker.recordCheckoutInitiate(productId: request.resolvedProductId())
     }
 
     func onPayRequested(_ json: String) {
         PaymentDebugLog.record("h5-pay-received")
-        // Do not open a new UI request or emit a failure while Apple's previous
-        // call is still returning, even when that order has already delivered.
         if let message = billing.checkoutBlockingMessage {
             PaymentDebugLog.record("h5-pay-blocked reason=apple-checkout-active")
             showToast(message, duration: 5)
@@ -180,73 +214,49 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
             )
             return
         }
-        guard paymentGate.tryStart(request.cpOrder) else {
-            PaymentDebugLog.record("h5-pay-blocked code=PAYMENT_IN_PROGRESS")
-            // Another tap is not a failed/cancelled payment. Keep the original
-            // game order intact and the same progress visible until its result.
-            showCurrentPaymentProgress()
-            return
-        }
-        let diagnosticServer = request.serverId.allSatisfy({ $0.isNumber }) ? request.serverId : "unknown"
-        PaymentDebugLog.record("h5-pay-parsed product=\(request.resolvedProductId()) server=\(diagnosticServer) goods=\(request.goodsId) price=\(request.price) usernamePresent=\(!request.username.isEmpty)")
-        guard webView.beginGameOrderCheckout(request.cpOrder) else {
-            paymentGate.finish(request.cpOrder)
-            showToast("正在處理先前的付款請求，請稍候…")
-            return
-        }
-        showPaymentProgress(request, message: "正在準備付款…")
-        billing.launch(request)
+        startStoreKitPayment(request)
     }
 
     func onMiniPurchaseRequested(_ json: String) {
         let payload = JSONObject.parse(json)
-        let offerId = payload.string("offerId")
-        let clientRequestId = payload.string("clientRequestId")
-        guard MiniGameProductCatalog.offer(offerId) != nil,
-              UUID(uuidString: clientRequestId) != nil else {
-            reportMiniGameFailure(clientRequestId: clientRequestId, code: "INVALID_MINI_GAME_OFFER",
-                                  message: "商品資料不完整，未發起付款")
+        let requestId = payload.string("clientRequestId")
+        localPaymentRequests.insert(requestId)
+        localAssets.syncLocalAsset(assetId: payload.string("offerId"), requestId: requestId)
+    }
+
+    func onEconomyActionRequested(_ json: String) {
+        guard isTowerDefensePage(webView.url) else { return }
+        let payload = JSONObject.parse(json)
+        let requestId = payload.string("requestId")
+        let action = payload.string("action")
+        let runId = payload.string("runId")
+        guard UUID(uuidString: requestId) != nil, !runId.isEmpty, runId.count <= 128 else { return }
+        let consumed: Bool
+        switch action {
+        case ConsumptionReason.reviveOnDefeat.rawValue:
+            guard payload.int("amount") == ConsumptionReason.reviveOnDefeat.pearlCost else { return }
+            consumed = economy.beginRevive(runId: runId, requestId: requestId)
+        case "completeRevive":
+            consumed = economy.completeRevive(runId: runId)
+        default:
             return
         }
-        guard miniGameOrderTask == nil, !billing.isProcessingPayment,
-              billing.checkoutBlockingMessage == nil else {
-            reportMiniGameFailure(clientRequestId: clientRequestId, code: "PAYMENT_IN_PROGRESS",
-                                  message: "已有一筆付款正在處理，請勿重複點擊")
-            return
+        var result = JSONObject()
+        result.put("requestId", requestId)
+        result.put("success", consumed)
+        result.put("balance", economy.balance)
+        result.put("code", consumed ? "OK" : (action == "completeRevive" ? "REVIVE_NOT_PENDING" : "INSUFFICIENT_PEARLS"))
+        webView.evaluate(PageScripts.economyResult(result.jsonString()))
+        sendEconomyStateToGame()
+        if consumed && action == ConsumptionReason.reviveOnDefeat.rawValue {
+            showToast("已消耗 20 原始珍珠，繼續本關")
+        } else if action == ConsumptionReason.reviveOnDefeat.rawValue {
+            presentInsufficientPearlsAlert()
         }
-        showToast("正在建立 App Store 訂單…", duration: 0)
-        miniGameOrderTask = Task { [weak self] in
-            guard let self else { return }
-            defer {
-                self.miniGameOrderTask = nil
-                self.reconcileContentRouteWhenAvailable()
-            }
-            do {
-                let identity = try await self.miniGameAuth.paymentIdentity()
-                let request = try await self.miniGameBackend.createMiniGameOrder(
-                    offerId: offerId, clientRequestId: clientRequestId, identity: identity
-                )
-                try Task.checkCancellation()
-                guard let url = self.webView.url, self.isLocalGameCenter(url) else {
-                    throw BackendGateway.GatewayError.message(
-                        code: "MINI_GAME_LEFT", message: "已離開小遊戲，未發起付款"
-                    )
-                }
-                self.onPayRequested(request.rawJSON)
-            } catch is CancellationError {
-                self.reportMiniGameFailure(clientRequestId: clientRequestId, code: "MINI_GAME_ORDER_CANCELLED",
-                                           message: "訂單建立已取消，未發起付款")
-            } catch let error as BackendGateway.GatewayError {
-                self.reportMiniGameFailure(clientRequestId: clientRequestId, code: error.code,
-                                           message: error.errorDescription ?? "訂單建立失敗，未發起付款")
-            } catch let error as MiniGameAuthService.AuthError {
-                self.reportMiniGameFailure(clientRequestId: clientRequestId, code: error.code,
-                                           message: error.errorDescription ?? "請先登入帳號再購買")
-            } catch {
-                self.reportMiniGameFailure(clientRequestId: clientRequestId, code: "MINI_GAME_ORDER_FAILED",
-                                           message: "訂單建立失敗，未發起付款")
-            }
-        }
+    }
+
+    func onGameShopRequested() {
+        openGameShop()
     }
 
     func onMiniAuthRequested(_ json: String) {
@@ -254,18 +264,23 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         let requestId = payload.string("requestId")
         let action = payload.string("action")
         guard UUID(uuidString: requestId) != nil,
-              ["status", "login", "register", "recover", "logout", "delete"].contains(action) else { return }
+              ["status", "login", "register", "recover", "logout", "delete", "completeDelete"].contains(action) else { return }
         guard miniGameAuthTask == nil else {
             reportMiniAuthFailure(requestId: requestId, action: action, code: "AUTH_IN_PROGRESS",
                                   message: "另一項帳號操作正在處理，請稍候")
             return
         }
+        if ["login", "register", "logout", "delete", "completeDelete"].contains(action) {
+            clearPaymentAccountContext()
+            assetOrders.accountDidChange()
+            localAssets.cancelPreparation()
+            webActions.accountDidChange()
+            localPaymentRequests.removeAll()
+            nativeShopRequests.removeAll()
+        }
         miniGameAuthTask = Task { [weak self] in
             guard let self else { return }
-            defer {
-                self.miniGameAuthTask = nil
-                self.reconcileContentRouteWhenAvailable()
-            }
+            defer { self.miniGameAuthTask = nil }
             do {
                 let result: JSONObject
                 switch action {
@@ -285,12 +300,16 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
                     result = try await self.miniGameAuth.recover(account: payload.string("account"))
                 case "logout":
                     result = try await self.miniGameAuth.logout()
+                    self.clearPaymentAccountContext()
                 case "delete":
                     result = try await self.miniGameAuth.deleteAccount()
+                case "completeDelete":
+                    result = try self.miniGameAuth.completeDeletionCleanup()
+                    self.clearPaymentAccountContext()
                 default:
                     return
                 }
-                guard let url = self.webView.url, self.isBundledMiniGamePage(url) else { return }
+                guard self.isTowerDefensePage(self.webView.url) else { return }
                 var fields = JSONObject()
                 fields.put("requestId", requestId)
                 fields.put("action", action)
@@ -310,29 +329,73 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         }
     }
 
-    func onGameOrderFailed(_ json: String) {
-        // This is the H5 game's order-creation step, before any native checkout.
-        // Never mark an existing Apple transaction failed or release its gate.
-        guard paymentGate.canPresent(nil) else { return }
-        let reason = JSONObject.parse(json).string("reason")
-        let message = reason == "network" || reason == "http"
-            ? "遊戲訂單暫時無法連線，尚未發起付款，請稍後再試"
-            : "遊戲訂單建立失敗，尚未發起付款，請稍後再試"
-        showToast(message, duration: 5)
-    }
-
-    func onRoleReported(_ json: String) {
-        billing.prepareForCheckout()
-        analyticsEvents.onRoleReported(json)
-    }
-
     func onAnalyticsEvent(_ name: String, json: String?) {
         analyticsEvents.onH5Event(name, json: json)
     }
 
+    func onAccountSession(_ json: String) {
+        let account = JSONObject.parse(json)
+        let username = accountUsername(account)
+        if !username.isEmpty && username != lastWebUsername {
+            paymentSessionRevision += 1
+            paymentRetryAlert?.dismiss(animated: true)
+            finishingCheckoutOrder = nil
+        }
+        if !username.isEmpty {
+            lastWebUsername = username
+        }
+        analyticsEvents.onAccountSession(json)
+    }
+
+    func onRoleReported(_ json: String) {
+        analyticsEvents.onRoleReported(json)
+    }
+
+    private func accountUsername(_ value: JSONObject) -> String {
+        let direct = ShellText.firstNonBlank(value.string("user_name"), value.string("username"), value.string("userName"), value.string("account"))
+        if !direct.isEmpty { return direct }
+        guard let nested = value.jsonObject("data") else { return "" }
+        return ShellText.firstNonBlank(nested.string("user_name"), nested.string("username"), nested.string("userName"), nested.string("account"))
+    }
+
+    func onGameTelemetryEvent(_ json: String) {
+        let payload = JSONObject.parse(json)
+        switch payload.string("event") {
+        case "stage_start":
+            let stageId = payload.string("stage_id")
+            guard !stageId.isEmpty else { return }
+            activeStageId = stageId
+            activeStageStartedAt = Date().timeIntervalSince1970
+            telemetryTracker.recordStageStart(stageId: stageId)
+        case "stage_end":
+            let stageId = payload.string("stage_id").isEmpty
+                ? (activeStageId ?? "")
+                : payload.string("stage_id")
+            guard !stageId.isEmpty else { return }
+            let result: StageTelemetryResult = payload.string("result") == "win" ? .win : .fail
+            let durationSeconds = payload.has("duration_seconds")
+                ? payload.int("duration_seconds")
+                : Int(max(0, Date().timeIntervalSince1970 - (activeStageStartedAt ?? Date().timeIntervalSince1970)))
+            telemetryTracker.recordStageEnd(
+                stageId: stageId,
+                result: result,
+                durationSeconds: durationSeconds
+            )
+            activeStageId = nil
+            activeStageStartedAt = nil
+        case "item_consume":
+            economy.recordItemConsume(
+                itemId: payload.string("item_id"),
+                costPearls: payload.int("cost_pearls"),
+                remainingBalance: payload.int("remaining_balance")
+            )
+        default:
+            break
+        }
+    }
+
     func openExternalURL(_ url: String) {
         guard let parsed = URL(string: url) else { return }
-        // The bridge uses the same allowlist as links, popups and redirects.
         webView.openApprovedExternalURL(parsed)
     }
 
@@ -347,40 +410,22 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         present(navigation, animated: true)
     }
 
-    func openMainGame() {
-        guard currentContentMode().allowsOnlineGame else {
-            showToast("目前渠道僅開放小遊戲")
-            return
-        }
-        guard let url = contentConfig.onlineGameURL else {
-            showToast("主世界入口暫時無法使用")
-            return
-        }
-        guard !isOnlineGamePage(webView.url) else { return }
-        guard let blocker = contentSwitchBlocker else {
-            beginContentSwitch(to: .online, onlineURL: url)
-            return
-        }
-        showToast(blocker, duration: 5)
-    }
-
-    func returnToGameCenter() {
-        guard currentContentMode().allowsMiniGame else {
-            showToast("目前渠道僅開放主世界")
-            return
-        }
-        guard !(webView.url.map(isBundledMiniGamePage) ?? false) else { return }
-        guard let blocker = contentSwitchBlocker else {
-            beginContentSwitch(to: .mini)
-            return
-        }
-        showToast(blocker, duration: 5)
-    }
-
     func onPaymentProgress(_ request: PayRequest?, message: String) {
-        // Progress is not a payment result and must not release the H5 tap gate.
         refreshPaymentWaitControl()
         showPaymentProgress(request, message: message)
+    }
+
+    func onVerifiedDelivery(_ request: PayRequest?, orderId: String,
+                            transactionId: String, productInfo: StoreKitManager.ProductInfo) -> Bool {
+        guard let offer = pearlOffer(for: request) else { return true }
+        if economy.hasCredited(transactionId: transactionId) { return true }
+        let applied = economy.applyPurchase(
+            amount: offer.pearlAmount,
+            transactionId: transactionId,
+            grantsLimitedSkin: offer.grantsLimitedSkin
+        )
+        if applied { newlyCreditedTransactions.insert(transactionId) }
+        return applied
     }
 
     func onCheckoutStarted(_ request: PayRequest, _ productInfo: StoreKitManager.ProductInfo) {
@@ -391,17 +436,17 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     func onCheckoutReleased(_ request: PayRequest) {
-        webView.endGameOrderCheckout(request.cpOrder)
         refreshPaymentWaitControl()
-        reconcileContentRouteWhenAvailable()
         guard finishingCheckoutOrder == request.cpOrder else { return }
         finishingCheckoutOrder = nil
         guard paymentGate.canPresent(request.cpOrder) else { return }
+        if pearlOffer(for: request) != nil { return }
         showToast(paymentSubject(request) + "已到帳，可繼續選購")
     }
 
     func onSuccess(_ request: PayRequest?, orderId: String, transactionId: String, productInfo: StoreKitManager.ProductInfo) {
-        let showResult = paymentGate.canPresent(request?.cpOrder)
+        let showResult = canPresentPaymentResult(request)
+        let isPearlPurchase = pearlOffer(for: request) != nil
         refreshPaymentWaitControl()
         if paymentRetryOrder == request?.cpOrder {
             paymentRetryAlert?.dismiss(animated: true)
@@ -420,8 +465,8 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         var fields = paymentFields(request, code: "0", message: "Payment verified and delivered")
         fields.put("orderId", orderId)
         fields.put("transactionId", transactionId)
-        callH5("onPayResult", fields: fields)
-        if showResult {
+        sendPaymentResult("onPayResult", request: request, fields: fields)
+        if showResult && !isPearlPurchase {
             if let request, billing.isCheckoutDelivered(request), billing.checkoutBlockingMessage != nil {
                 finishingCheckoutOrder = request.cpOrder
                 showPaymentProgress(request, message: "付款成功，獎勵已到帳；App Store 正在結束付款流程…")
@@ -429,63 +474,61 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
                 showToast(paymentSubject(request) + "付款成功，獎勵已到帳")
             }
         }
+        if let request {
+            economy.recordCheckoutResult(
+                productId: request.resolvedProductId(),
+                orderId: orderId,
+                success: true
+            )
+        }
     }
 
     func onPending(_ request: PayRequest?) {
-        let showResult = paymentGate.canPresent(request?.cpOrder)
+        let showResult = canPresentPaymentResult(request)
         refreshPaymentWaitControl()
         PaymentDebugLog.record("ui-payment-pending")
         paymentGate.finish(request?.cpOrder ?? "")
-        callH5("onPayPending", fields: paymentFields(request, code: "PENDING", message: "Payment is pending"))
+        sendPaymentResult("onPayPending", request: request, fields: paymentFields(request, code: "PENDING", message: "Payment is pending"))
         if showResult { showToast(paymentSubject(request) + "付款待確認，請勿重複購買") }
-        reconcileContentRouteWhenAvailable()
     }
 
     func onCancel(_ request: PayRequest?) {
-        let showResult = paymentGate.canPresent(request?.cpOrder)
+        let showResult = canPresentPaymentResult(request)
         refreshPaymentWaitControl()
         PaymentDebugLog.record("ui-payment-not-completed source=storekit-cancel actualUserAction=unknown")
         paymentGate.finish(request?.cpOrder ?? "")
-        reconcileContentRouteWhenAvailable()
         if billing.hasUnresolvedOrder(for: request) {
-            callH5("onPayPending", fields: paymentFields(request, code: "PURCHASE_RECOVERY_REQUIRED", message: "Retry canceled; original order still needs recovery"))
+            sendPaymentResult("onPayPending", request: request, fields: paymentFields(request, code: "PURCHASE_RECOVERY_REQUIRED", message: "Retry canceled; original order still needs recovery"))
             if showResult { showToast(paymentSubject(request) + "本次付款已結束，先前訂單仍待核對；不會自動重新付款", duration: 5) }
             return
         }
-        // Keep the H5 cancellation contract, but do not claim that the user
-        // pressed Cancel or that no debit occurred based on this result alone.
-        callH5("onPayCancel", fields: paymentFields(request, code: "USER_CANCELED", message: "App Store did not complete this payment"))
+        sendPaymentResult("onPayCancel", request: request, fields: paymentFields(request, code: "USER_CANCELED", message: "App Store did not complete this payment"))
         if showResult { showToast(paymentSubject(request) + "App Store 未完成這次付款，付款視窗已關閉", duration: 5) }
     }
 
     func onError(_ request: PayRequest?, code: String, message: String) {
-        // Some validation failures return before the StoreKit launch task exists.
-        // Only that request may release the earlier PHP gate.
-        if billing.checkoutBlockingMessage == nil, let request {
-            webView.endGameOrderCheckout(request.cpOrder)
-        }
-        let showResult = paymentGate.canPresent(request?.cpOrder)
+        let showResult = canPresentPaymentResult(request)
         refreshPaymentWaitControl()
         PaymentDebugLog.record("ui-payment-error code=\(code) message=\(message)")
         paymentGate.finish(request?.cpOrder ?? "")
-        reconcileContentRouteWhenAvailable()
         if code == "PAYMENT_IN_PROGRESS" || code == "PURCHASE_RECOVERY_IN_PROGRESS" {
-            // This attempt never started a new purchase. Do not tell H5 that
-            // Apple's still-active original payment failed.
             if showResult { showToast(billing.checkoutBlockingMessage ?? "App Store 正在處理，請稍候再操作") }
             return
         }
-        // A lost Apple reply or pending delivery is not a definitive failure of
-        // the original game order. Do not tell H5 to cancel that order.
         if code != "PURCHASE_ALREADY_PROCESSED" {
             let callback = billing.hasUnresolvedOrder(for: request) ? "onPayPending" : "onPayFail"
-            callH5(callback, fields: paymentFields(request, code: code, message: message))
+            sendPaymentResult(callback, request: request, fields: paymentFields(request, code: code, message: message))
+        }
+        if let request, code != "PURCHASE_ALREADY_PROCESSED" {
+            economy.recordCheckoutResult(
+                productId: request.resolvedProductId(),
+                orderId: request.cpOrder,
+                success: false
+            )
         }
         guard showResult else { return }
-        // Only an explicit second tap on an unresolved product offers purchase
-        // retry. Ordinary errors/foreground recovery do not stack modal alerts.
         if code == "PURCHASE_RECOVERY_REQUIRED", billing.retryRequest(for: request) != nil {
-            hideToast()
+            dismissToast()
             offerOriginalOrderRetry(for: request)
         } else {
             showToast(paymentSubject(request) + paymentDisplayMessage(code: code, fallback: message,
@@ -497,8 +540,6 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         guard let original = billing.retryRequest(for: request) else { return }
         let usernameAtPresentation = lastWebUsername
         let sessionAtPresentation = paymentSessionRevision
-        // Let Apple's sheet dismiss first. Never stack another modal or retry
-        // automatically on a timer, on foregrounding, or on a transaction update.
         DispatchQueue.main.async { [weak self] in
             guard let self, self.viewIfLoaded?.window != nil,
                   UIApplication.shared.applicationState == .active,
@@ -527,9 +568,6 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
                         usernameAtPresentation: usernameAtPresentation,
                         sessionAtPresentation: sessionAtPresentation)
                 }
-                // Action selection is not proof that dismissal has completed.
-                // Join UIKit's transition if it already started; otherwise dismiss
-                // explicitly. Never use a guessed delay or open a second sheet early.
                 if alert.isBeingDismissed {
                     guard let coordinator = alert.transitionCoordinator else { return }
                     coordinator.animate(alongsideTransition: nil) { context in
@@ -550,8 +588,6 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
 
     private func continueOriginalOrderRetry(_ original: PayRequest, from alert: UIAlertController,
                                            usernameAtPresentation: String, sessionAtPresentation: Int) {
-        // A late success or a newer dialog invalidates this continuation. Consume
-        // the intent once; this only clears UI state, never the retained order.
         guard paymentRetryAlert === alert, paymentRetryOrder == original.cpOrder else { return }
         paymentRetryAlert = nil
         paymentRetryOrder = ""
@@ -571,31 +607,107 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
             showCurrentPaymentProgress()
             return
         }
-        guard webView.beginGameOrderCheckout(original.cpOrder) else {
-            paymentGate.finish(original.cpOrder)
-            showToast("正在處理先前的付款請求，請稍候…")
-            return
-        }
         showPaymentProgress(original, message: "正在檢查原訂單…")
         billing.retryOriginal(original)
     }
 
     private func reportPaymentFailure(_ request: PayRequest?, code: String, message: String) {
-        callH5("onPayFail", fields: paymentFields(request, code: code, message: message))
+        sendPaymentResult("onPayFail", request: request, fields: paymentFields(request, code: code, message: message))
         showToast(message)
     }
 
-    private func reportMiniGameFailure(clientRequestId: String, code: String, message: String) {
-        var fields = JSONObject()
-        fields.put("code", code)
-        fields.put("message", message)
-        fields.put("clientRequestId", clientRequestId)
-        callH5("onPayFail", fields: fields)
-        showToast(message, duration: 5)
+    private func sendPaymentResult(_ function: String, request: PayRequest?, fields: JSONObject) {
+        guard let request else { return }
+        switch request.destination {
+        case .localAssets:
+            localAssets.receive(function, request: request, fields: fields)
+        case .webActions:
+            if request.paymentCallback == .actionSync {
+                webActions.receive(function, request: request, fields: fields)
+            } else {
+                guard canPresentPaymentResult(request) else { return }
+                callH5(function, fields: fields)
+            }
+        }
+    }
+
+    private func canPresentPaymentResult(_ request: PayRequest?) -> Bool {
+        guard paymentGate.canPresent(request?.cpOrder) else { return false }
+        guard let request else { return true }
+        if !request.resultAccountId.isEmpty { return request.resultAccountId == assetOrders.currentAccountID }
+        if !lastWebUsername.isEmpty && !request.username.isEmpty {
+            return request.username == lastWebUsername
+        }
+        return true
+    }
+
+    @objc private func localAssetStatusChanged(_ notification: Notification) {
+        guard isTowerDefensePage(webView.url), let info = notification.userInfo as? [String: Any] else { return }
+        let fields = JSONObject(info)
+        let requestId = fields.string("clientRequestId")
+        guard fields.string("accountId") == assetOrders.currentAccountID else { return }
+        let function = fields.string("func")
+        guard ["onPayResult", "onPayPending", "onPayCancel", "onPayFail"].contains(function) else { return }
+
+        let deliveredOffer = MiniGameProductCatalog.pearlOffer(
+            goodsId: fields.int("goodsId"),
+            productId: fields.string("productId")
+        )
+        let requestedOffer = nativeShopRequests[requestId]
+        if let offer = deliveredOffer ?? requestedOffer {
+            handleNativeShopStatus(function, fields: fields, offer: offer,
+                                   deliveryIdentityValidated: deliveredOffer != nil)
+            if function != "onPayPending" { nativeShopRequests.removeValue(forKey: requestId) }
+            return
+        }
+
+        guard localPaymentRequests.contains(requestId) else { return }
+        callH5(function, fields: fields)
+        if function != "onPayPending" { localPaymentRequests.remove(requestId) }
+    }
+
+    private func handleNativeShopStatus(_ function: String, fields: JSONObject,
+                                        offer: MiniGameProductCatalog.Offer,
+                                        deliveryIdentityValidated: Bool) {
+        switch function {
+        case "onPayResult":
+            let transactionId = fields.string("transactionId")
+            guard deliveryIdentityValidated, !transactionId.isEmpty,
+                  economy.hasCredited(transactionId: transactionId) else {
+                let message = "付款已驗證，但本機資產尚未安全寫入；請勿重複購買並稍後重試。"
+                gameShopViewController?.purchaseDidFail(offer: offer, message: message)
+                showToast(message, duration: 6)
+                return
+            }
+            let wasNewCredit = newlyCreditedTransactions.remove(transactionId) != nil
+            gameShopViewController?.purchaseDidSucceed(offer: offer, wasNewCredit: wasNewCredit)
+            updateEconomyHUD()
+            sendEconomyStateToGame()
+            if gameShopViewController == nil {
+                showToast("購買成功，已到賬 \(offer.pearlAmount) 原始珍珠")
+            }
+        case "onPayPending":
+            gameShopViewController?.purchaseDidBecomePending(
+                offer: offer,
+                message: "付款結果仍待 App Store 或伺服器確認，請勿重複購買。"
+            )
+        case "onPayCancel":
+            gameShopViewController?.purchaseDidFail(offer: offer, message: "App Store 未完成這次付款。")
+        default:
+            let message = fields.string("message").isEmpty ? "付款未完成，沒有增加珍珠。" : fields.string("message")
+            gameShopViewController?.purchaseDidFail(offer: offer, message: message)
+        }
+    }
+
+    func gameShop(_ controller: GameShopViewController, purchase offer: MiniGameProductCatalog.Offer) {
+        guard gameShopViewController === controller else { return }
+        let requestId = UUID().uuidString
+        nativeShopRequests[requestId] = offer
+        localAssets.syncLocalAsset(assetId: offer.id, requestId: requestId)
     }
 
     private func reportMiniAuthFailure(requestId: String, action: String, code: String, message: String) {
-        guard let url = webView.url, isBundledMiniGamePage(url) else { return }
+        guard isTowerDefensePage(webView.url) else { return }
         var fields = JSONObject()
         fields.put("requestId", requestId)
         fields.put("action", action)
@@ -670,6 +782,8 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
             return "自動補發暫未完成，原交易已保留。請聯絡客服核對，勿重複購買"
         case "DELIVERY_REVIEW_REQUIRED":
             return "原交易已保留，驗證仍需核對。請聯絡客服，勿重複購買"
+        case "LOCAL_DELIVERY_STORAGE_UNAVAILABLE":
+            return "付款已驗證，但本機資產暫時無法安全寫入；原交易已保留，請勿重複購買"
         case "TRANSACTION_MISMATCH", "ACCOUNT_MISMATCH":
             return "交易與原訂單資料不一致，請聯絡客服核對，勿重複購買"
         case "NETWORK_ERROR", "HTTP_0":
@@ -684,194 +798,156 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     private func initializeContentRoute() {
-        contentConfig = contentConfigManager.cachedOrDefault()
-        contentConfigManager.refresh(force: true) { [weak self] config in
-            self?.onContentConfigResolved(config)
-        }
-        releaseContentRoute()
-    }
-
-    @objc private func refreshContentConfigOnForeground() {
-        contentConfigManager.refresh(force: false) { [weak self] config in
-            self?.onContentConfigResolved(config)
-        }
-    }
-
-    private func onContentConfigResolved(_ next: ContentConfig) {
-        contentConfig = next
-        guard contentRouteReleased else { return }
-        updateSdkStatus()
-        if let url = webView.url, isOnlineGamePage(url) {
-            syncReturnToGameCenter()
-        }
-        reconcileContentRoute()
-    }
-
-    private func releaseContentRoute() {
         guard !contentRouteReleased else { return }
         contentRouteReleased = true
         updateSdkStatus()
-        reconcileContentRoute()
+        PaymentDebugLog.record("route-launch-local-home id=\(moduleSession.home.id)")
+        webView.loadLocalGame()
+        refreshRemoteCatalog(force: true)
+    }
+
+    private func installModuleDock() {
+        moduleDock.translatesAutoresizingMaskIntoConstraints = false
+        moduleDock.onSelect = { [weak self] module in
+            self?.openRemoteModule(module)
+        }
+        view.addSubview(moduleDock)
+        let dockWidth = moduleDock.widthAnchor.constraint(equalToConstant: 200)
+        dockWidth.priority = .defaultHigh
+        NSLayoutConstraint.activate([
+            moduleDock.topAnchor.constraint(equalTo: activityNoticeButton.bottomAnchor, constant: 8),
+            moduleDock.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10),
+            moduleDock.trailingAnchor.constraint(lessThanOrEqualTo: economyButton.leadingAnchor, constant: -8),
+            dockWidth,
+            moduleDock.heightAnchor.constraint(equalToConstant: 44)
+        ])
+    }
+
+    private func refreshRemoteCatalog(force: Bool) {
+        if moduleSession.isRemoteForeground { return }
+        if !force {
+            if catalogTask != nil { return }
+            if let catalogFetchedAt, Date().timeIntervalSince(catalogFetchedAt) < 45 { return }
+        }
+        catalogTask?.cancel()
+        let generation = UUID()
+        catalogGeneration = generation
+        catalogTask = Task { [weak self] in
+            let modules = await self?.moduleCatalog.fetchRemoteModules() ?? []
+            guard let self, !Task.isCancelled, self.catalogGeneration == generation else { return }
+            self.catalogFetchedAt = Date()
+            self.catalogTask = nil
+            self.moduleDock.setModules(modules)
+            if !modules.isEmpty {
+                self.view.bringSubviewToFront(self.moduleDock)
+            }
+            PaymentDebugLog.record("module-catalog count=\(modules.count)")
+        }
+    }
+
+    private func openRemoteModule(_ module: GameModule) {
+        guard presentedViewController == nil, module.origin == .remote, module.entryURL != nil else { return }
+        guard !paymentBlocksRemoteModule else {
+            showToast("請先完成目前的付款或訂單核對")
+            return
+        }
+        moduleSession.beginRemote(module)
+        webView.evaluate(PageScripts.shellSuspend)
+        let controller = ModuleContainerController(module: module)
+        controller.host = self
+        present(controller, animated: true)
+    }
+
+    private var paymentBlocksRemoteModule: Bool {
+        billing.isProcessingPayment
+            || billing.checkoutBlockingMessage != nil
+            || BillingService.shared.isOccupied
+    }
+
+    private func restoreHomeModule(reason: String) {
+        guard moduleSession.isRemoteForeground else { return }
+        let home = moduleSession.endRemote()
+        webView.evaluate(PageScripts.shellResume)
+        PaymentDebugLog.record("module-restored home=\(home.id) reason=\(reason)")
+        if presentedViewController is ModuleContainerController {
+            dismiss(animated: true)
+        }
+    }
+
+    private func installActivityNoticeButton() {
+        var configuration = UIButton.Configuration.tinted()
+        configuration.title = "活動中心"
+        configuration.image = UIImage(systemName: "sparkles")
+        configuration.imagePlacement = .leading
+        configuration.imagePadding = 6
+        configuration.baseForegroundColor = .white
+        configuration.baseBackgroundColor = UIColor(white: 0.08, alpha: 0.82)
+        configuration.cornerStyle = .capsule
+        activityNoticeButton.configuration = configuration
+        activityNoticeButton.accessibilityLabel = "遊戲活動中心"
+        activityNoticeButton.addTarget(self, action: #selector(openDynamicNoticeActivity), for: .touchUpInside)
+        activityNoticeButton.isHidden = true
+        activityNoticeButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(activityNoticeButton)
+        NSLayoutConstraint.activate([
+            activityNoticeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            activityNoticeButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10),
+            activityNoticeButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
+        ])
+    }
+
+    private func startActivityNoticePollingIfNeeded() {
+        guard activityPollingTask == nil else { return }
+        activityPollingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.fetchDynamicActivityNotice()
+                do {
+                    try await Task.sleep(nanoseconds: 300_000_000_000)
+                } catch {
+                    return
+                }
+            }
+        }
+    }
+
+    private func fetchDynamicActivityNotice() async {
+        let noticeURL = await activityService.fetchNoticeURL(playerId: miniGameAuth.currentPlayerID)
+        guard !Task.isCancelled else { return }
+        await MainActor.run {
+            self.dynamicNoticeURL = noticeURL
+            let shouldShow = noticeURL != nil
+            self.activityNoticeButton.isHidden = !shouldShow
+            if shouldShow {
+                self.view.bringSubviewToFront(self.activityNoticeButton)
+            }
+        }
+    }
+
+    @objc private func openDynamicNoticeActivity() {
+        guard presentedViewController == nil,
+              !billing.isProcessingPayment,
+              let url = dynamicNoticeURL else { return }
+        let controller = GameActivityWebViewController(url: url)
+        controller.modalPresentationStyle = .fullScreen
+        present(controller, animated: true)
     }
 
     private func onWebPageFinished(_ url: String) {
-        finishContentSwitch()
         guard let parsed = URL(string: url) else { return }
-        if isBundledMiniGamePage(parsed) {
-            webView.configureOnlineGameURL(nil)
-            applyLocalContentMode()
-            pushLowPowerState()
-            reconcileContentRoute()
+        if isTowerDefensePage(parsed) {
+            updateSdkStatus()
             (UIApplication.shared.delegate as? AppDelegate)?.requestTrackingAuthorizationIfNeeded(UIApplication.shared)
-            return
         }
-        if isOnlineGamePage(parsed) {
-            webView.evaluate(InjectedScripts.hideWebDebugUI)
-            installPaymentBridge()
-            syncReturnToGameCenter()
-            reconcileContentRoute()
-        }
-    }
-
-    private func syncReturnToGameCenter() {
-        webView.evaluate(currentContentMode().allowsMiniGame
-            ? InjectedScripts.returnToGameCenter : InjectedScripts.removeReturnToGameCenter)
     }
 
     private func onWebNavigationFailed(_ message: String) {
-        guard contentSwitchInProgress else { return }
-        restoreOnlineGameURLAfterFailedSwitch()
-        finishContentSwitch()
-        showToast("切換失敗，請檢查網路後重試", duration: 5)
-        PaymentDebugLog.record("content-switch-failed message=\(message)")
+        showToast("遊戲載入失敗，請檢查網路後重試", duration: 5)
+        PaymentDebugLog.record("game-load-failed message=\(message)")
     }
 
-    private func applyLocalContentMode() {
-        guard let url = webView.url, isBundledMiniGamePage(url) else { return }
-        webView.evaluate(InjectedScripts.contentMode(currentContentMode().javascriptValue))
-    }
-
-    private enum ContentDestination {
-        case mini
-        case online
-    }
-
-    private var contentSwitchBlocker: String? {
-        if contentSwitchInProgress { return "正在切換遊戲，請稍候…" }
-        if miniGameOrderTask != nil || billing.isProcessingPayment || billing.checkoutBlockingMessage != nil {
-            return billing.checkoutBlockingMessage ?? "付款或訂單正在處理，完成後才能切換遊戲"
-        }
-        if miniGameAuthTask != nil { return "帳號操作正在處理，完成後才能切換遊戲" }
-        if presentedViewController != nil { return "請先關閉目前的系統視窗，再切換遊戲" }
-        return nil
-    }
-
-    private func beginContentSwitch(to destination: ContentDestination, onlineURL: URL? = nil) {
-        guard !contentSwitchInProgress else { return }
-        contentSwitchInProgress = true
-        previousOnlineGameURL = webView.onlineGameURL
-        contentSwitchReset?.cancel()
-        if destination == .mini {
-            // Remote-game account data must never be reused as a fallback for a
-            // bundled-game order after the user changes surfaces.
-            lastWebUsername = ""
-            paymentSessionRevision += 1
-            webView.loadLocalGame()
-        } else if let url = onlineURL ?? contentConfig.onlineGameURL,
-                  webView.configureOnlineGameURL(url) {
-            webView.loadTrustedURL(url)
-        } else {
-            contentSwitchInProgress = false
-            previousOnlineGameURL = nil
-            showToast("主世界入口暫時無法使用")
-            return
-        }
-        let reset = DispatchWorkItem { [weak self] in
-            guard let self, self.contentSwitchInProgress else { return }
-            self.restoreOnlineGameURLAfterFailedSwitch()
-            self.finishContentSwitch()
-            self.showToast("切換逾時，請檢查網路後重試", duration: 5)
-        }
-        contentSwitchReset = reset
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15, execute: reset)
-    }
-
-    private func finishContentSwitch() {
-        contentSwitchReset?.cancel()
-        contentSwitchReset = nil
-        contentSwitchInProgress = false
-        previousOnlineGameURL = nil
-    }
-
-    private func restoreOnlineGameURLAfterFailedSwitch() {
-        if let current = webView.url, isBundledMiniGamePage(current) {
-            webView.configureOnlineGameURL(nil)
-        } else if let oldURL = previousOnlineGameURL,
-                  let current = webView.url,
-                  IOSWebNavigationPolicy.isOnlineGameURL(current, configured: oldURL) {
-            webView.configureOnlineGameURL(oldURL)
-        }
-    }
-
-    private func reconcileContentRoute() {
-        guard contentRouteReleased else { return }
-        let mode = currentContentMode()
-        guard let currentURL = webView.url else {
-            contentRouteReconciliationPending = false
-            if mode == .onlineOnly, let url = contentConfig.onlineGameURL {
-                beginContentSwitch(to: .online, onlineURL: url)
-            } else {
-                beginContentSwitch(to: .mini)
-            }
-            return
-        }
-        let onOnlineGame = isOnlineGamePage(currentURL)
-        let needsOnline = isBundledMiniGamePage(currentURL) && !mode.allowsMiniGame
-        let needsMini = onOnlineGame && !mode.allowsOnlineGame
-        let needsUpdatedOnline = onOnlineGame && mode.allowsOnlineGame
-            && contentConfig.onlineGameURL != webView.onlineGameURL
-        guard needsOnline || needsMini || needsUpdatedOnline else {
-            contentRouteReconciliationPending = false
-            applyLocalContentMode()
-            return
-        }
-        guard contentSwitchBlocker == nil else {
-            contentRouteReconciliationPending = true
-            return
-        }
-        contentRouteReconciliationPending = false
-        if (needsOnline || needsUpdatedOnline), let url = contentConfig.onlineGameURL {
-            beginContentSwitch(to: .online, onlineURL: url)
-        } else if needsMini {
-            beginContentSwitch(to: .mini)
-        }
-    }
-
-    private func reconcileContentRouteWhenAvailable() {
-        guard contentRouteReconciliationPending, contentSwitchBlocker == nil else { return }
-        reconcileContentRoute()
-    }
-
-    private func isLocalGameCenter(_ url: URL) -> Bool {
-        url.isFileURL && url.lastPathComponent == "index.html"
-    }
-
-    private func isOnlineGamePage(_ url: URL?) -> Bool {
-        guard let url, let configured = webView.onlineGameURL else { return false }
-        return IOSWebNavigationPolicy.isOnlineGameURL(url, configured: configured)
-    }
-
-    private func isBundledMiniGamePage(_ url: URL) -> Bool {
-        guard url.isFileURL, let root = ShellConfig.localGameDirectory?.standardizedFileURL.path else { return false }
-        return url.standardizedFileURL.path.hasPrefix(root + "/")
-    }
-
-    private func currentContentMode() -> ContentMode {
-        contentConfig.mode
-    }
-
-    private func installPaymentBridge() {
-        webView.evaluate(InjectedScripts.paymentBridge)
+    private func isTowerDefensePage(_ url: URL?) -> Bool {
+        IOSWebNavigationPolicy.isBundledFile(url, in: ShellConfig.localGameDirectory)
+            || IOSWebNavigationPolicy.isApprovedRemoteGameURL(url)
     }
 
     private func updateSdkStatus() {
@@ -885,33 +961,23 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         status.put("facebookAnalyticsConfigured", analyticsEvents.isFacebookConfigured)
         status.put("firebaseAnalyticsConfigured", analyticsEvents.isFirebaseConfigured)
         status.put("loginServerConfigured", false)
-        status.put("miniGameAuthConfigured", miniGameAuth.isConfigured)
-        status.put("contentMode", currentContentMode().rawValue)
-        status.put("contentConfigRevision", contentConfig.revision)
-        status.put("contentConfigUpdatedAt", contentConfig.updatedAt)
-        status.put("contentConfigEndpointConfigured", !ShellConfig.contentConfigEndpoint.isEmpty)
+        status.put("game", "tower-defense")
         status.put("store", "app_store")
-        webView.evaluate(InjectedScripts.sdkStatus(status.jsonString()))
+        webView.evaluate(PageScripts.sdkStatus(status.jsonString()))
     }
 
     private func callH5(_ function: String, fields: JSONObject) {
         var result = fields
         result.put("func", function)
-        webView.evaluate(InjectedScripts.javaCallBack(result.jsonString()))
+        webView.evaluate(PageScripts.javaCallBack(result.jsonString()))
     }
 
-    private func rememberWebUsername(_ username: String) {
-        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        lastWebUsername = trimmed
-        webView.evaluate(InjectedScripts.rememberUsername(trimmed))
-    }
-
-    private func accountUsername(_ value: JSONObject) -> String {
-        let direct = ShellText.firstNonBlank(value.string("user_name"), value.string("username"), value.string("userName"))
-        if !direct.isEmpty { return direct }
-        guard let nested = value.jsonObject("data") else { return "" }
-        return ShellText.firstNonBlank(nested.string("user_name"), nested.string("username"), nested.string("userName"))
+    private func clearPaymentAccountContext() {
+        paymentSessionRevision += 1
+        paymentRetryAlert?.dismiss(animated: true)
+        finishingCheckoutOrder = nil
+        lastWebUsername = ""
+        analyticsEvents.onLogout()
     }
 
     private func paymentFields(_ request: PayRequest?, code: String, message: String) -> JSONObject {
@@ -921,9 +987,18 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         if let request {
             fields.put("cpOrder", request.cpOrder)
             fields.put("productId", request.resolvedProductId())
+            fields.put("goodsId", request.goodsId)
             fields.put("clientRequestId", request.clientRequestId)
         }
         return fields
+    }
+
+    private func pearlOffer(for request: PayRequest?) -> MiniGameProductCatalog.Offer? {
+        guard let request else { return nil }
+        return MiniGameProductCatalog.pearlOffer(
+            goodsId: request.goodsId,
+            productId: request.resolvedProductId()
+        )
     }
 
     private func paymentSubject(_ request: PayRequest?) -> String {
@@ -935,7 +1010,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     private func showPaymentProgress(_ request: PayRequest?, message: String) {
-        guard paymentGate.canPresent(request?.cpOrder) else { return }
+        guard canPresentPaymentResult(request) else { return }
         currentPaymentProgress = paymentSubject(request) + message
         showCurrentPaymentProgress()
     }
@@ -947,9 +1022,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     private func showToast(_ message: String, duration: TimeInterval = 3.5) {
-        // A toast must never occupy the modal presenter used by StoreKit or hide
-        // a fast failure behind an earlier progress alert. The latest status wins.
-        hideToast()
+        dismissToast()
         let bubble = UIView()
         bubble.backgroundColor = UIColor(white: 0.1, alpha: 0.95)
         bubble.layer.cornerRadius = 14
@@ -978,18 +1051,16 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         ])
         toastView = bubble
         UIAccessibility.post(notification: .announcement, argument: label.text)
-        // Non-modal progress stays visible while Apple is opening/authenticating.
-        // Only a real result/next phase dismisses it; this is not a payment timer.
         guard duration > 0 else { return }
         let dismissal = DispatchWorkItem { [weak self, weak bubble] in
             guard let self, let bubble, self.toastView === bubble else { return }
-            self.hideToast()
+            self.dismissToast()
         }
         toastDismissal = dismissal
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: dismissal)
     }
 
-    private func hideToast() {
+    private func dismissToast() {
         visibleProgressMessage = nil
         toastDismissal?.cancel()
         toastDismissal = nil
@@ -997,8 +1068,76 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         toastView = nil
     }
 
-    // Payment troubleshooting controls are not created or registered in the
-    // game view. Only the temporary preflight stop control remains available.
+    private func installEconomyEntry() {
+        var configuration = UIButton.Configuration.tinted()
+        configuration.baseForegroundColor = UIColor(red: 0.78, green: 0.97, blue: 0.93, alpha: 1)
+        configuration.baseBackgroundColor = UIColor(white: 0.08, alpha: 0.84)
+        configuration.cornerStyle = .capsule
+        configuration.image = UIImage(systemName: "plus.circle.fill")
+        configuration.imagePlacement = .trailing
+        configuration.imagePadding = 7
+        economyButton.configuration = configuration
+        economyButton.accessibilityIdentifier = "game-pearl-shop-button"
+        economyButton.addTarget(self, action: #selector(openGameShop), for: .touchUpInside)
+        economyButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(economyButton)
+        NSLayoutConstraint.activate([
+            economyButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            economyButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
+            economyButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
+        ])
+        updateEconomyHUD()
+        view.bringSubviewToFront(economyButton)
+    }
+
+    @objc private func economyBalanceChanged(_ notification: Notification) {
+        updateEconomyHUD()
+        sendEconomyStateToGame()
+    }
+
+    private func updateEconomyHUD() {
+        var configuration = economyButton.configuration
+        configuration?.title = "◈ \(economy.balance)"
+        economyButton.configuration = configuration
+        economyButton.accessibilityLabel = "原始珍珠 \(economy.balance)，打開商城"
+    }
+
+    private func sendEconomyStateToGame() {
+        guard webView != nil, isTowerDefensePage(webView.url) else { return }
+        var fields = JSONObject()
+        fields.put("balance", economy.balance)
+        fields.put("limitedDinoSkin", economy.hasLimitedDinoSkin)
+        fields.put("tyrannosaurusSkin", economy.hasUnlockedDinoSkin)
+        fields.put("pendingReviveRunId", economy.pendingReviveRunId)
+        webView.evaluate(PageScripts.economyState(fields.jsonString()))
+    }
+
+    @objc private func openGameShop() {
+        guard presentedViewController == nil else { return }
+        guard !billing.isProcessingPayment, billing.checkoutBlockingMessage == nil else {
+            showToast("請先完成目前的付款操作")
+            return
+        }
+        let controller = GameShopViewController(economy: economy)
+        controller.delegate = self
+        gameShopViewController = controller
+        present(controller, animated: true)
+    }
+
+    private func presentInsufficientPearlsAlert() {
+        guard presentedViewController == nil else { return }
+        let alert = UIAlertController(
+            title: "原始珍珠不足",
+            message: "原地復活需要 20 原始珍珠。目前餘額為 \(economy.balance)。",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "返回結算", style: .cancel))
+        alert.addAction(UIAlertAction(title: "打開商城", style: .default) { [weak self] _ in
+            DispatchQueue.main.async { self?.openGameShop() }
+        })
+        present(alert, animated: true)
+    }
+
     private func installPaymentWaitControl() {
         var stopConfig = UIButton.Configuration.tinted()
         stopConfig.title = "停止等待"
@@ -1011,7 +1150,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         stopPaymentCheckButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stopPaymentCheckButton)
         NSLayoutConstraint.activate([
-            stopPaymentCheckButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            stopPaymentCheckButton.topAnchor.constraint(equalTo: economyButton.bottomAnchor, constant: 8),
             stopPaymentCheckButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
             stopPaymentCheckButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
         ])
@@ -1031,8 +1170,8 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     @objc private func recoverPaymentsOnForeground() {
-        reconcileContentRoute()
         billing.prepareForCheckout()
+        refreshRemoteCatalog(force: false)
         Task { [weak self] in
             guard let self else { return }
             await billing.resumePurchases()
@@ -1041,14 +1180,13 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     #if DEBUG
-    // Developer-only launch environment; there is no in-game tap target.
     private func openPaymentDiagnostics() {
         guard presentedViewController == nil else { return }
         guard !billing.isProcessingPayment else {
             showToast("請等待目前支付流程結束，再開啟診斷")
             return
         }
-        hideToast()
+        dismissToast()
         let navigation = UINavigationController(rootViewController: PaymentDiagnosticsViewController())
         navigation.modalPresentationStyle = .fullScreen
         present(navigation, animated: true)
@@ -1071,8 +1209,27 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         if restored {
             billing.prepareForCheckout()
             Task { await billing.resumePurchases(); refreshPaymentWaitControl() }
-            webView.evaluate(InjectedScripts.networkRestored)
-            installPaymentBridge()
+            webView.evaluate(PageScripts.networkRestored)
         }
+    }
+}
+
+extension GameViewController: ModuleContainerHost {
+    func moduleContainerDidBecomeReady(_ controller: ModuleContainerController) {
+        moduleSession.markReady()
+        PaymentDebugLog.record("module-ready id=\(controller.module.id)")
+    }
+
+    func moduleContainer(_ controller: ModuleContainerController, didEmit name: String, fields: [String: String]) {
+        var parameters: [String: Any] = ["module_id": controller.module.id]
+        for (key, value) in fields {
+            parameters[key] = value
+        }
+        telemetryTracker.track(.custom(name: name, category: "liveops", parameters: parameters))
+        PaymentDebugLog.record("module-event id=\(controller.module.id) name=\(name)")
+    }
+
+    func moduleContainerDidFinish(_ controller: ModuleContainerController, status: ModuleExitStatus) {
+        restoreHomeModule(reason: status.rawValue)
     }
 }

@@ -43,7 +43,6 @@
             fields.role_name = text(base.nick || "");
             fields.server_id = text(base.serverId || "");
         } catch (ignored) {
-            // Missing game globals are expected while the Egret bundle is starting.
         }
         return fields;
     }
@@ -60,8 +59,8 @@
             return true;
         }
         try {
-            if (window.android && typeof window.android.sdkEvent === "function") {
-                window.android.sdkEvent(name, JSON.stringify(fields || {}));
+            if (window.pbmNative && typeof window.pbmNative.sdkEvent === "function") {
+                window.pbmNative.sdkEvent(name, JSON.stringify(fields || {}));
                 lastForwardedAt[key] = now;
                 return true;
             }
@@ -77,7 +76,6 @@
                 return Math.max(0, number(window.TaskLogic.getInstance().getTaskId(), 0));
             }
         } catch (ignored) {
-            // Return a stable numeric value when the task model is unavailable.
         }
         return 0;
     }
@@ -94,7 +92,6 @@
         try {
             window.localStorage.setItem(key, text(value));
         } catch (ignored) {
-            // Native-side one-shot state remains the final duplicate guard.
         }
     }
 
@@ -133,7 +130,6 @@
             window.__shellTutorialTimer = null;
             window.__shellTutorialTimerScope = "";
             var currentFields = roleFields();
-            // A timer created for one role must never be attached to another role.
             if (roleScope(currentFields) !== scope) {
                 return;
             }
@@ -149,7 +145,6 @@
     }
 
     function startTutorial(fields) {
-        // Native code retains the original event time if role identity arrives later.
         if (!text(fields.role_id).trim()) {
             return;
         }
@@ -207,7 +202,6 @@
                     fields.account_id = accountIdentity();
                     send("complete_registration", fields);
                 } else {
-                    // The game uses its historical Registration event after role creation.
                     fields.source = "role_created";
                     send("complete_avatar", fields);
                     send("view_content", fields);
@@ -264,7 +258,6 @@
                 send("Add_To_Wishlist", fields);
                 break;
             default:
-                // Google purchase events are emitted only by the verified native flow.
                 break;
         }
     }
@@ -300,9 +293,6 @@
             return true;
         }
         var wrapped = function (name, value) {
-            // The current web SDK only forwards AppsFlyer events for a small historical app-id
-            // allowlist that may not include the native app ID. Observe this common event sink so direct
-            // web-SDK calls (notably retention events) still reach the native analytics SDKs.
             handlePlatformEvent(name, value, "websdk");
             return original.apply(this, arguments);
         };
@@ -350,8 +340,6 @@
             if (stoneReported[scope] || storageGet(key) === "1") {
                 return;
             }
-            // The first loaded snapshot can already include the reward that crossed
-            // the threshold. Native role-level deduplication also covers older builds.
             if (balance >= STONE_THRESHOLD) {
                 fields.current_balance = Math.round(balance);
                 if (send("have_300_thousand", fields)) {
@@ -360,7 +348,6 @@
                 }
             }
         } catch (ignored) {
-            // The game state is not available during early loading.
         }
     }
 

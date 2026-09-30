@@ -1,7 +1,5 @@
 import Foundation
 
-// UIKit doubles deliberately separate a button handler from dismissal completion.
-// Production methods are injected unmodified; only their collaborators are spies.
 @MainActor final class MainQueueDouble {
     var jobs: [() -> Void] = []
     func async(execute: @escaping () -> Void) { jobs.append(execute) }
@@ -69,9 +67,19 @@ struct TransitionContextDouble { var isCancelled: Bool }
         if !isBeingDismissed { dismiss(animated: true) }
     }
 }
+enum PaymentDestination { case localAssets, webActions, remoteTicket }
 struct PayRequest {
     let cpOrder: String
+    let destination: PaymentDestination
     var price = "49.99"
+    init(cpOrder: String, destination: PaymentDestination = .webActions) {
+        self.cpOrder = cpOrder
+        self.destination = destination
+    }
+    func resolvedProductId() -> String { "pbm_tier_099" }
+}
+@MainActor final class EconomyDouble {
+    func recordCheckoutResult(productId: String, orderId: String, success: Bool) {}
 }
 @MainActor final class BillingDouble {
     var originals: [String: PayRequest] = [:]
@@ -83,27 +91,12 @@ struct PayRequest {
     func hasUnresolvedOrder(for request: PayRequest?) -> Bool { retained.contains(request?.cpOrder ?? "") }
     func retryOriginal(_ request: PayRequest) { retries.append(request.cpOrder) }
 }
-@MainActor final class WebViewDouble {
-    var activeOrder: String?
-    var begins: [String] = []
-    var ends: [String] = []
-    func beginGameOrderCheckout(_ order: String) -> Bool {
-        guard activeOrder == nil else { return false }
-        activeOrder = order
-        begins.append(order)
-        return true
-    }
-    func endGameOrderCheckout(_ order: String) {
-        ends.append(order)
-        if activeOrder == order { activeOrder = nil }
-    }
-}
 enum PaymentDebugLog { static func record(_ message: String) {} }
 
 @MainActor final class GameViewController {
     let billing = BillingDouble()
+    let economy = EconomyDouble()
     let paymentGate = PaymentRequestGate()
-    let webView = WebViewDouble()
     var viewIfLoaded: ViewDouble? = ViewDouble()
     var presentedViewController: ControllerDouble?
     weak var paymentRetryAlert: UIAlertController?
@@ -122,20 +115,22 @@ enum PaymentDebugLog { static func record(_ message: String) {} }
         presentations += 1
     }
     func showToast(_ message: String, duration: Double = 0) { toasts.append(message) }
-    func hideToast() {}
+    func dismissToast() {}
     func showPaymentProgress(_ request: PayRequest, message: String) { progress.append(request.cpOrder) }
     func showCurrentPaymentProgress() { progress.append("current") }
     func refreshPaymentWaitControl() {}
-    // Content routing is exercised by the content configuration tests.
     func reconcileContentRouteWhenAvailable() {}
     func paymentSubject(_ request: PayRequest?) -> String { request.map { "「\($0.cpOrder)」：" } ?? "" }
     func paymentFields(_ request: PayRequest?, code: String, message: String) -> String { code }
     func callH5(_ method: String, fields: String) { callbacks.append((method, fields)) }
+    func sendPaymentResult(_ method: String, request: PayRequest?, fields: String) { callbacks.append((method, fields)) }
+    func canPresentPaymentResult(_ request: PayRequest?) -> Bool { paymentGate.canPresent(request?.cpOrder) }
+    func pearlOffer(for request: PayRequest?) -> Int? { nil }
     func offer(_ request: PayRequest) { offerOriginalOrderRetry(for: request) }
     func display(_ code: String, retained: Bool) -> String {
         paymentDisplayMessage(code: code, fallback: "fallback", hasRetainedOrder: retained)
     }
-    /*__PRODUCTION_METHODS__*/
+    
 }
 
 @main struct PresentationTests {
@@ -162,7 +157,6 @@ enum PaymentDebugLog { static func record(_ message: String) {} }
     }
     @MainActor static func assertNoRetry(_ game: GameViewController) {
         check(game.billing.retries.isEmpty, "A stale or canceled intent must never retry Apple purchase")
-        check(game.webView.begins.isEmpty, "A rejected continuation must not acquire the web checkout")
     }
     @MainActor static func main() {
         run("wait for dismissal, then retry original exactly once") { game, original in
@@ -177,7 +171,7 @@ enum PaymentDebugLog { static func record(_ message: String) {} }
             alert.completeDismissal()
             duplicateCompletion?()
             check(game.billing.retries == [original.cpOrder], "Only one original-order retry")
-            check(game.webView.begins == [original.cpOrder], "Only one web checkout acquisition")
+            check(!game.paymentGate.tryStart("new-B"), "Original retry owns the shared checkout gate")
             check(game.paymentRetryOrder.isEmpty && game.paymentRetryAlert == nil, "Consume dialog intent")
             check(game.billing.retained.contains(original.cpOrder), "UI must not erase original")
         }
@@ -255,14 +249,14 @@ enum PaymentDebugLog { static func record(_ message: String) {} }
                 assertNoRetry(game)
             }
         }
-        run("another web checkout remains locked to its owner") { game, original in
+        run("another adapter checkout remains locked to its owner") { game, original in
             let alert = presented(game, original)
             alert.select("繼續這筆付款")
-            game.webView.activeOrder = "new-B"
+            _ = game.paymentGate.tryStart("new-B")
             alert.completeDismissal()
             assertNoRetry(game)
-            check(game.webView.activeOrder == "new-B", "Do not unlock another PHP order")
-            check(game.paymentGate.tryStart("new-B"), "Failed web gate must release our native attempt")
+            check(game.paymentGate.canPresent("new-B"), "Keep the other adapter as checkout owner")
+            check(!game.paymentGate.tryStart("new-C"), "Do not release another adapter checkout")
         }
         run("stale completion cannot clear a newer retry dialog") { game, original in
             let old = presented(game, original)
@@ -304,40 +298,36 @@ enum PaymentDebugLog { static func record(_ message: String) {} }
         }
         run("sheet interruption preserves pending callback without purchase or modal") { game, original in
             _ = game.paymentGate.tryStart(original.cpOrder)
-            game.webView.activeOrder = original.cpOrder
             game.onError(original, code: "APP_STORE_SHEET_INTERRUPTED", message: "sheet unknown")
             DispatchQueue.main.drain()
             check(game.callbacks.first?.0 == "onPayPending", "Uncertain original is pending, not canceled/failed")
             check(game.presentations == 0, "Interruption must not auto-offer another purchase")
             check(game.toasts.last?.contains("不會自動重新付款") == true, "State recovery clearly")
-            check(game.webView.activeOrder == nil, "Apple completion releases web checkout")
             check(game.paymentGate.tryStart("new-B"), "Release native checkout for another product")
             check(game.billing.retained.contains(original.cpOrder), "Release is not deleting original")
             assertNoRetry(game)
         }
         run("error cannot release still-active Apple sheet") { game, original in
-            game.webView.activeOrder = original.cpOrder
             game.billing.checkoutBlockingMessage = "busy"
             game.onError(original, code: "APP_STORE_SHEET_INTERRUPTED", message: "unknown")
-            check(game.webView.activeOrder == original.cpOrder, "Real Apple lifetime owns the web lock")
+            check(game.billing.checkoutBlockingMessage == "busy", "UI error cannot release the Apple checkout lock")
             game.billing.checkoutBlockingMessage = nil
             game.onCheckoutReleased(original)
-            check(game.webView.activeOrder == nil, "Release only at real checkout completion")
+            check(game.billing.retained.contains(original.cpOrder), "Checkout completion keeps the undelivered order")
             check(!game.toasts.contains(where: { $0.contains("已到帳") }), "Release is not delivery")
         }
         run("old callback cannot overwrite or unlock a new product checkout") { game, original in
             _ = game.paymentGate.tryStart("new-B")
-            game.webView.activeOrder = "new-B"
+            _ = game.paymentGate.tryStart("new-B")
             game.onError(original, code: "APP_STORE_SHEET_INTERRUPTED", message: "old result")
             game.onCheckoutReleased(original)
             check(game.toasts.isEmpty, "No old toast covering current progress")
-            check(game.webView.activeOrder == "new-B", "Preserve current web order")
+            check(game.paymentGate.canPresent("new-B"), "Preserve current adapter owner")
             check(!game.paymentGate.tryStart("new-C"), "Preserve current native order")
         }
         run("public cancellation with no original clears result without recovery warning") { game, original in
             game.billing.retained.removeAll()
             _ = game.paymentGate.tryStart(original.cpOrder)
-            game.webView.activeOrder = original.cpOrder
             game.onCancel(original)
             game.onCheckoutReleased(original)
             DispatchQueue.main.drain()
@@ -345,7 +335,7 @@ enum PaymentDebugLog { static func record(_ message: String) {} }
             check(game.toasts.last?.contains("付款視窗已關閉") == true, "Use a neutral closed-sheet result")
             check(game.toasts.last?.contains("已保留") == false, "Do not invent retained orders")
             check(game.toasts.last?.contains("未扣款") == false, "Do not assert bank state")
-            check(game.paymentGate.tryStart("new-B") && game.webView.activeOrder == nil, "Next product can proceed")
+            check(game.paymentGate.tryStart("new-B"), "Next product can proceed")
             check(game.presentations == 0, "No cancellation retry loop")
             assertNoRetry(game)
         }

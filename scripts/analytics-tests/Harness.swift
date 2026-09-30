@@ -1,6 +1,5 @@
 import Foundation
 
-// Shadow Foundation.UserDefaults so tests cannot affect app or host state.
 final class UserDefaults {
     static let standard = UserDefaults()
     var values: [String: Any] = [:]

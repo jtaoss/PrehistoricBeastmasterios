@@ -6,8 +6,6 @@ private final class RejectHTTPRedirects: NSObject, URLSessionTaskDelegate {
                     willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest,
                     completionHandler: @escaping (URLRequest?) -> Void) {
-        // Auth credentials and StoreKit order identity must never be replayed to
-        // a redirect destination. Production API URLs must be canonical.
         completionHandler(nil)
     }
 }
@@ -23,9 +21,6 @@ enum SecureAPIURLSession {
     }()
 }
 
-/// Authentication for the bundled Emberwild mini-game. Credentials are sent
-/// only to the configured HTTPS API and are never written to WebKit storage,
-/// UserDefaults or logs. Tokens are kept in the iOS Keychain.
 final class MiniGameAuthService {
     struct PaymentIdentity {
         let playerId: String
@@ -60,13 +55,21 @@ final class MiniGameAuthService {
 
     private let sessionAccount = "emberwild-session-v1"
     private let deviceAccount = "emberwild-device-v1"
+    private let deletionCleanupAccount = "emberwild-deletion-cleanup-v1"
     private let keychainService = "\(ShellConfig.bundleId).emberwild.auth"
+    private let cleanupDefaultsKey = "emberwild.accountDeletion.cleanupRequired"
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
     var isConfigured: Bool { Self.approvedBaseURL() != nil }
 
+    var currentPlayerID: String? {
+        guard !deletionCleanupRequired else { return nil }
+        return loadSession()?.playerId
+    }
+
     func status() async throws -> JSONObject {
+        if deletionCleanupRequired { return deletionResult() }
         guard isConfigured else {
             throw AuthError.message(code: "AUTH_NOT_CONFIGURED", message: "帳號服務尚未完成設定")
         }
@@ -77,6 +80,7 @@ final class MiniGameAuthService {
     }
 
     func login(account: String, password: String) async throws -> JSONObject {
+        try requireDeletionCleanupFinished()
         guard let account = Self.normalizedAccount(account), (8...128).contains(password.count) else {
             throw AuthError.message(code: "INVALID_CREDENTIALS", message: "帳號或密碼格式不正確")
         }
@@ -89,6 +93,7 @@ final class MiniGameAuthService {
     }
 
     func register(account rawAccount: String, password: String, nickname: String, acceptedTermsVersion: String) async throws -> JSONObject {
+        try requireDeletionCleanupFinished()
         guard let account = Self.normalizedAccount(rawAccount) else {
             throw AuthError.message(code: "INVALID_ACCOUNT", message: "帳號須為 6–24 位英文字母、數字或底線")
         }
@@ -120,18 +125,21 @@ final class MiniGameAuthService {
     }
 
     func logout() async throws -> JSONObject {
+        try requireDeletionCleanupFinished()
         let session = loadSession()
-        defer { deleteSession() }
         if let session, session.refreshExpiresAt > Self.now() {
             var payload = commonPayload()
             payload.put("refresh_token", session.refreshToken)
-            // A network/server failure must not trap a player in a local account.
             _ = try? await request(path: "logout", payload: payload, bearer: session.accessToken)
+        }
+        guard deleteSession() else {
+            throw AuthError.message(code: "SECURE_STORAGE_FAILED", message: "無法清除登入狀態，請重試退出")
         }
         return publicResult(nil)
     }
 
     func deleteAccount() async throws -> JSONObject {
+        if deletionCleanupRequired { return deletionResult() }
         guard let session = try await validSession(requiredLifetime: 90) else {
             throw AuthError.message(code: "LOGIN_REQUIRED", message: "登入已過期，請重新登入後再刪除帳號")
         }
@@ -141,11 +149,48 @@ final class MiniGameAuthService {
         guard response.jsonObject("data")?.bool("deleted") == true else {
             throw AuthError.message(code: "ACCOUNT_DELETE_REJECTED", message: "帳號尚未刪除，請稍後再試")
         }
+        UserDefaults.standard.set(true, forKey: cleanupDefaultsKey)
+        let recorded = saveKeychain(Data([1]), account: deletionCleanupAccount)
         deleteSession()
+        guard recorded else {
+            throw AuthError.message(code: "ACCOUNT_DELETED_CLEANUP_REQUIRED",
+                                    message: "帳號已刪除，請繼續清除此裝置上的遊戲資料")
+        }
+        return deletionResult()
+    }
+
+    func completeDeletionCleanup() throws -> JSONObject {
+        guard deletionCleanupRequired else { return publicResult(loadSession()) }
+        guard deleteSession() else {
+            throw AuthError.message(code: "ACCOUNT_CLEANUP_REQUIRED", message: "登入資料尚未清除，請重試")
+        }
+        let result = SecItemDelete(keychainQuery(account: deletionCleanupAccount) as CFDictionary)
+        guard result == errSecSuccess || result == errSecItemNotFound else {
+            throw AuthError.message(code: "ACCOUNT_CLEANUP_REQUIRED", message: "本機資料清理尚未完成，請重試")
+        }
+        UserDefaults.standard.removeObject(forKey: cleanupDefaultsKey)
         return publicResult(nil)
     }
 
+    private var deletionCleanupRequired: Bool {
+        UserDefaults.standard.bool(forKey: cleanupDefaultsKey) || readKeychain(account: deletionCleanupAccount) != nil
+    }
+
+    private func deletionResult() -> JSONObject {
+        var result = publicResult(nil)
+        result.put("accountDeleted", true)
+        result.put("cleanupRequired", true)
+        return result
+    }
+
+    private func requireDeletionCleanupFinished() throws {
+        guard !deletionCleanupRequired else {
+            throw AuthError.message(code: "ACCOUNT_CLEANUP_REQUIRED", message: "請先完成已刪除帳號的本機資料清理")
+        }
+    }
+
     func paymentIdentity() async throws -> PaymentIdentity {
+        try requireDeletionCleanupFinished()
         guard isConfigured else {
             throw AuthError.message(code: "AUTH_NOT_CONFIGURED", message: "帳號服務尚未完成設定")
         }
@@ -274,8 +319,10 @@ final class MiniGameAuthService {
         return value
     }
 
-    private func deleteSession() {
-        SecItemDelete(keychainQuery(account: sessionAccount) as CFDictionary)
+    @discardableResult
+    private func deleteSession() -> Bool {
+        let result = SecItemDelete(keychainQuery(account: sessionAccount) as CFDictionary)
+        return result == errSecSuccess || result == errSecItemNotFound
     }
 
     private func deviceId() -> String {

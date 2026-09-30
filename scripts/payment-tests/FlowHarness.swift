@@ -1,7 +1,5 @@
 import Foundation
 
-// Test-only stand-ins. This file is not part of the iOS target. In particular,
-// UserDefaults and PaymentDebugLog below never touch the user's preferences/logs.
 final class UserDefaults {
     static let standard = UserDefaults()
     var values: [String: String] = [:]
@@ -32,7 +30,10 @@ enum ShellText {
     static func firstNonBlank(_ values: String...) -> String { values.first(where: { !$0.isEmpty }) ?? "" }
     static func sha256Hex(_ value: String) -> String { String(repeating: "0", count: 64) }
 }
+enum PaymentDestination { case localAssets, webActions, remoteTicket }
 struct PayRequest {
+    let destination: PaymentDestination
+    let resultAccountId: String
     let rawJSON: String
     let cpOrder: String
     var price: String { resolvedProductId() == "pbm_tier_499" ? "4.99" : "0.99" }
@@ -43,6 +44,7 @@ struct PayRequest {
     let channel = "channel-test"
     let goodsId: Int
     let productId: String
+    let callbackRequestId: String
     init(json: String) throws {
         rawJSON = json
         let parts = json.components(separatedBy: "|")
@@ -52,8 +54,28 @@ struct PayRequest {
         goodsId = parts.count > 3 ? Int(parts[3]) ?? 0 : 1
         productId = parts.count > 4 ? parts[4] : "pbm_tier_099"
         serverId = parts.count > 5 ? parts[5] : "server-test"
+        switch parts.count > 6 ? parts[6] : "" {
+        case "localAssets": destination = .localAssets
+        case "remoteTicket": destination = .remoteTicket
+        default: destination = .webActions
+        }
+        resultAccountId = parts.count > 7 ? parts[7] : username
+        callbackRequestId = parts.count > 8 ? parts[8] : ""
     }
     func resolvedProductId() -> String { productId }
+}
+final class BridgeCheckoutVault {
+    static var tokens: [String: String] = [:]
+    func read(orderId: String) -> String? { Self.tokens[orderId] }
+    @discardableResult func save(_ token: String, orderId: String) -> Bool {
+        guard !orderId.isEmpty, !token.isEmpty else { return false }
+        Self.tokens[orderId] = token
+        return true
+    }
+    @discardableResult func delete(orderId: String) -> Bool {
+        Self.tokens.removeValue(forKey: orderId)
+        return true
+    }
 }
 enum ProductCatalog {
     static let allProductIds = ["pbm_tier_099", "pbm_tier_499", "pbm_tier_4999"]
@@ -83,7 +105,13 @@ enum VerificationResult<T> {
     init(productID: String, id: UInt64, token: UUID?) {
         self.productID = productID; self.id = id; self.appAccountToken = token
     }
-    static var updates: AsyncStream<VerificationResult<Transaction>> { AsyncStream { $0.finish() } }
+    static var updates: AsyncStream<VerificationResult<Transaction>> {
+        Harness.updateReads += 1
+        return AsyncStream {
+            if Harness.holdUpdates { Harness.updateContinuation = $0 }
+            else { $0.finish() }
+        }
+    }
     static var unfinished: AsyncStream<VerificationResult<Transaction>> {
         Harness.unfinishedReads += 1
         let values = Harness.unfinished
@@ -141,6 +169,13 @@ enum VerificationResult<T> {
     }
 }
 @MainActor final class BackendGateway {
+    static let shared = BackendGateway()
+    struct BridgePaymentAuthorization {
+        let checkoutToken: String
+        let orderId: String
+        let productId: String
+        let appAccountToken: UUID
+    }
     struct OrderStatus {
         let orderId: String
         let cpOrder: String
@@ -158,12 +193,14 @@ enum VerificationResult<T> {
         guard let value = Harness.orderStatus else { throw URLError(.cannotConnectToHost) }
         return value
     }
-    enum GatewayError: Error {
+    enum GatewayError: LocalizedError {
         case message(code: String, message: String)
         var code: String { switch self { case .message(let code, _): return code } }
+        var errorDescription: String? { switch self { case .message(_, let message): return message } }
     }
     struct Order { let orderId: String; let productId: String; let appAccountToken: UUID }
     var isPurchaseConfirmationConfigured: Bool { true }
+    var isBridgeConfigured: Bool { true }
     func createPlayOrder(_ request: PayRequest) async throws -> Order {
         Harness.events.append("order")
         Harness.orderHook?()
@@ -186,7 +223,20 @@ enum VerificationResult<T> {
         }
         return (Harness.consume, "test result")
     }
+    func confirmBridgePurchase(checkoutToken: String, signedTransaction: String,
+                               productId: String, transactionId: String) async throws -> (consume: Bool, message: String) {
+        precondition(checkoutToken == Harness.bridgeCheckoutToken, "Wrong bridge checkout capability")
+        return try await confirmPurchase(sdkOrderId: Harness.bridgeOrderId, signedTransaction: signedTransaction,
+                                         productId: productId, transactionId: transactionId)
+    }
+    func bridgeOrderStatus(checkoutToken: String, cpOrder: String) async throws -> OrderStatus {
+        precondition(checkoutToken == Harness.bridgeCheckoutToken, "Wrong bridge checkout capability")
+        return try await orderStatus(sdkOrderId: cpOrder)
+    }
 }
+typealias BillingService = BackendGateway
+typealias BillingError = BackendGateway.GatewayError
+typealias OrderStatus = BackendGateway.OrderStatus
 @MainActor final class Listener: StoreKitManager.Listener {
     func onPaymentProgress(_ request: PayRequest?, message: String) { Harness.progress.append(message) }
     func onCheckoutStarted(_ request: PayRequest, _ productInfo: StoreKitManager.ProductInfo) { Harness.events.append("checkout") }
@@ -247,11 +297,17 @@ enum VerificationResult<T> {
     static var distinctOrders = false
     static var successOrders: [String] = []
     static var releasedCheckouts: [String] = []
+    static var updateReads = 0
+    static var holdUpdates = false
+    static var updateContinuation: AsyncStream<VerificationResult<Transaction>>.Continuation?
+    static let bridgeCheckoutToken = String(repeating: "b", count: 48)
+    static var bridgeOrderId = "bridge-order"
 
     static func run(_ name: String, requestJSON: String = "test-cp-order", expected: [String], fastRecovery: Bool = false, preflightTimeout: TimeInterval = 8, after: (StoreKitManager) async throws -> Void = { _ in }, configure: (StoreKitManager) -> Void = { _ in }) async throws {
         events = []; queryCount = 0; queryMode = "valid"; backendMode = "valid"
         purchaseMode = "cancel"; confirmFails = false; queryHook = nil; orderHook = nil
         unfinished = []; UserDefaults.standard.values = [:]; UserDefaults.standard.rejectWrites = false
+        BridgeCheckoutVault.tokens = [:]
         for continuation in unfinishedContinuations { continuation.finish() }
         unfinishedContinuations = []; holdUnfinished = false; unfinishedReads = 0
         transactionAccountToken = serverToken; consume = true; confirmedOrder = ""
@@ -277,8 +333,6 @@ enum VerificationResult<T> {
         precondition(paymentGate.tryStart(initial.cpOrder))
         manager.launch(initial)
         let deadline = Date().addingTimeInterval(5)
-        // Give a cancelled in-flight call a chance to return even if destroy()
-        // has already cleared the manager's public processing state.
         repeat { try await Task.sleep(nanoseconds: 10_000_000) }
         while manager.isProcessingPayment && Date() < deadline
         precondition(!manager.isProcessingPayment, "Timed out: \(name)")
@@ -332,7 +386,6 @@ enum VerificationResult<T> {
     }
 
     static func replaceSavedContext(_ saved: [String: Any]) {
-        // Explicit fault/race injection into the new order-keyed journal.
         let order = saved["sdkOrderId"] as! String
         let data = try! JSONSerialization.data(withJSONObject: [order: saved])
         UserDefaults.standard.values["ios_purchase_contexts_v2"] = String(decoding: data, as: UTF8.self)
@@ -448,6 +501,7 @@ enum VerificationResult<T> {
     }
 
     static func main() async throws {
+        try await billingCoreTests()
         try await orderIsolationTests()
         try await checkoutResilienceTests()
         try await preflightDeadlineTests()
@@ -575,7 +629,7 @@ enum VerificationResult<T> {
             manager.launch(try PayRequest(json: "second-cp-order"))
             try await waitForIdle(manager)
         }) { _ in queryMode = "empty" }
-        try await run("completed journal cannot hide a different signed account", expected: ["query", "order", "checkout", "purchase", "confirm", "success", "finish", "PURCHASE_CONTEXT_MISSING"], after: { manager in
+        try await run("completed journal cannot accept a different signed account", expected: ["query", "order", "checkout", "purchase", "confirm", "success", "finish", "PURCHASE_CONTEXT_MISSING"], after: { manager in
             transactionAccountToken = UUID(uuidString: "11223344-5566-8778-899A-BBCCDDEEFF00")
             unfinished = [.verified(Transaction(productID: "pbm_tier_099"))]
             await manager.resumePurchases()
@@ -1126,8 +1180,6 @@ enum VerificationResult<T> {
         try await run("persisted in-flight retry cannot restart the five-attempt budget", expected: initial + ["confirm", "DELIVERY_RETRY_EXHAUSTED"], fastRecovery: true, after: { manager in
             manager.destroy()
             var saved = savedContext()
-            // Simulate a crash after the fourth retry counter was persisted,
-            // while its HTTP request had not returned to the application.
             saved["deliveryRetryCount"] = 4
             saved["deliveryRetryAt"] = recoveryTime
             let data = try JSONSerialization.data(withJSONObject: saved)

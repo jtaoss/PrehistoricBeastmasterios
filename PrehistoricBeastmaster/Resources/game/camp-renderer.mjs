@@ -25,14 +25,11 @@ export class CampRenderer extends Painter{
   c.setTransform(this.dpr,0,0,this.dpr,0,0);c.fillStyle='#1c382d';c.fillRect(0,0,this.w,this.h);c.scale(this.scale,this.scale);c.translate(-this.camera.x,-this.camera.y);
   if(this.bg.complete&&this.bg.naturalWidth)c.drawImage(this.bg,0,0,2000,1700);else{c.fillStyle='#6d8048';c.fillRect(0,0,2000,1700);}
   c.fillStyle='#12352a3d';c.fillRect(0,0,2000,1700);
-  // Worn paths connect landmarks in both axes; no side-scrolling ground line.
   for(const site of CAMP_SITES){line(c,[[960,960],[(site.x+960)/2,960],[site.x,site.y+110]],'#ada47334',73);line(c,[[960,960],[(site.x+960)/2,960],[site.x,site.y+110]],'#cab68726',48);}
   for(let i=0;i<(this.reduced?35:100);i++){const x=180+i*173%1620,y=200+i*97%1350;oval(c,x,y,3+i%4,1.7,'#d5c38a33');}
   for(let i=0;i<34;i++){const x=170+i*283%1660,y=180+i*397%1350;if(CAMP_SITES.some(s=>Math.hypot(s.x-x,s.y-y)<165)||Math.hypot(x-960,y-960)<220)continue;drawSprite(c,i%4?'ferns':'rocks',x,y,{height:i%4?32+i%3*6:55,width:90,flip:!!(i%2)});}
   const pond={x:420,y:400};oval(c,pond.x,pond.y,132,83,'#57745d');oval(c,pond.x,pond.y-6,118,71,'#4a8a83');oval(c,pond.x-12,pond.y-9,85,50,'#72a59166');for(let i=0;i<5;i++){c.beginPath();c.ellipse(pond.x,pond.y,25+i*16+Math.sin(t+i)*3,10+i*10,0,0,Math.PI*2);c.strokeStyle='#b7d6b247';c.stroke();}
   const objects=CAMP_SITES.map(s=>({y:s.y,draw:()=>this.site(s,state,t)}));
-  // Residents follow purposeful walking routes, pause at work points and yield
-  // to the player. The merchant stays at the stall, not duplicated in a loop.
   for(const actor of this.residents.snapshot())objects.push({y:actor.y,draw:()=>this.residentActor(actor,t,state.camp.tasks?.[actor.type])});
   const forge=state.camp.buildings.find(b=>b.type==='forge'),workSite=forge?CAMP_SITES.find(s=>s.slot===forge.slot):{x:720,y:790};
   const smith={x:workSite.x+100,y:workSite.y+85};objects.push({y:smith.y,draw:()=>this.resident(smith.x,smith.y,t,1)});

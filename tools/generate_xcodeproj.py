@@ -21,26 +21,44 @@ SWIFT_FILES = [
     "LocalStoreKitBootstrap.swift",
     "SplashViewController.swift",
     "GameViewController.swift",
+    "GameActivityWebViewController.swift",
+    "GameShopViewController.swift",
     "PrivacyPolicyViewController.swift",
+    "Config/NetworkTransport.swift",
+    "Config/ServiceEndpoints.swift",
     "Config/ShellConfig.swift",
     "Config/JSONObject.swift",
+    "Portal/GameModule.swift",
+    "Portal/ModuleCatalogParser.swift",
+    "Portal/ModuleCatalogService.swift",
+    "Portal/ModuleSession.swift",
+    "Portal/ModuleDockView.swift",
+    "Portal/ModuleContainerController.swift",
     "Payment/PayRequest.swift",
-    "Payment/BackendGateway.swift",
+    "Payment/BillingService.swift",
     "Payment/StoreKitManager.swift",
-    "Content/ContentConfig.swift",
+    "Auth/MiniGameAuthService.swift",
+    "Web/LocalMusicPlayer.swift",
+    "Payment/PaymentDiagnosticsViewController.swift",
+    "Payment/AppStoreBillingService.swift",
+    "Payment/LocalAssetSyncManager.swift",
+    "Payment/WebActionSyncHandler.swift",
+    "Payment/Config.swift",
     "Analytics/Analytics.swift",
-    "Web/InjectedScripts.swift",
-    "Web/GameAPIProxy.swift",
-    "Web/GameOrderEndpointRouter.swift",
+    "Analytics/TelemetryEvent.swift",
+    "Analytics/TelemetryProvider.swift",
+    "Analytics/TelemetryTracker.swift",
+    "Analytics/GameEconomyManager.swift",
+    "Web/PageScripts.swift",
     "Web/TrustedWebView.swift",
 ]
 
 PRODUCTS = [
-    ("pbm_tier_099", "0.99", "Tier 0.99"),
+    ("pbm_tier_099", "0.99", "60 Primal Pearls"),
     ("pbm_tier_199", "1.99", "Tier 1.99"),
     ("pbm_tier_299", "2.99", "Tier 2.99"),
     ("pbm_tier_399", "3.99", "Tier 3.99"),
-    ("pbm_tier_499", "4.99", "Tier 4.99"),
+    ("pbm_tier_499", "4.99", "350 Primal Pearls + Limited Dinosaur Skin"),
     ("pbm_tier_999", "9.99", "Tier 9.99"),
     ("pbm_tier_1499", "14.99", "Tier 14.99"),
     ("pbm_tier_1999", "19.99", "Tier 19.99"),
@@ -108,6 +126,7 @@ def write_pbxproj() -> None:
         "storekit": uid(),
         "game_folder": uid(),
         "js_folder": uid(),
+        "legal_folder": uid(),
         "shared_xc": uid(),
         "debug_xc": uid(),
         "release_xc": uid(),
@@ -121,6 +140,7 @@ def write_pbxproj() -> None:
         "privacy_build": uid(),
         "game_build": uid(),
         "js_build": uid(),
+        "legal_build": uid(),
         "facebook_package": uid(),
         "firebase_package": uid(),
         "facebook_core_product": uid(),
@@ -226,6 +246,7 @@ def write_pbxproj() -> None:
 \t\t{ids['privacy_build']} /* PrivacyInfo.xcprivacy in Resources */ = {{isa = PBXBuildFile; fileRef = {ids['privacy']} /* PrivacyInfo.xcprivacy */; }};
 \t\t{ids['game_build']} /* game in Resources */ = {{isa = PBXBuildFile; fileRef = {ids['game_folder']} /* game */; }};
 \t\t{ids['js_build']} /* js in Resources */ = {{isa = PBXBuildFile; fileRef = {ids['js_folder']} /* js */; }};
+\t\t{ids['legal_build']} /* legal in Resources */ = {{isa = PBXBuildFile; fileRef = {ids['legal_folder']} /* legal */; }};
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -236,8 +257,9 @@ def write_pbxproj() -> None:
 \t\t{ids['info']} /* Info.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = \"<group>\"; }};
 \t\t{ids['privacy']} /* PrivacyInfo.xcprivacy */ = {{isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = \"<group>\"; }};
 \t\t{ids['storekit']} /* Products.storekit */ = {{isa = PBXFileReference; lastKnownFileType = text.json; path = Products.storekit; sourceTree = \"<group>\"; }};
-\t\t{ids['game_folder']} /* game */ = {{isa = PBXFileReference; lastKnownFileType = folder; path = game; sourceTree = \"<group>\"; }};
+\t\t{ids['game_folder']} /* game */ = {{isa = PBXFileReference; lastKnownFileType = folder; path = \"game\"; sourceTree = \"<group>\"; }};
 \t\t{ids['js_folder']} /* js */ = {{isa = PBXFileReference; lastKnownFileType = folder; path = js; sourceTree = \"<group>\"; }};
+\t\t{ids['legal_folder']} /* legal */ = {{isa = PBXFileReference; lastKnownFileType = folder; path = legal; sourceTree = \"<group>\"; }};
 \t\t{ids['shared_xc']} /* Shared.xcconfig */ = {{isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = \"<group>\"; }};
 \t\t{ids['debug_xc']} /* Debug.xcconfig */ = {{isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = \"<group>\"; }};
 \t\t{ids['release_xc']} /* Release.xcconfig */ = {{isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = \"<group>\"; }};
@@ -296,6 +318,7 @@ def write_pbxproj() -> None:
 \t\t\tchildren = (
 \t\t\t\t{ids['game_folder']} /* game */,
 \t\t\t\t{ids['js_folder']} /* js */,
+\t\t\t\t{ids['legal_folder']} /* legal */,
 \t\t\t);
 \t\t\tpath = Resources;
 \t\t\tsourceTree = \"<group>\";
@@ -381,6 +404,7 @@ def write_pbxproj() -> None:
 \t\t\t\t{ids['privacy_build']} /* PrivacyInfo.xcprivacy in Resources */,
 \t\t\t\t{ids['game_build']} /* game in Resources */,
 \t\t\t\t{ids['js_build']} /* js in Resources */,
+\t\t\t\t{ids['legal_build']} /* legal in Resources */,
 {google_services_resource}
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
@@ -440,7 +464,7 @@ def write_pbxproj() -> None:
 \t\t\tbuildSettings = {{
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
-\t\t\t\tCURRENT_PROJECT_VERSION = 17;
+\t\t\t\tCURRENT_PROJECT_VERSION = 52;
 \t\t\t\tFRAMEWORK_SEARCH_PATHS = \"$(inherited) $(PLATFORM_DIR)/Developer/Library/Frameworks\";
 \t\t\t\tGENERATE_INFOPLIST_FILE = NO;
 \t\t\t\tINFOPLIST_FILE = PrehistoricBeastmaster/Info.plist;
@@ -467,7 +491,7 @@ def write_pbxproj() -> None:
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tCODE_SIGN_IDENTITY = \"Apple Distribution\";
 \t\t\t\tCODE_SIGN_STYLE = Manual;
-\t\t\t\tCURRENT_PROJECT_VERSION = 17;
+\t\t\t\tCURRENT_PROJECT_VERSION = 52;
 \t\t\t\tDEVELOPMENT_TEAM = ADR4GMT9V3;
 \t\t\t\tGENERATE_INFOPLIST_FILE = NO;
 \t\t\t\tINFOPLIST_FILE = PrehistoricBeastmaster/Info.plist;

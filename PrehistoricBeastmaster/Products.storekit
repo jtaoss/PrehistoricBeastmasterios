@@ -1,34 +1,42 @@
 {
-  "appPolicies": {
-    "eula": "",
-    "policies": []
-  },
-  "identifier": "A1219808-31E8-414A-9E7D-8E87A39ECFA9",
+  "identifier": "12EB1E67-B758-460C-9AB3-F6849A684B5F",
   "nonRenewingSubscriptions": [],
   "products": [
     {
       "displayPrice": "0.99",
       "familyShareable": false,
-      "internalID": "7FD8782C-26DF-4B55-9FB9-759BE9A33D07",
+      "internalID": "FA81F92D-7F76-4CED-9BCE-E9BEC98D94C7",
       "localizations": [
         {
-          "description": "Tier 0.99",
-          "displayName": "Tier 0.99",
+          "description": {
+            "value": "60 Primal Pearls",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "60 Primal Pearls",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
       "productID": "pbm_tier_099",
-      "referenceName": "Tier 0.99",
+      "referenceName": "60 Primal Pearls",
       "type": "Consumable"
     },
     {
       "displayPrice": "1.99",
       "familyShareable": false,
-      "internalID": "CBA51309-AC17-40BC-A956-336A9F8ACA62",
+      "internalID": "DB58614D-10DD-4C35-A586-3EEA463E3E23",
       "localizations": [
         {
-          "description": "Tier 1.99",
-          "displayName": "Tier 1.99",
+          "description": {
+            "value": "Tier 1.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 1.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -39,11 +47,17 @@
     {
       "displayPrice": "2.99",
       "familyShareable": false,
-      "internalID": "A611D89E-73A9-4DB5-8D06-414B9B6DC120",
+      "internalID": "EAF7A1E6-35AB-4441-99D7-0C38F038F3BE",
       "localizations": [
         {
-          "description": "Tier 2.99",
-          "displayName": "Tier 2.99",
+          "description": {
+            "value": "Tier 2.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 2.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -54,11 +68,17 @@
     {
       "displayPrice": "3.99",
       "familyShareable": false,
-      "internalID": "141EDD97-2F8A-4C2B-9AB4-576D1E98239F",
+      "internalID": "1EC143CB-61E7-4664-BE37-BD579AECBD5E",
       "localizations": [
         {
-          "description": "Tier 3.99",
-          "displayName": "Tier 3.99",
+          "description": {
+            "value": "Tier 3.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 3.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -69,26 +89,38 @@
     {
       "displayPrice": "4.99",
       "familyShareable": false,
-      "internalID": "9B175282-E6FA-487E-9CC6-5A88563CC361",
+      "internalID": "1F2C9D84-9DA5-4FF4-A7F1-9021F531E2DF",
       "localizations": [
         {
-          "description": "Tier 4.99",
-          "displayName": "Tier 4.99",
+          "description": {
+            "value": "350 Primal Pearls + Limited Dinosaur Skin",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "350 Primal Pearls + Limited Dinosaur Skin",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
       "productID": "pbm_tier_499",
-      "referenceName": "Tier 4.99",
+      "referenceName": "350 Primal Pearls + Limited Dinosaur Skin",
       "type": "Consumable"
     },
     {
       "displayPrice": "9.99",
       "familyShareable": false,
-      "internalID": "31778A43-0E28-4998-A860-908A081EC9BA",
+      "internalID": "909FB43A-5170-43FA-814B-5EAC47EB40B5",
       "localizations": [
         {
-          "description": "Tier 9.99",
-          "displayName": "Tier 9.99",
+          "description": {
+            "value": "Tier 9.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 9.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -99,11 +131,17 @@
     {
       "displayPrice": "14.99",
       "familyShareable": false,
-      "internalID": "D1B1754C-275D-4A49-BA5A-56713DB44386",
+      "internalID": "52D2D6EF-3EDB-43A8-8C50-46E599FC79C9",
       "localizations": [
         {
-          "description": "Tier 14.99",
-          "displayName": "Tier 14.99",
+          "description": {
+            "value": "Tier 14.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 14.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -114,11 +152,17 @@
     {
       "displayPrice": "19.99",
       "familyShareable": false,
-      "internalID": "D258136B-7069-4332-A4DD-9EEAB2CF054A",
+      "internalID": "3843B886-D3BD-45CE-BB8A-B9842F9FAC53",
       "localizations": [
         {
-          "description": "Tier 19.99",
-          "displayName": "Tier 19.99",
+          "description": {
+            "value": "Tier 19.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 19.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -129,11 +173,17 @@
     {
       "displayPrice": "24.99",
       "familyShareable": false,
-      "internalID": "F0BC7027-D63F-467B-8CAF-8174D117AD94",
+      "internalID": "CE430437-79D8-4E87-96F2-AAC05A07471B",
       "localizations": [
         {
-          "description": "Tier 24.99",
-          "displayName": "Tier 24.99",
+          "description": {
+            "value": "Tier 24.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 24.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -144,11 +194,17 @@
     {
       "displayPrice": "29.99",
       "familyShareable": false,
-      "internalID": "ECE9371F-A605-43AC-A3B3-767694D6E00D",
+      "internalID": "E7C828CC-1A8C-40A6-881A-3AF3AE447F3C",
       "localizations": [
         {
-          "description": "Tier 29.99",
-          "displayName": "Tier 29.99",
+          "description": {
+            "value": "Tier 29.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 29.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -159,11 +215,17 @@
     {
       "displayPrice": "34.99",
       "familyShareable": false,
-      "internalID": "CEF7D237-BE43-4A6E-862A-F74CC8772082",
+      "internalID": "7785DF4C-C331-42F2-8616-CC996128640C",
       "localizations": [
         {
-          "description": "Tier 34.99",
-          "displayName": "Tier 34.99",
+          "description": {
+            "value": "Tier 34.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 34.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -174,11 +236,17 @@
     {
       "displayPrice": "49.99",
       "familyShareable": false,
-      "internalID": "8E4C0276-3E1F-4D2C-9E9D-AD5E170D36EB",
+      "internalID": "1FC0818A-3A48-4D30-A838-7A3A4653DD39",
       "localizations": [
         {
-          "description": "Tier 49.99",
-          "displayName": "Tier 49.99",
+          "description": {
+            "value": "Tier 49.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 49.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -189,11 +257,17 @@
     {
       "displayPrice": "59.99",
       "familyShareable": false,
-      "internalID": "F68DC3B6-9FF1-4C72-B73E-19763B731729",
+      "internalID": "3C36F5D8-5FC4-4E34-A235-57C14D081231",
       "localizations": [
         {
-          "description": "Tier 59.99",
-          "displayName": "Tier 59.99",
+          "description": {
+            "value": "Tier 59.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 59.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -204,11 +278,17 @@
     {
       "displayPrice": "89.99",
       "familyShareable": false,
-      "internalID": "7ECDC24B-4E48-4470-A8EB-163E58EF158F",
+      "internalID": "B5123985-04B6-4E7E-8A57-52CD596B5BDE",
       "localizations": [
         {
-          "description": "Tier 89.99",
-          "displayName": "Tier 89.99",
+          "description": {
+            "value": "Tier 89.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 89.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -219,11 +299,17 @@
     {
       "displayPrice": "99.99",
       "familyShareable": false,
-      "internalID": "2346932F-3AFE-42BD-A5E3-324F754B7172",
+      "internalID": "D02182E3-78E8-4C23-A02E-EAD4026FD1CA",
       "localizations": [
         {
-          "description": "Tier 99.99",
-          "displayName": "Tier 99.99",
+          "description": {
+            "value": "Tier 99.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 99.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -234,11 +320,17 @@
     {
       "displayPrice": "129.99",
       "familyShareable": false,
-      "internalID": "A07E5745-3A09-4AE7-8DC4-2825CCE6198D",
+      "internalID": "0447BAE3-43E5-4048-A4B0-1F4EE60FCE4B",
       "localizations": [
         {
-          "description": "Tier 129.99",
-          "displayName": "Tier 129.99",
+          "description": {
+            "value": "Tier 129.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 129.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -249,11 +341,17 @@
     {
       "displayPrice": "300.00",
       "familyShareable": false,
-      "internalID": "CD7AA1B2-8A2C-4E39-9446-29E515787B88",
+      "internalID": "FB85BB9E-D2DF-4883-A002-AC92A91D15D0",
       "localizations": [
         {
-          "description": "Tier 300",
-          "displayName": "Tier 300",
+          "description": {
+            "value": "Tier 300",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 300",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -264,11 +362,17 @@
     {
       "displayPrice": "500.00",
       "familyShareable": false,
-      "internalID": "424C3490-CB5C-4757-8DBE-F7B43156C1FD",
+      "internalID": "1254D7CC-1B69-42B2-AA68-BEC356C9979D",
       "localizations": [
         {
-          "description": "Tier 500",
-          "displayName": "Tier 500",
+          "description": {
+            "value": "Tier 500",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 500",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -279,11 +383,17 @@
     {
       "displayPrice": "999.99",
       "familyShareable": false,
-      "internalID": "C7F37A51-10F5-48E8-B88B-002B3B8838AA",
+      "internalID": "4E801FC3-B72E-47F7-9BFE-CFBF80B89FEA",
       "localizations": [
         {
-          "description": "Tier 999.99",
-          "displayName": "Tier 999.99",
+          "description": {
+            "value": "Tier 999.99",
+            "locale": "en_US"
+          },
+          "displayName": {
+            "value": "Tier 999.99",
+            "locale": "en_US"
+          },
           "locale": "en_US"
         }
       ],
@@ -292,98 +402,10 @@
       "type": "Consumable"
     }
   ],
-  "settings": {
-    "_askToBuyEnabled": false,
-    "_billingGracePeriodEnabled": false,
-    "_billingIssuesEnabled": false,
-    "_compatibilityTimeRate": {
-      "3": 6
-    },
-    "_disableDialogs": false,
-    "_failTransactionsEnabled": false,
-    "_locale": "en_US",
-    "_renewalBillingIssuesEnabled": false,
-    "_storefront": "USA",
-    "_storeKitErrors": [
-      {
-        "current": {
-          "index": 2,
-          "type": "generic"
-        },
-        "enabled": false,
-        "name": "Load Products"
-      },
-      {
-        "current": {
-          "index": 1,
-          "type": "purchase"
-        },
-        "enabled": false,
-        "name": "Purchase"
-      },
-      {
-        "current": {
-          "index": 0,
-          "type": "verification"
-        },
-        "enabled": false,
-        "name": "Verification"
-      },
-      {
-        "current": {
-          "index": 2,
-          "type": "generic"
-        },
-        "enabled": false,
-        "name": "App Store Sync"
-      },
-      {
-        "current": {
-          "index": 2,
-          "type": "generic"
-        },
-        "enabled": false,
-        "name": "Subscription Status"
-      },
-      {
-        "current": {
-          "index": 3,
-          "type": "generic"
-        },
-        "enabled": false,
-        "name": "App Transaction"
-      },
-      {
-        "current": {
-          "index": 3,
-          "type": "generic"
-        },
-        "enabled": false,
-        "name": "Manage Subscriptions Sheet"
-      },
-      {
-        "current": {
-          "index": 0,
-          "type": "refund request"
-        },
-        "enabled": false,
-        "name": "Refund Request Sheet"
-      },
-      {
-        "current": {
-          "index": 4,
-          "type": "generic"
-        },
-        "enabled": false,
-        "name": "Offer Code Redeem Sheet"
-      }
-    ],
-    "_timeRate": 1003
-  },
+  "settings": {},
   "subscriptionGroups": [],
   "version": {
-    "major": 6,
-    "minor": 3
+    "major": 3,
+    "minor": 0
   }
 }
-

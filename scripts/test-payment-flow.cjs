@@ -12,6 +12,8 @@ const marker = '@MainActor\nfinal class StoreKitManager';
 assert.ok(source.includes(marker));
 // Exclude only imports and the file-based debug logger, replaced by a test logger.
 const manager = source.slice(source.indexOf(marker));
+const core = fs.readFileSync(path.join(root, 'PrehistoricBeastmaster/Payment/AppStoreBillingService.swift'), 'utf8')
+  .replace(/^import .*\n/gm, '');
 const requests = fs.readFileSync(path.join(root, 'PrehistoricBeastmaster/Payment/PayRequest.swift'), 'utf8');
 const gateMarker = 'final class PaymentRequestGate';
 assert.ok(requests.includes(gateMarker));
@@ -21,21 +23,14 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'pbm-flow-tests-'));
 try {
   const swift = path.join(scratch, 'FlowTests.swift');
   const binary = path.join(scratch, 'flow-tests');
-  fs.writeFileSync(swift, fixture + '\n' + manager + '\n' + gate + '\n' +
+  fs.writeFileSync(swift, fixture + '\n' + core + '\n' + manager + '\n' + gate + '\n' +
+    fs.readFileSync(path.join(__dirname, 'payment-tests/BillingCoreTests.swift'), 'utf8') + '\n' +
     fs.readFileSync(path.join(__dirname, 'payment-tests/OrderIsolationTests.swift'), 'utf8') + '\n' +
     fs.readFileSync(path.join(__dirname, 'payment-tests/CheckoutResilienceTests.swift'), 'utf8') + '\n' +
     fs.readFileSync(path.join(__dirname, 'payment-tests/PreflightDeadlineTests.swift'), 'utf8') + '\n' +
     fs.readFileSync(path.join(__dirname, 'payment-tests/SharedRecoverySafetyTests.swift'), 'utf8'));
   execFileSync('xcrun', ['swiftc', '-swift-version', '5', '-D', 'DEBUG', '-parse-as-library', swift, '-o', binary], { stdio: 'inherit' });
   execFileSync(binary, [], { stdio: 'inherit', timeout: 30000 });
-  const gatewayBinary = path.join(scratch, 'gateway-tests');
-  execFileSync('xcrun', ['swiftc', '-swift-version', '5', '-parse-as-library',
-    path.join(__dirname, 'payment-tests/GatewayHarness.swift'),
-    path.join(root, 'PrehistoricBeastmaster/Config/JSONObject.swift'),
-    path.join(root, 'PrehistoricBeastmaster/Payment/PayRequest.swift'),
-    path.join(root, 'PrehistoricBeastmaster/Payment/BackendGateway.swift'),
-    '-o', gatewayBinary], { stdio: 'inherit' });
-  execFileSync(gatewayBinary, [], { stdio: 'inherit', timeout: 15000 });
   const diagnostics = fs.readFileSync(path.join(root, 'PrehistoricBeastmaster/Payment/PaymentDiagnosticsViewController.swift'), 'utf8');
   const start = diagnostics.indexOf('    private func run(');
   const end = diagnostics.indexOf('    private func append(', start);

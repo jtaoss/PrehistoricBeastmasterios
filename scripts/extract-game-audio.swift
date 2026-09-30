@@ -1,5 +1,3 @@
-// Usage: swift scripts/extract-game-audio.swift input.mp4 output.m4a
-// Copy the first audio track without recompressing it or changing the source file.
 import AVFoundation
 import Foundation
 import Darwin

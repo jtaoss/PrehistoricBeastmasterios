@@ -1,6 +1,9 @@
 import {installLegalLinks} from './legal-links.mjs';
 import {AccountSession} from './account-session.mjs';
+import {GuestSession} from './guest-session.mjs';
 import {NativeAccountAuth} from './native-auth.mjs';
+import {AccountDeletion} from './account-deletion.mjs';
+import {SaveStore} from './save.mjs';
 
 const TERMS_VERSION='2026-09-20';
 const ACCOUNT_PATTERN=/^[a-z0-9][a-z0-9_]{5,23}$/;
@@ -9,13 +12,27 @@ const $=id=>document.getElementById(id);
 const form=$('auth-form'),dialog=$('preview-dialog');
 let storage=null;
 try{storage=window.localStorage;}catch{}
-const accountSession=new AccountSession(storage),nativeAuth=new NativeAccountAuth(window);
+const accountSession=new AccountSession(storage),guestSession=new GuestSession(storage),nativeAuth=new NativeAccountAuth(window);
 const views={
-  login:{title:'歡迎回到營地',eyebrow:'YOUR JOURNEY CONTINUES',copy:'使用你的正式帳號繼續旅程。',action:'安全登入'},
-  register:{title:'寫下你的獵人之名',eyebrow:'EVERY LEGEND HAS A BEGINNING',copy:'建立帳號，讓身份與付款安全綁定。',action:'建立獵人帳號'},
-  recover:{title:'找回歸途的路',eyebrow:'FIND YOUR WAY HOME',copy:'輸入遊戲帳號並提交安全找回申請。',action:'提交找回申請'}
+  login:{title:'歡迎回到營地',eyebrow:'YOUR JOURNEY CONTINUES',copy:'登入聖獸營地獨立帳號；營地進度保存在本機。',action:'安全登入'},
+  register:{title:'寫下你的獵人之名',eyebrow:'EVERY LEGEND HAS A BEGINNING',copy:'建立聖獸營地帳號，用於保存塔防遊戲資料。',action:'建立獵人帳號'}
 };
-let mode='login',busy=false;
+let mode='login',busy=false,cleanupPending=false;
+const accountDeletion=new AccountDeletion({auth:nativeAuth,session:accountSession,store:new SaveStore(storage,navigator.locks||null)});
+async function resumeCleanup(){
+  cleanupPending=true;setBusy(true,'正在清理…');$('account-cleanup').hidden=false;
+  $('cleanup-retry').disabled=true;$('cleanup-message').textContent='帳號已刪除，正在清除此裝置的遊戲資料。';
+  try{
+    await accountDeletion.run({confirmed:true});cleanupPending=false;
+    $('account-cleanup').hidden=true;renderSession();
+    showDialog('聖獸營地帳號已刪除','帳號與此裝置上的營地、伙伴和遠征進度已清除。其他帳號及聲音、畫質設定不受影響。');
+  }catch(error){$('cleanup-message').textContent=error.message;}
+  finally{$('cleanup-retry').disabled=false;setBusy(cleanupPending);}
+}
+document.addEventListener('click',event=>{
+  if(cleanupPending&&!event.target.closest('#cleanup-retry')){event.preventDefault();event.stopImmediatePropagation();}
+},true);
+$('cleanup-retry').addEventListener('click',resumeCleanup);
 
 function renderSession(){
   const session=accountSession.reload();
@@ -68,7 +85,10 @@ function showDialog(title,copy,allowGame=false,destination='index.html'){
   $('dialog-game').href=destination;$('dialog-game').textContent=destination.includes('enter=camp')?'進入營地 ↗':'前往本機遊戲 ↗';
   if(!dialog.open)dialog.showModal();
 }
-const info={help:['原始文明：聖獸覺醒帳號','帳號、註冊、找回與退出均由 iOS 原生安全通道連接 HTTPS 帳號服務。密碼不會寫入遊戲存檔、localStorage 或日誌；登入令牌只保存在 iOS Keychain。訪客可試玩，但不能發起真實付款。']};
+const info={
+  help:['聖獸營地獨立帳號','此帳號僅用於塔防遊戲。登入後才能購買，訪客可先遊玩。營地進度只保存在此裝置，尚不支援雲端同步。登入後可在「帳號管理」永久刪除帳號。'],
+  recover:['密碼找回尚未開放','目前不支援自助重設密碼。請妥善保存帳號與密碼；此頁不會提交找回申請。']
+};
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>setView(button.dataset.view)));
 document.querySelectorAll('[data-info]').forEach(button=>button.addEventListener('click',()=>showDialog(...info[button.dataset.info])));
 document.querySelector('.auth-tabs').addEventListener('keydown',event=>{
@@ -92,39 +112,49 @@ form.addEventListener('submit',async event=>{
   const submittedMode=mode,account=$('account').value.trim().toLowerCase(),password=$('password').value,nickname=$('nickname').value.trim();
   setBusy(true,submittedMode==='recover'?'正在送出…':'正在安全驗證…');
   try{
-    if(submittedMode==='recover'){
-      await nativeAuth.recover(account);showDialog('找回申請已提交','如果此帳號存在且符合找回條件，系統會提供下一步安全驗證說明。為保護帳號，我們不會在此確認帳號是否存在。');
-    }else{
       const result=submittedMode==='register'
         ?await nativeAuth.register(account,password,nickname,TERMS_VERSION)
         :await nativeAuth.login(account,password);
-      const session=accountSession.accept(result);renderSession();
-      showDialog(submittedMode==='register'?'帳號已建立':'已登入遊戲',`${session.label}，安全登入已完成。令牌保存在 iOS Keychain，密碼未寫入遊戲存檔。`,true,returnToCamp?'index.html?enter=camp':'index.html');
+      const session=accountSession.accept(result);guestSession.clear();renderSession();
+      showDialog(submittedMode==='register'?'帳號已建立':'已登入遊戲',`${session.label}，已登入聖獸營地。進度保存在此裝置，尚不支援雲端同步。`,true,returnToCamp?'index.html?enter=camp':'index.html');
       $('account').value='';$('nickname').value='';
-    }
   }catch(error){showError(error?.message||'帳號服務未能完成請求。');}
   finally{$('password').value='';$('confirm').value='';setBusy(false);}
 });
 $('logout-session').addEventListener('click',async()=>{
   if(busy)return;clearError();setBusy(true,'正在退出…');
-  try{await nativeAuth.logout();accountSession.clear();renderSession();showDialog('已安全退出','本機登入令牌已清除；遊戲存檔、營地、伙伴與設定完整保留。');}
+  try{await nativeAuth.logout();accountSession.clear();renderSession();showDialog('已安全退出','已退出聖獸營地帳號；遊戲存檔、營地、伙伴與設定完整保留。');}
   catch(error){showError(error?.message||'暫時無法退出帳號。');}
   finally{setBusy(false);}
 });
-$('guest-entry').addEventListener('click',()=>showDialog('以訪客身分出發','訪客可以遊玩並保留本機進度，但不能發起真實付款。登入後才會把新訂單綁定至正式玩家 ID。',true));
+$('guest-entry').addEventListener('click',()=>{
+  if(busy)return;
+  clearError();
+  try{guestSession.start();location.href='index.html?enter=camp';}
+  catch(error){showError(error?.message||'暫時無法開始訪客試玩。');}
+});
 $('close-dialog').addEventListener('click',()=>dialog.close());$('dismiss-dialog').addEventListener('click',()=>dialog.close());
 dialog.addEventListener('click',event=>{if(event.target===dialog){const box=dialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dialog.close();}});
 
 async function refreshNativeSession(){
   if(!nativeAuth.available())return;
+  setBusy(true,'正在檢查登入…');
   try{
     const status=await nativeAuth.status();
+    if(status.accountDeleted===true&&status.cleanupRequired===true){await resumeCleanup();return;}
     if(status.authenticated){
-      const session=accountSession.accept(status);renderSession();
+      const session=accountSession.accept(status);guestSession.clear();renderSession();
       if(returnToCamp)showDialog('帳號已登入',`${session.label}，安全登入仍有效，可以直接進入營地。`,true,'index.html?enter=camp');
-    }else{accountSession.clear();renderSession();}
+    }else{
+      accountSession.clear();renderSession();
+      if(new URLSearchParams(location.search).get('status')==='account-deleted')
+        showDialog('聖獸營地帳號已刪除','帳號與此裝置上的營地、伙伴和遠征進度已清除。其他帳號及聲音、畫質設定不受影響。');
+    }
   }
-  catch(error){if(error?.code==='AUTH_NOT_CONFIGURED')$('demo-note').innerHTML='<span>等待後端設定</span> 帳號 API 尚未部署，暫不可登入或付款';}
+  catch(error){
+    if(error?.code==='AUTH_EXPIRED'||error?.code==='HTTP_401'){accountSession.clear();renderSession();}
+    showError(error?.message||'暫時無法確認登入狀態，請稍後重試。');
+  }finally{setBusy(cleanupPending);}
 }
 const requestedView=new URLSearchParams(location.search).get('view');
 installLegalLinks(document,window);setView(views[requestedView]?requestedView:'login');renderSession();$('form-fields').disabled=false;

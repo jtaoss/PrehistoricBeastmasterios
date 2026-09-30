@@ -66,27 +66,15 @@
 	<string>$(CHANNEL)</string>
 	<key>ShellWebSdkChannel</key>
 	<string>$(WEB_SDK_CHANNEL)</string>
-	<key>ShellSdkApiEndpoint</key>
-	<string>$(SDK_API_ENDPOINT)</string>
-	<key>ShellGameOrderEndpoint</key>
-	<string>$(GAME_ORDER_ENDPOINT)</string>
-	<key>ShellGameOrderPlatform</key>
-	<string>$(GAME_ORDER_PLATFORM)</string>
 	<key>ShellPayType</key>
 	<string>$(PAY_TYPE)</string>
 	<key>ShellPayChannel</key>
 	<string>$(PAY_CHANNEL)</string>
-	<key>ShellPaymentApiToken</key>
-	<string>$(PAYMENT_API_TOKEN)</string>
 	<key>ShellMiniGameOrderEndpoint</key>
 	<string>$(MINI_GAME_ORDER_ENDPOINT)</string>
 	<key>ShellMiniGameAuthBaseURL</key>
 	<string>$(MINI_GAME_AUTH_BASE_URL)</string>
-	<key>ShellContentConfigEndpoint</key>
-	<string>$(CONTENT_CONFIG_ENDPOINT)</string>
 	<key>ShellStoreKitEnabled</key>
 	<string>$(STOREKIT_ENABLED)</string>
-	<key>ShellAllowSideloadOrderHandshake</key>
-	<string>$(ALLOW_SIDELOAD_ORDER_HANDSHAKE)</string>
 </dict>
 </plist>

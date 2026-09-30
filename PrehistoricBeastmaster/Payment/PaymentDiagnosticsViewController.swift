@@ -2,11 +2,8 @@
 import StoreKit
 import UIKit
 
-/// Developer-only diagnostics. No orders, purchases, delivery, or receipt bypass.
 @MainActor
 final class PaymentDiagnosticsViewController: UIViewController {
-    // Process-wide: dismissing/reopening this panel must not start a second
-    // Apple authentication while the previous system call is still awaiting.
     private(set) static var authenticationInProgress = false
     private static let authenticationChanged = Notification.Name("PBMPaymentDiagnosticAuthenticationChanged")
     private let output = UITextView()
@@ -94,8 +91,6 @@ final class PaymentDiagnosticsViewController: UIViewController {
     }
 
     @objc private func syncStore() {
-        // Apple requires an explicit user action for AppStore.sync(): never invoke
-        // it at launch, in a product retry, or on a web callback.
         run(timeout: 90, waitsForAuthentication: true) { [weak self] id in
             guard let self else { return }
             self.append("sync-start：若出現系統登入視窗，請使用沙盒帳號")
@@ -140,7 +135,6 @@ final class PaymentDiagnosticsViewController: UIViewController {
             guard isCurrent(id) else { return }
             switch result {
             case .verified(let app):
-                // Do not log the signed payload, account IDs, or device identifiers.
                 append("app-identity-verified bundle=\(app.bundleID) appID=\(app.appID.map(String.init) ?? "not-provided") environment=\(app.environment.rawValue)")
                 append("bundleMatches=\(app.bundleID == Bundle.main.bundleIdentifier)")
             case .unverified(_, let error):
@@ -167,8 +161,6 @@ final class PaymentDiagnosticsViewController: UIViewController {
             NotificationCenter.default.post(name: Self.authenticationChanged, object: nil)
         }
         updateButtons()
-        // Keep the owner alive until the system call actually returns, even if
-        // the panel is dismissed. A Task cancellation cannot dismiss Apple UI.
         operation = Task { [self] in
             await action(id)
             guard self.isCurrent(id) else { return }

@@ -1,5 +1,3 @@
-// AI-produced transparent atlases. Original PNGs stay intact; source rectangles
-// isolate the sprites at render time. No simulation or save data lives here.
 import {preloadCharacters,characterStatus,drawCharacter} from './character-art.mjs';
 export const ATLASES={
  ranger:{file:'ranger.png',size:[1536,1024]},
@@ -40,8 +38,6 @@ const frames={
 };
 export const SPRITES={};
 for(const [sheet,names]of Object.entries({ranger:['hero-down-0','hero-down-1','hero-down-2','hero-up-0','hero-up-1','hero-up-2'],weapons:['spear','axe'],settlement:['tent','forge','cache','nursery','merchant-stall','gate'],residents:['merchant','porter','smith','hunter','guard','pet'],scenery:['campfire','broadleaf','fern-tree','rocks','ferns','fence'],cards:['card-torch','card-wall','card-nest','card-spring','card-hunter','card-guard'],egg:['sacred-egg'],amber:['amber-crystal'],enemies:['enemy-raptor','enemy-brute','enemy-spitter','enemy-boss'],bosses:['enemy-matriarch','enemy-charger']}))names.forEach((name,i)=>SPRITES[name]={sheet,rect:frames[sheet][i]});
-// Independent building-card files keep each design replaceable without
-// repacking the legacy atlas that still supplies the two hire cards.
 SPRITES['card-torch']={sheet:'cardTorch',rect:[0,0,768,768]};
 SPRITES['card-wall']={sheet:'cardWall',rect:[0,0,768,768]};
 SPRITES['card-nest']={sheet:'cardNest',rect:[0,0,768,768]};
@@ -90,8 +86,6 @@ export function drawRanger(c,h,t,{moving=false,step=0,reduced=false,pose}={}){
   c.save();if(h.invulnerable>0&&Math.floor(t*20)%2)c.globalAlpha=.55;
   const spear=h.weapon==='spear',attacking=h.swing>0&&!reduced;
   const carry=()=>{c.save();c.translate(h.x,h.y+13);c.scale(pose.flip?-1:1,1);c.rotate(pose.lean||0);
-   // Keep stowed weapons high across the shoulder blades. The previous lower,
-   // near-vertical mount crossed the new running legs and read like a cane.
     drawWeapon(c,h.weapon,spear?0:-3,spear?-58:-51,{height:spear?70:h.weapon==='hammer'?58:52,anchorX:spear?.5:.34,anchorY:.5,rotation:spear?-.88:-.78});c.restore();};
   if(!attacking&&!pose.back)carry();
   const grip=drawCharacter(c,'ranger',h.x,h.y+13,pose,{weapon:h.weapon});

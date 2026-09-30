@@ -1,6 +1,5 @@
 import Foundation
 
-// Test the production diagnostic task lifecycle without UIKit or Apple sign-in.
 @MainActor final class DiagnosticHarness {
     final class Button { var isEnabled = true }
     private(set) static var authenticationInProgress = false
@@ -15,7 +14,7 @@ import Foundation
     private func append(_ line: String) { lines.append(line) }
     private func dismiss(animated: Bool) { dismissed = true }
 
-    /*__OPERATIONS__*/
+    
 
     private static var continuation: CheckedContinuation<Void, Never>?
     private static var entered = false
@@ -60,7 +59,6 @@ import Foundation
         query.run(timeout: 0) { _ in await waitForTestResult() }
         try await tick()
         precondition(query.runID == nil && query.buttons[0].isEnabled && !authenticationInProgress)
-        // A stale completion must not finish the next request.
         let oldContinuation = continuation!
         query.run(timeout: 5) { _ in await waitForTestResult() }
         try await tick()
