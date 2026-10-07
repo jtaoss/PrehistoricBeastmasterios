@@ -11,7 +11,8 @@ async function openVeteran(page,url){
 }
 async function approach(page,id){
   await page.waitForSelector('#camp:not([hidden])');
-  await page.evaluate(async id=>{const {CAMP_SITES}=await import('./camp-world.mjs'),s=CAMP_SITES.find(s=>s.id===id),ui=emberwildQA.campUI;ui.clear();ui.walk.restore({x:s.x,y:s.y+110});ui.painter.snap=true;ui.lastFrame=performance.now()-16;ui.frame(performance.now());},id);
+  const {CAMP_SITES}=await import('../camp-world.mjs'),site=CAMP_SITES.find(s=>s.id===id);
+  await page.evaluate(s=>{const ui=emberwildQA.campUI;ui.clear();ui.walk.restore({x:s.x,y:s.y+110});ui.painter.snap=true;ui.lastFrame=performance.now()-16;ui.frame(performance.now());},site);
   await page.waitForFunction(id=>emberwildQA.campUI.walk.nearest()?.id===id&&!document.querySelector('#camp-interact').disabled,id);
   await page.locator('#camp-interact').click();
 }

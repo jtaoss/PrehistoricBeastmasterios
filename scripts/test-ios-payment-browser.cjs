@@ -8,6 +8,7 @@ const root = path.resolve(__dirname,'..');
 const injected = fs.readFileSync(path.join(root,'PrehistoricBeastmaster/Web/InjectedScripts.swift'),'utf8');
 const pay = injected.slice(injected.indexOf('    static let paymentBridge = """'),injected.indexOf('    static let networkRestored')).split('"""')[1];
 const bridge = fs.readFileSync(path.join(root,'PrehistoricBeastmaster/Resources/js/android_bridge.js'),'utf8');
+const gameSDK = fs.readFileSync(path.join(root,'PrehistoricBeastmaster/Resources/js/game_sdk.js'),'utf8');
 (async()=>{
   const browser = await chromium.launch({headless:true,executablePath:process.env.PBM_CHROME_EXECUTABLE||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
   try {
@@ -22,7 +23,7 @@ const bridge = fs.readFileSync(path.join(root,'PrehistoricBeastmaster/Resources/
       </script>`});
       external.push(route.request().url());return route.abort();
     });
-    await context.addInitScript({content:`window.nativeMessages=[];window.webkit={messageHandlers:{android:{postMessage:function(m){window.nativeMessages.push(m)}}}};\n${bridge}\n${pay}`});
+    await context.addInitScript({content:`window.nativeMessages=[];window.webkit={messageHandlers:{android:{postMessage:function(m){window.nativeMessages.push(m)}}}};\n${bridge}\n${gameSDK}\n${pay}`});
     const page = await context.newPage();
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto('https://iap-only-tests.invalid/');

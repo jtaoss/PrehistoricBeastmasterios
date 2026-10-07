@@ -12,7 +12,7 @@ protocol H5BridgeHost: AnyObject {
     func onMiniAuthRequested(_ json: String)
     func onGameOrderFailed(_ json: String)
     func onRoleReported(_ json: String)
-    func onAnalyticsEvent(_ name: String, json: String?)
+    func onAnalyticsEvent(_ name: String, json: String?, isMiniGame: Bool)
     func openExternalURL(_ url: String)
     func openMainGame()
     func returnToGameCenter()
@@ -74,12 +74,13 @@ final class ShellLogBridge: NSObject, WKScriptMessageHandler {
     }
 }
 
-/// A deliberately narrow bridge for the bundled game only. Remote H5 pages
-/// cannot invoke native haptics through this handler.
+/// Only the local mini-game and its explicitly configured HTTPS pages receive haptics.
 final class GameHapticsBridge: NSObject, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.frameInfo.isMainFrame,
-              message.frameInfo.request.url?.isFileURL == true else { return }
+              let url = message.frameInfo.request.url,
+              IOSWebNavigationPolicy.isMiniGameURL(url, localGameDirectory: ShellConfig.localGameDirectory,
+                                                   remoteBaseURL: ShellConfig.miniGameRemoteBaseURL) else { return }
         let style: String
         if let body = message.body as? [String: Any] {
             style = String(describing: body["style"] ?? "light")
@@ -121,20 +122,20 @@ final class H5Bridge: NSObject, WKScriptMessageHandler {
         guard let body = message.body as? [String: Any] else { return }
         let method = String(describing: body["method"] ?? "")
         let payload = String(describing: body["payload"] ?? "")
-        let isTrustedLocalMainFrame = message.frameInfo.isMainFrame && Self.isBundledGame(message.frameInfo.request.url)
+        let isTrustedMiniGameMainFrame = message.frameInfo.isMainFrame && Self.isMiniGame(message.frameInfo.request.url)
         let isTrustedOnlineMainFrame = message.frameInfo.isMainFrame
             && message.frameInfo.request.url.flatMap { url in
                 onlineGameURL.map { IOSWebNavigationPolicy.isOnlineGameURL(url, configured: $0) }
             } == true
         DispatchQueue.main.async { [weak self] in
             self?.dispatch(method: method, payload: payload,
-                           isTrustedLocalMainFrame: isTrustedLocalMainFrame,
+                           isTrustedMiniGameMainFrame: isTrustedMiniGameMainFrame,
                            isTrustedOnlineMainFrame: isTrustedOnlineMainFrame)
         }
     }
 
     private func dispatch(method: String, payload: String,
-                          isTrustedLocalMainFrame: Bool, isTrustedOnlineMainFrame: Bool) {
+                          isTrustedMiniGameMainFrame: Bool, isTrustedOnlineMainFrame: Bool) {
         switch method {
         case "regsuccess", "loadComplete":
             host?.onH5Ready()
@@ -151,13 +152,13 @@ final class H5Bridge: NSObject, WKScriptMessageHandler {
             host?.onPayRequested(payload)
         case "miniPurchase":
             // Unlike the legacy remote-game payment bridge, this narrow entry
-            // point may only be called by the bundled game's main frame.
-            guard isTrustedLocalMainFrame else { return }
+            // point is limited to local or explicitly configured mini-game main frames.
+            guard isTrustedMiniGameMainFrame else { return }
             host?.onMiniPurchaseRequested(payload)
         case "miniAuth":
             // Passwords and tokens may only cross the native bridge from the
-            // bundled game's main frame. Remote content and iframes are denied.
-            guard isTrustedLocalMainFrame else { return }
+            // trusted mini-game main frame. Other remote content and iframes are denied.
+            guard isTrustedMiniGameMainFrame else { return }
             host?.onMiniAuthRequested(payload)
         case "gameOrderFailed":
             host?.onGameOrderFailed(payload)
@@ -165,9 +166,12 @@ final class H5Bridge: NSObject, WKScriptMessageHandler {
             host?.onRoleReported(payload)
         case "sdkEvent":
             let envelope = JSONObject.parse(payload)
-            host?.onAnalyticsEvent(envelope.string("name"), json: envelope.string("json"))
+            // Use the sending frame's captured identity; switching pages must
+            // not relabel an event already queued for asynchronous dispatch.
+            host?.onAnalyticsEvent(envelope.string("name"), json: envelope.string("json"),
+                                   isMiniGame: isTrustedMiniGameMainFrame)
         case "AF_Event_Name":
-            host?.onAnalyticsEvent("legacy_af_event", json: payload)
+            host?.onAnalyticsEvent("legacy_af_event", json: payload, isMiniGame: isTrustedMiniGameMainFrame)
         case "sdkToBrowser":
             host?.openExternalURL(payload)
         case "openMainGame":
@@ -184,14 +188,17 @@ final class H5Bridge: NSObject, WKScriptMessageHandler {
         }
     }
 
-    private static func isBundledGame(_ url: URL?) -> Bool {
-        guard let url, url.isFileURL,
-              let root = ShellConfig.localGameDirectory?.standardizedFileURL.path else { return false }
-        return url.standardizedFileURL.path.hasPrefix(root + "/")
+    private static func isMiniGame(_ url: URL?) -> Bool {
+        guard let url else { return false }
+        return IOSWebNavigationPolicy.isMiniGameURL(url, localGameDirectory: ShellConfig.localGameDirectory,
+                                                    remoteBaseURL: ShellConfig.miniGameRemoteBaseURL)
     }
 }
 
 final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
+    private var remoteMiniWatchdog: DispatchWorkItem?
+    private var remoteMiniLoadToken: UUID?
+    private(set) var remoteMiniGameUnavailable = false
     private(set) var onlineGameURL: URL?
     var onPageFinished: ((String) -> Void)?
     var onNavigationFailed: ((String) -> Void)?
@@ -217,8 +224,21 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
         let userContent = config.userContentController
         userContent.addUserScript(WKUserScript(source: Self.consoleBridgeScript, injectionTime: .atDocumentStart, forMainFrameOnly: false))
         userContent.addUserScript(WKUserScript(source: InjectedScripts.loadingRecovery, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        var sdkBootstrap = JSONObject()
+        sdkBootstrap.put("appId", ShellConfig.backendAppId)
+        sdkBootstrap.put("bundleId", ShellConfig.bundleId)
+        sdkBootstrap.put("channel", ShellConfig.channel)
+        sdkBootstrap.put("webSdkChannel", ShellConfig.webSdkChannel)
+        sdkBootstrap.put("payChannel", ShellConfig.payChannel)
+        sdkBootstrap.put("storeKitEnabled", ShellConfig.storeKitEnabled)
+        sdkBootstrap.put("miniGameBaseURL", ShellConfig.miniGameRemoteBaseURL?.absoluteString ?? "")
+        userContent.addUserScript(WKUserScript(source: InjectedScripts.sdkStatus(sdkBootstrap.jsonString()),
+                                               injectionTime: .atDocumentStart, forMainFrameOnly: true))
         if let androidBridge = Self.loadScript("android_bridge") {
             userContent.addUserScript(WKUserScript(source: androidBridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
+        if let gameSDK = Self.loadScript("game_sdk") {
+            userContent.addUserScript(WKUserScript(source: gameSDK, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
         if let analyticsBridge = Self.loadScript("analytics_bridge") {
             userContent.addUserScript(WKUserScript(source: analyticsBridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -258,6 +278,7 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     }
 
     deinit {
+        remoteMiniWatchdog?.cancel()
         let userContent = configuration.userContentController
         userContent.removeScriptMessageHandler(forName: "android")
         userContent.removeScriptMessageHandler(forName: "shellLog")
@@ -274,7 +295,71 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
         fatalError("init(coder:) has not been implemented")
     }
 
+    func isMiniGamePage(_ url: URL) -> Bool {
+        IOSWebNavigationPolicy.isMiniGameURL(url, localGameDirectory: ShellConfig.localGameDirectory,
+                                            remoteBaseURL: ShellConfig.miniGameRemoteBaseURL)
+    }
+
+    private func isRemoteMiniGamePage(_ url: URL) -> Bool {
+        IOSWebNavigationPolicy.isRemoteMiniGameURL(url, baseURL: ShellConfig.miniGameRemoteBaseURL)
+    }
+
+    func loadMiniGame() {
+        if !remoteMiniGameUnavailable, let base = ShellConfig.miniGameRemoteBaseURL {
+            localMusic.prepare()
+            loadTrustedURL(base.appendingPathComponent("index.html"))
+        } else {
+            loadLocalGame()
+        }
+    }
+
+    private func armRemoteMiniGameLoad() {
+        remoteMiniWatchdog?.cancel()
+        remoteMiniLoadToken = UUID()
+        let watchdog = DispatchWorkItem { [weak self] in _ = self?.fallBackToLocalMiniGame() }
+        remoteMiniWatchdog = watchdog
+        DispatchQueue.main.asyncAfter(deadline: .now() + 12, execute: watchdog)
+    }
+
+    @discardableResult func fallBackToLocalMiniGame() -> Bool {
+        guard remoteMiniLoadToken != nil else { return false }
+        remoteMiniGameUnavailable = true
+        remoteMiniLoadToken = nil
+        remoteMiniWatchdog?.cancel()
+        remoteMiniWatchdog = nil
+        recordDiagnostic("remote-mini-unavailable using-bundled-game")
+        stopLoading()
+        loadLocalGame()
+        return true
+    }
+
+    private func waitForRemoteMiniGameReady(_ page: URL, token: UUID) {
+        guard remoteMiniLoadToken == token, url == page else { return }
+        evaluateJavaScript("document.documentElement.dataset.bootReady === 'true'") { [weak self] value, _ in
+            guard let self, self.remoteMiniLoadToken == token, self.url == page else { return }
+            if value as? Bool == true {
+                self.remoteMiniWatchdog?.cancel()
+                self.remoteMiniWatchdog = nil
+                self.remoteMiniLoadToken = nil
+                self.onPageFinished?(page.absoluteString)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                    self?.waitForRemoteMiniGameReady(page, token: token)
+                }
+            }
+        }
+    }
+
+    func checkMiniGameReady() {
+        if let page = url, isRemoteMiniGamePage(page), let token = remoteMiniLoadToken {
+            waitForRemoteMiniGameReady(page, token: token)
+        }
+    }
+
     func loadLocalGame() {
+        remoteMiniLoadToken = nil
+        remoteMiniWatchdog?.cancel()
+        remoteMiniWatchdog = nil
         guard let fileURL = ShellConfig.localGameURL, let directory = ShellConfig.localGameDirectory else { return }
         localMusic.pauseAll()
         localMusic.prepare()
@@ -297,6 +382,7 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
             return
         }
         recordDiagnostic("load-remote \(url.absoluteString)")
+        if isRemoteMiniGamePage(url) { armRemoteMiniGameLoad() }
         localMusic.pauseAll()
         load(URLRequest(url: url))
     }
@@ -314,6 +400,9 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
             return
         }
         if isTrustedTopLevel(url) || shouldAllow(url) {
+            if navigationAction.targetFrame?.isMainFrame == true, isRemoteMiniGamePage(url) {
+                armRemoteMiniGameLoad()
+            }
             if navigationAction.targetFrame?.isMainFrame == true { localMusic.pauseAll() }
             decisionHandler(.allow)
             return
@@ -334,6 +423,13 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
         // Check the final destination too; an approved URL may HTTP-redirect.
         guard let url = navigationResponse.response.url else {
             decisionHandler(.cancel)
+            return
+        }
+        if navigationResponse.isForMainFrame, isRemoteMiniGamePage(url),
+           let response = navigationResponse.response as? HTTPURLResponse,
+           !(200..<300).contains(response.statusCode) {
+            decisionHandler(.cancel)
+            _ = fallBackToLocalMiniGame()
             return
         }
         if shouldAllow(url) || (!navigationResponse.isForMainFrame && url.absoluteString == "about:blank") {
@@ -357,7 +453,11 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
             self.recordRenderSnapshot(label: "after-4s", in: webView)
         }
         #endif
-        onPageFinished?(webView.url?.absoluteString ?? "")
+        if let page = webView.url, isRemoteMiniGamePage(page) {
+            checkMiniGameReady()
+        } else {
+            onPageFinished?(webView.url?.absoluteString ?? "")
+        }
     }
 
     #if DEBUG
@@ -410,12 +510,16 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        if (error as NSError).code == NSURLErrorCancelled { return }
+        if fallBackToLocalMiniGame() { return }
         recordDiagnostic("failed \(webView.url?.absoluteString ?? "<nil>") \(error.localizedDescription)")
         NSLog("[PBM-WEB] navigation failed: %@", error.localizedDescription)
         onNavigationFailed?(error.localizedDescription)
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        if (error as NSError).code == NSURLErrorCancelled { return }
+        if fallBackToLocalMiniGame() { return }
         recordDiagnostic("provisional-failed \(webView.url?.absoluteString ?? "<nil>") \(error.localizedDescription)")
         NSLog("[PBM-WEB] provisional navigation failed: %@", error.localizedDescription)
         onNavigationFailed?(error.localizedDescription)
@@ -440,7 +544,8 @@ final class TrustedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
 
     func isTrustedTopLevel(_ url: URL) -> Bool {
         return IOSWebNavigationPolicy.allowsInWebView(url, onlineGameURL: onlineGameURL,
-                                              localGameDirectory: ShellConfig.localGameDirectory)
+                                              localGameDirectory: ShellConfig.localGameDirectory,
+                                              miniGameBaseURL: ShellConfig.miniGameRemoteBaseURL)
     }
 
     func shouldAllow(_ url: URL) -> Bool {

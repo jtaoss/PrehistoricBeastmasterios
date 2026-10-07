@@ -32,6 +32,9 @@ enum ShellConfig {
     static var localGameDirectory: URL? {
         localGameURL?.deletingLastPathComponent()
     }
+    static var miniGameRemoteBaseURL: URL? {
+        IOSWebNavigationPolicy.validatedMiniGameBaseURL(info("ShellMiniGameRemoteBaseURL"))
+    }
 
     #if DEBUG
     static let isDebug = true
@@ -79,7 +82,36 @@ enum IOSWebNavigationPolicy {
             && url.path == "/ios-legal/privacy-policy.html"
     }
 
-    static func allowsInWebView(_ url: URL, onlineGameURL: URL?, localGameDirectory: URL?) -> Bool {
+    static func validatedMiniGameBaseURL(_ raw: String) -> URL? {
+        guard let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
+              isSafeHTTPS(url), url.query == nil, url.fragment == nil,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.percentEncodedPath.hasSuffix("/"), !components.percentEncodedPath.contains("//"),
+              !components.percentEncodedPath.contains("%") else { return nil }
+        return url
+    }
+
+    static func isRemoteMiniGameURL(_ url: URL, baseURL: URL?) -> Bool {
+        guard let baseURL, validatedMiniGameBaseURL(baseURL.absoluteString) != nil,
+              isSafeHTTPS(url), url.fragment == nil,
+              url.host?.lowercased() == baseURL.host?.lowercased(),
+              normalizedPort(url) == normalizedPort(baseURL),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let baseComponents = URLComponents(url: baseURL, resolvingAgainstBaseURL: false),
+              !components.percentEncodedPath.contains("%") else { return false }
+        return ["index.html", "login-preview.html"].contains { components.percentEncodedPath == baseComponents.percentEncodedPath + $0 }
+    }
+
+    static func isMiniGameURL(_ url: URL, localGameDirectory: URL?, remoteBaseURL: URL?) -> Bool {
+        if url.isFileURL, let root = localGameDirectory?.standardizedFileURL.path {
+            return url.standardizedFileURL.path.hasPrefix(root + "/")
+        }
+        return isRemoteMiniGameURL(url, baseURL: remoteBaseURL)
+    }
+
+    static func allowsInWebView(_ url: URL, onlineGameURL: URL?, localGameDirectory: URL?,
+                               miniGameBaseURL: URL? = nil) -> Bool {
+        if isRemoteMiniGameURL(url, baseURL: miniGameBaseURL) { return true }
         if url.isFileURL {
             guard let root = localGameDirectory?.standardizedFileURL.path else { return false }
             return url.standardizedFileURL.path.hasPrefix(root + "/")

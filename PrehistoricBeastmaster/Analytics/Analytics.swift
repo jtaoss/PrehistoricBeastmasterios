@@ -187,11 +187,12 @@ enum AnalyticsNames {
 final class AnalyticsManager {
     private static let longFields: Set<String> = [
         "duration", "score", "elapsed", "eggs", "best", "step_id", "current_step",
-        "time_spent", "days_diff", "current_balance"
+        "time_spent", "days_diff", "current_balance", "wave", "kills"
     ]
     private static let doubleFields: Set<String> = ["revenue", "price", "total_amount", "value"]
     private static let stringFields: Set<String> = [
-        "method", "server_id", "role_name", "product_id", "transaction_id", "currency"
+        "method", "server_id", "role_name", "product_id", "transaction_id", "currency",
+        "game_id", "run_id", "screen", "result"
     ]
 
     var isFirebaseConfigured: Bool { AnalyticsSDK.isFirebaseConfigured }
@@ -267,6 +268,9 @@ final class AnalyticsManager {
         fields: [String: Any]
     ) -> [AppEvents.ParameterName: Any] {
         var result: [AppEvents.ParameterName: Any] = [:]
+        if let gameId = fields["game_id"] as? String {
+            result[AppEvents.ParameterName("game_id")] = gameId
+        }
         if let productId = fields["product_id"] as? String {
             result[AppEvents.ParameterName("fb_content_id")] = productId
             result[AppEvents.ParameterName("fb_content_type")] = "product"
@@ -367,6 +371,7 @@ final class AnalyticsEventCoordinator {
     private let manager = AnalyticsManager()
     private let store = UserDefaults.standard
     private var sessionEvents = Set<String>()
+    private let gameId: String
     private var currentRole = RoleContext()
     private var currentAccount = ""
     private var sessionAccount = ""
@@ -379,7 +384,8 @@ final class AnalyticsEventCoordinator {
         "have_300_thousand"
     ]
 
-    init(now: @escaping () -> TimeInterval = { Date().timeIntervalSince1970 }) {
+    init(gameId: String = "main", now: @escaping () -> TimeInterval = { Date().timeIntervalSince1970 }) {
+        self.gameId = gameId
         self.now = now
     }
 
@@ -649,11 +655,18 @@ final class AnalyticsEventCoordinator {
     }
 
     private func emit(_ eventName: String, fields: JSONObject) {
-        manager.logEvent(eventName, json: fields.jsonString())
+        var tagged = fields
+        tagged.put("game_id", gameId)
+        manager.logEvent(eventName, json: tagged.jsonString())
     }
 
     private func stateKey(scope: String, eventName: String) -> String {
-        "analytics_event_\(ShellText.sha256Hex(scope.isEmpty ? "session" : scope))_\(eventName)"
+        let resolvedScope = scope.isEmpty ? "session" : scope
+        // Preserve the main game's existing markers and deduplicate verified
+        // transactions across BOTH games. Other milestones belong to one game.
+        let keyScope = gameId == "main" || eventName == "verified_purchase"
+            ? resolvedScope : "game|\(gameId)|\(resolvedScope)"
+        return "analytics_event_\(ShellText.sha256Hex(keyScope))_\(eventName)"
     }
 
     private func registrationMethod(_ raw: String) -> String {
@@ -661,6 +674,7 @@ final class AnalyticsEventCoordinator {
         if value.contains("facebook") || value == "fb" { return "FB" }
         if value.contains("google") { return "Google" }
         if value.contains("apple") || value.contains("ios") { return "Apple" }
+        if value == "account" { return "Account" }
         return "Guest"
     }
 

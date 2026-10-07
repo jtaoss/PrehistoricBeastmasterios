@@ -9,6 +9,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     private let miniGameAuth = MiniGameAuthService()
     private let paymentGate = PaymentRequestGate()
     private let analyticsEvents = AnalyticsEventCoordinator()
+    private let miniGameAnalyticsEvents = AnalyticsEventCoordinator(gameId: "emberwild")
     private var contentConfig = ContentConfig()
     private var contentRouteReleased = false
     private var contentSwitchInProgress = false
@@ -102,7 +103,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     @objc private func suspendLocalMenuMusic() {
-        guard let url = webView.url, isLocalGameCenter(url) else { return }
+        guard let url = webView.url, isMiniGameCenter(url) else { return }
         localMediaSuspended = true
         webView.evaluate("window.setShellAppActive?.(false)")
         webView.setAllMediaPlaybackSuspended(true, completionHandler: nil)
@@ -113,18 +114,19 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         localMediaSuspended = false
         webView.setAllMediaPlaybackSuspended(false) { [weak self] in
             guard let self, UIApplication.shared.applicationState == .active,
-                  let url = self.webView.url, self.isLocalGameCenter(url) else { return }
+                  let url = self.webView.url, self.isMiniGameCenter(url) else { return }
             self.webView.evaluate("window.setShellAppActive?.(true)")
             self.pushLowPowerState()
         }
     }
 
     @objc private func pushLowPowerState() {
-        guard let url = webView.url, isLocalGameCenter(url) else { return }
+        guard let url = webView.url, isMiniGameCenter(url) else { return }
         webView.evaluate("window.setShellLowPowerMode?.(\(ProcessInfo.processInfo.isLowPowerModeEnabled ? "true" : "false"))")
     }
 
     func onH5Ready() {
+        webView.checkMiniGameReady()
         installPaymentBridge()
         updateSdkStatus()
         callH5("initSuccess", fields: JSONObject())
@@ -199,6 +201,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     func onMiniPurchaseRequested(_ json: String) {
+        let sourcePage = webView.url
         let payload = JSONObject.parse(json)
         let offerId = payload.string("offerId")
         let clientRequestId = payload.string("clientRequestId")
@@ -227,7 +230,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
                     offerId: offerId, clientRequestId: clientRequestId, identity: identity
                 )
                 try Task.checkCancellation()
-                guard let url = self.webView.url, self.isLocalGameCenter(url) else {
+                guard let url = self.webView.url, url == sourcePage, self.isMiniGameCenter(url) else {
                     throw BackendGateway.GatewayError.message(
                         code: "MINI_GAME_LEFT", message: "已離開小遊戲，未發起付款"
                     )
@@ -290,7 +293,14 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
                 default:
                     return
                 }
-                guard let url = self.webView.url, self.isBundledMiniGamePage(url) else { return }
+                if ["logout", "delete"].contains(action) {
+                    self.miniGameAnalyticsEvents.onLogout()
+                } else if result.bool("authenticated"), !result.string("playerId").isEmpty {
+                    self.miniGameAnalyticsEvents.onAccountSession(
+                        JSONObject(["uid": result.string("playerId")]).jsonString()
+                    )
+                }
+                guard let url = self.webView.url, self.isMiniGamePage(url) else { return }
                 var fields = JSONObject()
                 fields.put("requestId", requestId)
                 fields.put("action", action)
@@ -326,8 +336,17 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         analyticsEvents.onRoleReported(json)
     }
 
-    func onAnalyticsEvent(_ name: String, json: String?) {
-        analyticsEvents.onH5Event(name, json: json)
+    func onAnalyticsEvent(_ name: String, json: String?, isMiniGame: Bool) {
+        let coordinator = isMiniGame ? miniGameAnalyticsEvents : analyticsEvents
+        coordinator.onH5Event(name, json: json)
+    }
+
+    private func paymentAnalytics(_ request: PayRequest?) -> AnalyticsEventCoordinator {
+        guard let request, UUID(uuidString: request.clientRequestId) != nil,
+              MiniGameProductCatalog.matches(goodsId: request.goodsId, productId: request.resolvedProductId()) else {
+            return analyticsEvents
+        }
+        return miniGameAnalyticsEvents
     }
 
     func openExternalURL(_ url: String) {
@@ -369,7 +388,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
             showToast("目前渠道僅開放主世界")
             return
         }
-        guard !(webView.url.map(isBundledMiniGamePage) ?? false) else { return }
+        guard !(webView.url.map(isMiniGamePage) ?? false) else { return }
         guard let blocker = contentSwitchBlocker else {
             beginContentSwitch(to: .mini)
             return
@@ -387,7 +406,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         refreshPaymentWaitControl()
         showPaymentProgress(request, message: "正在等待 App Store 付款，請勿重複點擊…")
         PaymentDebugLog.record("checkout-started product=\(productInfo.productId)")
-        analyticsEvents.onCheckoutStarted(request, productInfo)
+        paymentAnalytics(request).onCheckoutStarted(request, productInfo)
     }
 
     func onCheckoutReleased(_ request: PayRequest) {
@@ -411,7 +430,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         if let request {
             paymentGate.finish(request.cpOrder)
         }
-        analyticsEvents.onPurchaseSuccess(
+        paymentAnalytics(request).onPurchaseSuccess(
             request,
             orderId: orderId,
             transactionId: transactionId,
@@ -595,7 +614,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     private func reportMiniAuthFailure(requestId: String, action: String, code: String, message: String) {
-        guard let url = webView.url, isBundledMiniGamePage(url) else { return }
+        guard let url = webView.url, isMiniGamePage(url) else { return }
         var fields = JSONObject()
         fields.put("requestId", requestId)
         fields.put("action", action)
@@ -717,7 +736,8 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     private func onWebPageFinished(_ url: String) {
         finishContentSwitch()
         guard let parsed = URL(string: url) else { return }
-        if isBundledMiniGamePage(parsed) {
+        updateSdkStatus()
+        if isMiniGamePage(parsed) {
             webView.configureOnlineGameURL(nil)
             applyLocalContentMode()
             pushLowPowerState()
@@ -739,6 +759,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     private func onWebNavigationFailed(_ message: String) {
+        if webView.fallBackToLocalMiniGame() { return }
         guard contentSwitchInProgress else { return }
         restoreOnlineGameURLAfterFailedSwitch()
         finishContentSwitch()
@@ -747,7 +768,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     private func applyLocalContentMode() {
-        guard let url = webView.url, isBundledMiniGamePage(url) else { return }
+        guard let url = webView.url, isMiniGamePage(url) else { return }
         webView.evaluate(InjectedScripts.contentMode(currentContentMode().javascriptValue))
     }
 
@@ -776,7 +797,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
             // bundled-game order after the user changes surfaces.
             lastWebUsername = ""
             paymentSessionRevision += 1
-            webView.loadLocalGame()
+            webView.loadMiniGame()
         } else if let url = onlineURL ?? contentConfig.onlineGameURL,
                   webView.configureOnlineGameURL(url) {
             webView.loadTrustedURL(url)
@@ -788,6 +809,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         }
         let reset = DispatchWorkItem { [weak self] in
             guard let self, self.contentSwitchInProgress else { return }
+            if self.webView.fallBackToLocalMiniGame() { return }
             self.restoreOnlineGameURLAfterFailedSwitch()
             self.finishContentSwitch()
             self.showToast("切換逾時，請檢查網路後重試", duration: 5)
@@ -804,7 +826,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
     }
 
     private func restoreOnlineGameURLAfterFailedSwitch() {
-        if let current = webView.url, isBundledMiniGamePage(current) {
+        if let current = webView.url, isMiniGamePage(current) {
             webView.configureOnlineGameURL(nil)
         } else if let oldURL = previousOnlineGameURL,
                   let current = webView.url,
@@ -826,7 +848,7 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
             return
         }
         let onOnlineGame = isOnlineGamePage(currentURL)
-        let needsOnline = isBundledMiniGamePage(currentURL) && !mode.allowsMiniGame
+        let needsOnline = isMiniGamePage(currentURL) && !mode.allowsMiniGame
         let needsMini = onOnlineGame && !mode.allowsOnlineGame
         let needsUpdatedOnline = onOnlineGame && mode.allowsOnlineGame
             && contentConfig.onlineGameURL != webView.onlineGameURL
@@ -852,8 +874,8 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         reconcileContentRoute()
     }
 
-    private func isLocalGameCenter(_ url: URL) -> Bool {
-        url.isFileURL && url.lastPathComponent == "index.html"
+    private func isMiniGameCenter(_ url: URL) -> Bool {
+        isMiniGamePage(url) && url.lastPathComponent == "index.html"
     }
 
     private func isOnlineGamePage(_ url: URL?) -> Bool {
@@ -861,9 +883,8 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         return IOSWebNavigationPolicy.isOnlineGameURL(url, configured: configured)
     }
 
-    private func isBundledMiniGamePage(_ url: URL) -> Bool {
-        guard url.isFileURL, let root = ShellConfig.localGameDirectory?.standardizedFileURL.path else { return false }
-        return url.standardizedFileURL.path.hasPrefix(root + "/")
+    private func isMiniGamePage(_ url: URL) -> Bool {
+        webView.isMiniGamePage(url)
     }
 
     private func currentContentMode() -> ContentMode {
@@ -878,6 +899,12 @@ final class GameViewController: UIViewController, H5BridgeHost, StoreKitManager.
         var status = JSONObject()
         status.put("appId", ShellConfig.backendAppId)
         status.put("channel", ShellConfig.channel)
+        status.put("bundleId", ShellConfig.bundleId)
+        status.put("webSdkChannel", ShellConfig.webSdkChannel)
+        status.put("payChannel", ShellConfig.payChannel)
+        status.put("storeKitEnabled", ShellConfig.storeKitEnabled)
+        status.put("miniGameBaseURL", ShellConfig.miniGameRemoteBaseURL?.absoluteString ?? "")
+        status.put("gameId", webView.url.map(isMiniGamePage) == true ? "emberwild" : "main")
         status.put("accountLoginConfigured", true)
         status.put("loginMode", "web_sdk")
         status.put("googleConfigured", false)

@@ -33,3 +33,6 @@ MINI_GAME_ORDER_ENDPOINT = https:/$()/safthwysdk.antieh.com/v1/minigame/orders
 MINI_GAME_AUTH_BASE_URL = https:/$()/safthwysdk.antieh.com/v1/emberwild/auth/
 ALLOW_SIDELOAD_ORDER_HANDSHAKE = NO
 LOCAL_GAME_PATH = game/index.html
+// Optional HTTPS directory ending in '/'. Empty keeps the bundled game active.
+// Example syntax: https:/$()/games.example.com/emberwild/current/
+MINI_GAME_REMOTE_BASE_URL =

@@ -4,6 +4,7 @@ enum ShellConfig {
     static let channel = "xmwtwh5sqxssgp1"
     static let onlineGameURL = URL(string: "https://safthwyk.antieh.com/stoneage_tw/index_web_xmwtwh5sqxssgp1_https.html?os=ios_wk")
     static let localGameDirectory = URL(fileURLWithPath: "/fixture/App.app/game", isDirectory: true)
+    static var miniGameRemoteBaseURL: URL? = nil
 }
 enum WKNavigationActionPolicy { case allow, cancel }
 enum WKNavigationResponsePolicy { case allow, cancel }
@@ -28,6 +29,11 @@ final class TrustedWebView: WKWebView {
     var onlineGameURL: URL? = ShellConfig.onlineGameURL
     var onNavigationBlocked: (() -> Void)?
     var onPrivacyPolicyRequested: (() -> Void)?
+    private func isRemoteMiniGamePage(_ url: URL) -> Bool {
+        IOSWebNavigationPolicy.isRemoteMiniGameURL(url, baseURL: ShellConfig.miniGameRemoteBaseURL)
+    }
+    private func armRemoteMiniGameLoad() {}
+    @discardableResult func fallBackToLocalMiniGame() -> Bool { false }
     func recordDiagnostic(_ message: String) {}
     /* LOAD */
     /* NAVIGATION */

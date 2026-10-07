@@ -1,18 +1,28 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+import vm from 'node:vm';
 import {NativeStoreKitShop,StoreKitShopError} from '../storekit-shop.mjs';
 
 const offer={id:'pack-fortify',productId:'pbm_tier_099',goodsId:910001};
 const calls=[];
-const host={crypto:{randomUUID:()=> '11111111-1111-4111-8111-111111111111'},android:{miniPurchase:value=>calls.push(JSON.parse(value))}};
+const host={location:{protocol:'file:'},crypto:{randomUUID},webkit:{messageHandlers:{android:{postMessage:message=>{
+  assert.equal(message.method,'miniPurchase');calls.push(JSON.parse(message.payload));
+}}}}};
+// Exercise the shipped common SDK rather than a stand-in miniPurchase method.
+vm.runInNewContext(readFileSync(new URL('../../../PrehistoricBeastmaster/Resources/js/game_sdk.js',import.meta.url),'utf8'),{window:host});
 const shop=new NativeStoreKitShop(host);
 const purchase=shop.purchase(offer);
-assert.deepEqual(calls,[{offerId:'pack-fortify',clientRequestId:'11111111-1111-4111-8111-111111111111'}]);
+assert.equal(calls[0].offerId,'pack-fortify');
+assert.match(calls[0].clientRequestId,/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/);
 assert.throws(()=>shop.purchase(offer),error=>error instanceof StoreKitShopError&&error.code==='PAYMENT_IN_PROGRESS');
 assert.equal(shop.handle({func:'onPayResult',code:'0',clientRequestId:'other',transactionId:'1',orderId:'x'}),false);
 host.javaCallBack({func:'onPayResult',code:'0',clientRequestId:calls[0].clientRequestId,transactionId:'900000001',orderId:'MINI-1'});
 assert.deepEqual(await purchase,{offerId:'pack-fortify',clientRequestId:calls[0].clientRequestId,transactionId:'900000001',orderId:'MINI-1'});
 
 const cancelled=shop.purchase(offer);
+assert.notEqual(calls[0].clientRequestId,calls[1].clientRequestId);
+assert.equal(shop.handle({func:'onPayResult',code:'0',clientRequestId:calls[0].clientRequestId,transactionId:'900000001',orderId:'MINI-1'}),false,'a previous purchase cannot fulfill the next one');
 host.javaCallBack(JSON.stringify({func:'onPayCancel',code:'USER_CANCELED',message:'closed',clientRequestId:calls[1].clientRequestId}));
 await assert.rejects(cancelled,error=>error.code==='USER_CANCELED'&&error.message==='closed');
 assert.throws(()=>new NativeStoreKitShop({}).purchase(offer),error=>error.code==='IOS_APP_REQUIRED');

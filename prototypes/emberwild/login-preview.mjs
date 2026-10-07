@@ -1,6 +1,7 @@
 import {installLegalLinks} from './legal-links.mjs';
 import {AccountSession} from './account-session.mjs';
 import {NativeAccountAuth} from './native-auth.mjs';
+import {MiniGameTelemetry} from './game-telemetry.mjs';
 
 const TERMS_VERSION='2026-09-20';
 const ACCOUNT_PATTERN=/^[a-z0-9][a-z0-9_]{5,23}$/;
@@ -10,6 +11,7 @@ const form=$('auth-form'),dialog=$('preview-dialog');
 let storage=null;
 try{storage=window.localStorage;}catch{}
 const accountSession=new AccountSession(storage),nativeAuth=new NativeAccountAuth(window);
+const telemetry=new MiniGameTelemetry(window);
 const views={
   login:{title:'歡迎回到營地',eyebrow:'YOUR JOURNEY CONTINUES',copy:'使用你的正式帳號繼續旅程。',action:'安全登入'},
   register:{title:'寫下你的獵人之名',eyebrow:'EVERY LEGEND HAS A BEGINNING',copy:'建立帳號，讓身份與付款安全綁定。',action:'建立獵人帳號'},
@@ -99,6 +101,7 @@ form.addEventListener('submit',async event=>{
         ?await nativeAuth.register(account,password,nickname,TERMS_VERSION)
         :await nativeAuth.login(account,password);
       const session=accountSession.accept(result);renderSession();
+      if(submittedMode==='register')telemetry.registration(result);
       showDialog(submittedMode==='register'?'帳號已建立':'已登入遊戲',`${session.label}，安全登入已完成。令牌保存在 iOS Keychain，密碼未寫入遊戲存檔。`,true,returnToCamp?'index.html?enter=camp':'index.html');
       $('account').value='';$('nickname').value='';
     }

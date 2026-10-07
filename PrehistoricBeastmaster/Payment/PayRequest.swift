@@ -97,6 +97,10 @@ enum MiniGameProductCatalog {
     static func offer(_ id: String) -> Offer? {
         offers[id.trimmingCharacters(in: .whitespacesAndNewlines)]
     }
+
+    static func matches(goodsId: Int, productId: String) -> Bool {
+        offers.values.contains { $0.goodsId == goodsId && $0.productId == productId }
+    }
 }
 
 enum ProductCatalog {

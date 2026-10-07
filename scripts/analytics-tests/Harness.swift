@@ -241,4 +241,32 @@ check("H5 payment events and checkout cannot create a legacy delivery marker") {
     flow.onCheckoutStarted(try! PayRequest(json: "{\"cpOrder\":\"unit-order\",\"price\":\"0.99\"}"), twd)
     precondition(!AnalyticsEventCoordinator.hasLegacyVerifiedPurchase(transactionId: "unit-transaction"))
 }
+check("game attribution is native and role milestones remain independent even for equal identifiers") {
+    let main = AnalyticsEventCoordinator()
+    let mini = AnalyticsEventCoordinator(gameId: "emberwild")
+    let identity = "{\"uid\":\"shared-user\",\"role_id\":\"same-role\",\"server_id\":\"1\",\"game_id\":\"spoofed\"}"
+    main.onH5Event("NewRole_Tutorial", json: identity)
+    mini.onH5Event("NewRole_Tutorial", json: identity)
+    mini.onH5Event("NewRole_Tutorial", json: identity)
+    precondition(names() == ["tutorial_begin", "tutorial_begin"])
+    precondition(AnalyticsManager.events.map { $0.1.string("game_id") } == ["main", "emberwild"])
+    main.onH5Event("complete_registration", json: "{\"account_id\":\"same-account\",\"method\":\"account\"}")
+    mini.onH5Event("complete_registration", json: "{\"account_id\":\"same-account\",\"method\":\"account\"}")
+    precondition(names().filter { $0 == "complete_registration" }.count == 2)
+    precondition(AnalyticsManager.events.last!.1.string("method") == "Account")
+}
+check("a verified receipt remains globally deduplicated across games and recovery") {
+    success(AnalyticsEventCoordinator(gameId: "emberwild"))
+    success(AnalyticsEventCoordinator())
+    precondition(names() == ["game_purchase", "purchase_tier_0_99"])
+    precondition(AnalyticsManager.events.allSatisfy { $0.1.string("game_id") == "emberwild" })
+    precondition(AnalyticsEventCoordinator.hasLegacyVerifiedPurchase(transactionId: "unit-transaction"))
+    success(AnalyticsEventCoordinator(), id: "main-second")
+    precondition(AnalyticsManager.events.last!.1.string("game_id") == "main")
+}
+check("the same price tier does not classify unrelated main-game goods as mini-game goods") {
+    precondition(MiniGameProductCatalog.matches(goodsId: 910001, productId: "pbm_tier_099"))
+    precondition(!MiniGameProductCatalog.matches(goodsId: 123, productId: "pbm_tier_099"))
+    precondition(!MiniGameProductCatalog.matches(goodsId: 910001, productId: "pbm_tier_499"))
+}
 print("Analytics tests passed: \(passed)")

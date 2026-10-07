@@ -2,6 +2,7 @@ import { Expedition, CARDS, HIRES, DEPLOY_CARDS, UPGRADES, ACTIVE_SKILLS, WEAPON
 import { marketContent } from './merchant-ui.mjs';
 import { grantOffer, offerAvailable, offerContents, shopCheckoutHTML, shopOffer } from './shop.mjs';
 import { NativeStoreKitShop } from './storekit-shop.mjs';
+import {MiniGameTelemetry} from './game-telemetry.mjs';
 import { Painter, icon } from './art.mjs';
 import { SaveStore, SAVE_KEY, decode, encode, ensureCompanionState, ensureLoadoutState, ensureOfferPromptState, offerWeekKey } from './save.mjs';
 import { FACILITIES, CAMP_PRODUCTION, CAMP_TASKS, campWeaponUnlocked, collectCampProduction, claimCampTask, createExpedition, ensureCampProgress, hatchPlan } from './camp.mjs';
@@ -58,6 +59,7 @@ let shellContentMode='mini_only',shellSwitching=false,contentSwitchReturn='',she
 const backgroundMusic=new BackgroundMusic();
 const soundEffects=new SoundEffects();
 const nativeStoreKit=new NativeStoreKitShop(window);
+const telemetry=new MiniGameTelemetry(window,{disabled:Boolean(qaMode)});
 const nativeAuth=new NativeAccountAuth(window);
 const normalizeContentMode=value=>{
   const mode=String(value||'').trim().toLowerCase().replaceAll('-','_');
@@ -203,6 +205,7 @@ function mountRun(game){
   syncBackgroundMusic();
   if (!painter) painter = new Painter($('world')); else painter.resize();
   updateHUD();renderHand();refreshSaveUI();lastTime=performance.now();lastAutoSave=lastTime;
+  telemetry.start(game,accountSession.current,mandatoryTutorial(game));
 }
 async function start(replace=false) {
   if(working)return;working=true;
@@ -760,7 +763,7 @@ function pause(reason='manual') {
 }
 function handleEvents() {
   for (const ev of g.consumeEvents()) {
-    if(ev.type==='tutorial-step'||ev.type==='tutorial-reward'||ev.type==='tutorial-success'){clearInput();renderHand();checkpoint();if(ev.type==='tutorial-success')experience.haptic('success');}
+    if(ev.type==='tutorial-step'||ev.type==='tutorial-reward'||ev.type==='tutorial-success'){clearInput();renderHand();checkpoint();if(ev.type==='tutorial-success'){experience.haptic('success');telemetry.tutorialComplete(g);}}
     else if (ev.type === 'notice') notify(ev.message);
     else if(ev.type==='skill'){notify(ev.name);sound('skill');experience.haptic('medium');painter.shake=2;}
     else if(ev.type==='companion-ready'){notify(`${ev.name} · Lv.${ev.level} 已加入遠征`);sound('build');}
@@ -771,6 +774,7 @@ function handleEvents() {
     else if (ev.type === 'market-ready') {
       clearInput();showWaveLoot(ev);sound('combo');experience.haptic('success');checkpoint();
     } else if (ev.type === 'end') {
+      telemetry.complete(g,ev.won);
       experience.haptic(ev.won?'success':'warning');
       settle();
     } else { sound(ev.type);if(ev.type==='build')experience.haptic('medium');if(ev.type==='collect')experience.haptic('light');if (ev.type === 'hurt'){experience.haptic('warning');painter.shake = 4;}if(ev.type==='wave'){experience.haptic('heavy');hideWaveLoot();$('toast').classList.remove('visible');toastUntil=0;const arena=$('arena');arena.classList.remove('wave-starting');void arena.offsetWidth;arena.classList.add('wave-starting');setTimeout(()=>arena.classList.remove('wave-starting'),1100);} if(['build','wave','weapon'].includes(ev.type))checkpoint(); }
@@ -1029,6 +1033,7 @@ window.addEventListener('keydown', e => {
   keys.add(key);
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+window.addEventListener('pagehide',()=>telemetry.leave());
 window.addEventListener('blur', () => { clearInput(); if (g && !$('game').hidden && !modalKind) pause('background'); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInput(); if (g && !$('game').hidden && !modalKind) pause('background');flush(); } lastTime = performance.now(); });
 window.addEventListener('emberwild-shell-active',event=>{shellAppActive=Boolean(event.detail?.active);clearInput();campUI?.clear();if(!shellAppActive){if(g&&!$('game').hidden&&!modalKind)pause('background');flush();}lastTime=performance.now();});
@@ -1057,6 +1062,7 @@ syncBackgroundMusic();
 refreshSaveUI();
 window.setShellContentMode(sdkContentMode());
 window.emberwildBoot?.ready();
+telemetry.open();
 const entryIntent=new URLSearchParams(location.search).get('enter');
 if(entryIntent==='camp')refreshNativeAccount().then(()=>{
   if(entryIntent!=='camp')return;

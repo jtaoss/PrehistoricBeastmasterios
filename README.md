@@ -23,6 +23,54 @@ The Meta App Events SDK and Firebase Analytics event pipeline are integrated on 
 `AF_Event_Name`, `upRole`, and `upLoadAccountInfo` are bridged to native event validation and
 deduplication. Payment events are emitted only from the verified StoreKit flow.
 
+## Shared payment and analytics SDK
+
+The mini-game also has an independent static deployment build:
+`node scripts/build-emberwild-web.mjs`. It produces a versioned `.tar.gz`, hashes,
+public website files and operations scripts under `output/emberwild-deploy`,
+preserving both the source and the bundled iOS resources. See
+[the deployment handoff](handoff/emberwild-deploy/README.md).
+
+`MINI_GAME_REMOTE_BASE_URL` in `Config/Shared.xcconfig` is empty by default, so the
+app still loads its bundled mini-game. A future build may opt in to one configured
+HTTPS directory; only its two game/account entry pages receive the mini-game
+bridge. Navigation/HTTP failures or incomplete boot fall back to the bundled game.
+Remote and local browser saves occupy different origins: use the existing save
+export/import flow or add account save synchronization before migrating players.
+`node scripts/test-remote-mini-game.cjs` validates native URL/fallback behavior on
+macOS. No server deployment or live configuration change is part of this update.
+
+Both game pages receive the same document-start `window.pbmGameSDK` implementation
+from `PrehistoricBeastmaster/Resources/js/game_sdk.js`. The main game's existing
+`xmwsdk.dopay`/`android.pay` compatibility calls and Emberwild's shop enter the
+same native `StoreKitManager` and `BackendGateway` verification flow. Emberwild
+sends an offer ID and request UUID; native code creates its authenticated game
+order before checkout. Existing correlated callbacks and transaction-idempotent
+game delivery remain in place.
+
+`getConfig()` reads current public shell parameters (app, bundle, channel, payment
+channel and content mode). `purchase(request)` dispatches payment; completion
+continues through `javaCallBack`. `track(name, fields)` routes measurement through
+the shared native Meta/Firebase pipeline. Native code assigns `game_id=main` or
+`game_id=emberwild`; separate game contexts preserve each game's milestones, while
+verified receipt deduplication remains global. Revenue comes only from native
+verified transactions. Emberwild reports entry, loading, run start/result/leave,
+tutorial and accepted registration events; QA and practice runs are excluded.
+
+Common application/payment configuration remains in `Config/Shared.xcconfig`.
+This change does not add a backend parameter editor or migrate login accounts.
+Edit Emberwild in `prototypes/emberwild`, then run `node scripts/build-emberwild-ios.mjs`
+to update both classic bundles and the Xcode resource manifest. `.gitattributes`
+keeps hashed text bytes consistent between Windows and macOS.
+
+Validation: `node scripts/test-game-sdk.cjs`,
+`node prototypes/emberwild/tests/game-telemetry.test.mjs`, and
+`node prototypes/emberwild/tests/storekit-shop.test.mjs` run without network access.
+With Playwright available, `node scripts/test-game-sdk-browser.cjs` exercises the
+packaged game's real checkout UI using fixture native callbacks. On macOS run
+`node scripts/test-analytics-flow.cjs` for native attribution/deduplication tests,
+then perform device sandbox checkout and dashboard acceptance before release.
+
 ## Parity with Android (protocol only)
 
 | Area | Android | iOS |

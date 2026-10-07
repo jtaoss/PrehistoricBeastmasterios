@@ -3817,7 +3817,7 @@
       };
     }
     available() {
-      return typeof this.host.android?.miniPurchase === "function";
+      return typeof this.host.pbmGameSDK?.purchase === "function" && this.host.pbmGameSDK.isAvailable();
     }
     purchase(offer) {
       if (this.pending) throw new StoreKitShopError("PAYMENT_IN_PROGRESS", "已有一筆付款正在處理，請勿重複點擊");
@@ -3827,7 +3827,7 @@
       return new Promise((resolve, reject) => {
         this.pending = { clientRequestId, offerId: offer.id, resolve, reject };
         try {
-          this.host.android.miniPurchase(JSON.stringify({ offerId: offer.id, clientRequestId }));
+          this.host.pbmGameSDK.purchase({ offerId: offer.id, clientRequestId });
         } catch (error) {
           this.pending = null;
           reject(new StoreKitShopError("NATIVE_BRIDGE_FAILED", error?.message || "無法連接 App Store"));
@@ -3851,6 +3851,84 @@
         return true;
       }
       return false;
+    }
+  };
+
+  // prototypes/emberwild/game-telemetry.mjs
+  var MiniGameTelemetry = class {
+    constructor(host = globalThis, { disabled = false, now = () => Date.now() } = {}) {
+      this.host = host;
+      this.disabled = disabled;
+      this.now = now;
+      this.opened = false;
+      this.runs = /* @__PURE__ */ new Map();
+      this.active = null;
+    }
+    track(name, fields = {}) {
+      if (this.disabled) return false;
+      try {
+        return this.host.pbmGameSDK?.track(name, fields) === true;
+      } catch {
+        return false;
+      }
+    }
+    open() {
+      if (this.opened) return;
+      this.opened = true;
+      this.track("mini_game_open", { screen: "landing" });
+      this.track("Loading_completed", { screen: "landing" });
+    }
+    start(run, account = null, tutorial = false) {
+      if (!run?.runId || /^(qa-|practice-)/.test(run.runId)) return;
+      let record = this.runs.get(run.runId);
+      if (!record) {
+        record = { started: this.now(), finished: false, left: false, tutorialFinished: false, fields: {
+          run_id: run.runId,
+          uid: account?.playerId || "guest",
+          role_id: `emberwild:${account?.playerId || run.runId}`,
+          server_id: "emberwild",
+          role_name: account?.label || "荒境獵人"
+        } };
+        this.runs.set(run.runId, record);
+        this.track("mini_game_start", { ...record.fields, wave: run.wave || 0 });
+        this.track("view_content", record.fields);
+        if (tutorial) this.track("NewRole_Tutorial", record.fields);
+      }
+      this.active = record;
+    }
+    tutorialComplete(run) {
+      const record = this.runs.get(run?.runId);
+      if (!record || record.tutorialFinished) return;
+      record.tutorialFinished = true;
+      this.track("Tutorial_Completed", { ...record.fields, time_spent: this.elapsed(record) });
+    }
+    complete(run, won) {
+      const record = this.runs.get(run?.runId);
+      if (!record || record.finished) return;
+      record.finished = true;
+      this.track("mini_game_complete", {
+        ...record.fields,
+        result: won ? "win" : "lose",
+        wave: run.wave || 0,
+        kills: run.stats?.kills || 0,
+        elapsed: this.elapsed(record)
+      });
+    }
+    leave() {
+      const record = this.active;
+      if (!record || record.finished || record.left) return;
+      record.left = true;
+      this.track("mini_game_leave", { ...record.fields, elapsed: this.elapsed(record) });
+    }
+    registration(result) {
+      if (result?.authenticated && result.playerId) this.track("complete_registration", {
+        method: "account",
+        account_id: result.playerId,
+        uid: result.playerId
+      });
+    }
+    elapsed(record) {
+      return Math.max(0, Math.floor((this.now() - record.started) / 1e3));
     }
   };
 
@@ -5848,6 +5926,7 @@
     const backgroundMusic = new BackgroundMusic();
     const soundEffects = new SoundEffects();
     const nativeStoreKit = new NativeStoreKitShop(window);
+    const telemetry = new MiniGameTelemetry(window, { disabled: Boolean(qaMode) });
     const nativeAuth = new NativeAccountAuth(window);
     const normalizeContentMode = (value) => {
       const mode = String(value || "").trim().toLowerCase().replaceAll("-", "_");
@@ -6074,6 +6153,7 @@
       refreshSaveUI();
       lastTime = performance.now();
       lastAutoSave = lastTime;
+      telemetry.start(game, accountSession.current, mandatoryTutorial(game));
     }
     async function start(replace = false) {
       if (working) return;
@@ -7098,7 +7178,10 @@
           clearInput();
           renderHand();
           checkpoint();
-          if (ev.type === "tutorial-success") experience.haptic("success");
+          if (ev.type === "tutorial-success") {
+            experience.haptic("success");
+            telemetry.tutorialComplete(g);
+          }
         } else if (ev.type === "notice") notify(ev.message);
         else if (ev.type === "skill") {
           notify(ev.name);
@@ -7133,6 +7216,7 @@
           experience.haptic("success");
           checkpoint();
         } else if (ev.type === "end") {
+          telemetry.complete(g, ev.won);
           experience.haptic(ev.won ? "success" : "warning");
           settle();
         } else {
@@ -7723,6 +7807,7 @@
       keys.add(key);
     });
     window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+    window.addEventListener("pagehide", () => telemetry.leave());
     window.addEventListener("blur", () => {
       clearInput();
       if (g && !$3("game").hidden && !modalKind) pause("background");
@@ -7804,6 +7889,7 @@
     refreshSaveUI();
     window.setShellContentMode(sdkContentMode());
     window.emberwildBoot?.ready();
+    telemetry.open();
     const entryIntent = new URLSearchParams(location.search).get("enter");
     if (entryIntent === "camp") refreshNativeAccount().then(() => {
       if (entryIntent !== "camp") return;

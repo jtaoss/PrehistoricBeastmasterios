@@ -2,7 +2,7 @@ import AVFoundation
 import UIKit
 import WebKit
 
-// Only the bundled mini-game may control these two fixed, local audio files.
+// Only the bundled or explicitly configured mini-game may control fixed local audio.
 // Keep the bridge's menu/game aliases, but use the current Emberwild assets.
 final class LocalMusicPlayer: NSObject, WKScriptMessageHandlerWithReply {
     weak var webView: WKWebView?
@@ -23,8 +23,9 @@ final class LocalMusicPlayer: NSObject, WKScriptMessageHandlerWithReply {
     }
 
     private func isLocal(_ url: URL?) -> Bool {
-        guard let url, url.isFileURL, let expected = ShellConfig.localGameURL else { return false }
-        return url.standardizedFileURL.path == expected.standardizedFileURL.path
+        guard let url, url.lastPathComponent == "index.html" else { return false }
+        return IOSWebNavigationPolicy.isMiniGameURL(url, localGameDirectory: ShellConfig.localGameDirectory,
+                                                    remoteBaseURL: ShellConfig.miniGameRemoteBaseURL)
     }
 
     // Preparing once before the HTML loads keeps decoders warm across screen changes.
@@ -85,7 +86,7 @@ final class LocalMusicPlayer: NSObject, WKScriptMessageHandlerWithReply {
         guard message.frameInfo.isMainFrame, isLocal(message.frameInfo.request.url), isLocal(webView?.url),
               let body = message.body as? [String: Any], let action = body["action"] as? String,
               let key = body["track"] as? String, files[key] != nil else {
-            replyHandler(nil, "Local music is available only to the bundled game.")
+            replyHandler(nil, "Local music is available only to the trusted mini-game.")
             return
         }
         do {

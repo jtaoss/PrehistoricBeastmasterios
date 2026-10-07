@@ -1,0 +1,12 @@
+# The iOS resource guard hashes exact bytes. Keep packaged text and its sources
+# identical after checkout on Windows and macOS; binary assets stay binary.
+/prototypes/emberwild/** text=auto eol=lf
+/PrehistoricBeastmaster/Resources/game/** text=auto eol=lf
+/PrehistoricBeastmaster/Resources/js/*.js text eol=lf
+/scripts/build-emberwild-ios.mjs text eol=lf
+/scripts/build-emberwild-web.mjs text eol=lf
+/scripts/verify-emberwild-web.mjs text eol=lf
+/handoff/emberwild-deploy/** text=auto eol=lf
+/scripts/verify-emberwild-ios.sh text eol=lf
+/scripts/emberwild-resources.sha256 text eol=lf
+/scripts/emberwild-resources.xcfilelist text eol=lf

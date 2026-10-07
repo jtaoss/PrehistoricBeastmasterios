@@ -111,6 +111,7 @@ $(SRCROOT)/PrehistoricBeastmaster/Resources/game/engine.mjs
 $(SRCROOT)/PrehistoricBeastmaster/Resources/game/experience.css
 $(SRCROOT)/PrehistoricBeastmaster/Resources/game/experience.mjs
 $(SRCROOT)/PrehistoricBeastmaster/Resources/game/first-session.css
+$(SRCROOT)/PrehistoricBeastmaster/Resources/game/game-telemetry.mjs
 $(SRCROOT)/PrehistoricBeastmaster/Resources/game/index.html
 $(SRCROOT)/PrehistoricBeastmaster/Resources/game/ios-responsive.css
 $(SRCROOT)/PrehistoricBeastmaster/Resources/game/legal-links.mjs
@@ -247,6 +248,7 @@ $(SRCROOT)/prototypes/emberwild/engine.mjs
 $(SRCROOT)/prototypes/emberwild/experience.css
 $(SRCROOT)/prototypes/emberwild/experience.mjs
 $(SRCROOT)/prototypes/emberwild/first-session.css
+$(SRCROOT)/prototypes/emberwild/game-telemetry.mjs
 $(SRCROOT)/prototypes/emberwild/index.html
 $(SRCROOT)/prototypes/emberwild/ios-responsive.css
 $(SRCROOT)/prototypes/emberwild/legal-links.mjs
