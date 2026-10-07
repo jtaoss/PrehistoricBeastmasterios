@@ -1,3 +1,4 @@
+// Independent classic-script guard: never unlock a form whose handlers failed.
 (function(){
   var timer=setTimeout(failed,15000);
   function failed(){
@@ -9,10 +10,5 @@
     var retry=document.createElement('button');retry.textContent='重新載入';retry.style.cssText='padding:14px 24px;font:inherit;background:#eccc83;color:#15382e;border:0;border-radius:8px';
     retry.addEventListener('click',function(){location.reload();});panel.append(title,message,retry);document.body.append(panel);
   }
-  window.emberwildBoot={ready:function(){
-    clearTimeout(timer);document.documentElement.dataset.bootReady='true';
-    if(window.pbmNative&&typeof window.pbmNative.loadComplete==='function'){
-      window.pbmNative.loadComplete();
-    }
-  },failed:function(){clearTimeout(timer);failed();}};
+  window.emberwildBoot={ready:function(){clearTimeout(timer);document.documentElement.dataset.bootReady='true';try{if(typeof window.android?.loadComplete==='function')window.android.loadComplete();}catch(_){}},failed:function(){clearTimeout(timer);failed();}};
 })();

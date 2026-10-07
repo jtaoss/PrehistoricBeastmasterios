@@ -1,0 +1,22 @@
+/* Keep optional purchases dismissible without scrolling past the offers. */
+.promotion-modal .modal-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px);
+  overflow: hidden;
+}
+.promotion-modal #modal-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.promotion-modal #modal-actions { flex-shrink: 0; grid-template-columns: 1fr; padding-top: 10px; margin-top: 0; }
+.promotion-modal .promotion-dismiss { display: block; flex-shrink: 0; align-self: flex-end; min-width: 88px; min-height: 44px; padding: 8px 12px; margin: 0; border: 1px solid #bca269; border-radius: 8px; color: #ffedbc; background: #102c22; font-size: 15px; }
+.promotion-modal #modal-actions button { min-height: 44px; }
+.promotion-modal #modal-title { flex-shrink: 0; margin: 6px 0; }
+.promotion-modal #modal-copy { flex-shrink: 0; margin: 6px 0; font-size: 12px; line-height: 1.5; }
+.promotion-modal #modal-eyebrow { display: none; }
+.gift-center-card .shop-pay-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 54px; }
+.gift-center-card .shop-pay-btn i { font-size: 11px; white-space: nowrap; }
+.gift-center-card .shop-pay-btn b { font-size: 11px; line-height: 1.4; }
+@media (max-height: 500px) {
+  .promotion-modal .modal-panel { padding: 10px 14px; }
+  .promotion-modal #modal-copy { font-size: 11px; }
+  .promotion-modal #modal-title { font-size: 20px; }
+}
